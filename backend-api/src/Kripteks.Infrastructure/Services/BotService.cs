@@ -44,6 +44,7 @@ public class BotService : IBotService
                 Symbol = b.Symbol,
                 StrategyName = b.StrategyName,
                 Amount = b.Amount,
+                Interval = b.Interval,
                 StopLoss = b.StopLoss,
                 TakeProfit = b.TakeProfit,
                 Status = b.Status.ToString(),
@@ -72,6 +73,7 @@ public class BotService : IBotService
             Symbol = bot.Symbol,
             StrategyName = bot.StrategyName,
             Amount = bot.Amount,
+            Interval = bot.Interval,
             StopLoss = bot.StopLoss,
             TakeProfit = bot.TakeProfit,
             Status = bot.Status.ToString(),
@@ -122,6 +124,7 @@ public class BotService : IBotService
             Symbol = request.Symbol,
             StrategyName = request.StrategyId, 
             Amount = request.Amount,
+            Interval = request.Interval ?? "1h",
             StopLoss = request.StopLoss,
             TakeProfit = request.TakeProfit,
             Status = BotStatus.WaitingForEntry, // Pusu Modu

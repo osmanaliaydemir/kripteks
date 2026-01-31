@@ -8,6 +8,7 @@ public class BotDto
     public string Symbol { get; set; } = string.Empty;
     public string StrategyName { get; set; } = string.Empty;
     public decimal Amount { get; set; }
+    public string Interval { get; set; } = "1h";
     public decimal? StopLoss { get; set; }
     public decimal? TakeProfit { get; set; }
     public string Status { get; set; } = string.Empty; // Enum as string
@@ -25,6 +26,7 @@ public class CreateBotRequest
     public string Symbol { get; set; } = string.Empty;
     public string StrategyId { get; set; } = string.Empty; // strategy_id from frontend
     public decimal Amount { get; set; }
-    public decimal? TakeProfit { get; set; } // snake_case mapping will be handled by JSON options if needed, but C# standard is PascalCase. Next.js will send JSON.
+    public string Interval { get; set; } = "1h";
+    public decimal? TakeProfit { get; set; }
     public decimal? StopLoss { get; set; }
 }

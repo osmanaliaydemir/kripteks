@@ -6,6 +6,7 @@ public class Bot
     public string Symbol { get; set; } = string.Empty; // BTC/USDT
     public string StrategyName { get; set; } = string.Empty; // SMA_111
     public decimal Amount { get; set; }
+    public string Interval { get; set; } = "1h"; // 1m, 5m, 15m, 1h, 4h, 1d
     public decimal? StopLoss { get; set; }
     public decimal? TakeProfit { get; set; }
     public BotStatus Status { get; set; } = BotStatus.Stopped;

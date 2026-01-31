@@ -93,7 +93,8 @@ public class BotEngineService : BackgroundService
             IStrategy strategy = GetStrategy(bot.StrategyName);
             if (strategy == null) return;
 
-            var klines = await client.SpotApi.ExchangeData.GetKlinesAsync(bot.Symbol.Replace("/", ""), KlineInterval.OneHour, limit: 500);
+            var interval = GetKlineInterval(bot.Interval);
+            var klines = await client.SpotApi.ExchangeData.GetKlinesAsync(bot.Symbol.Replace("/", ""), interval, limit: 500);
             
             if (!klines.Success) {
                  _logger.LogWarning("Bot {Symbol} veri çekemedi: {Error}", bot.Symbol, klines.Error);
@@ -206,7 +207,8 @@ public class BotEngineService : BackgroundService
             IStrategy strategy = GetStrategy(bot.StrategyName);
             if (strategy != null)
             {
-                var klines = await client.SpotApi.ExchangeData.GetKlinesAsync(bot.Symbol.Replace("/", ""), KlineInterval.OneHour, limit: 500);
+                var interval = GetKlineInterval(bot.Interval);
+                var klines = await client.SpotApi.ExchangeData.GetKlinesAsync(bot.Symbol.Replace("/", ""), interval, limit: 500);
                 if (klines.Success)
                 {
                      var candles = klines.Data.Select(k => new Candle 
@@ -317,5 +319,25 @@ public class BotEngineService : BackgroundService
         if (id == "strategy-market-buy") return new MarketBuyStrategy();
         if (id == "strategy-golden-rose") return new GoldenRoseStrategy();
         return new GoldenRoseStrategy(); // Fallback
+    }
+
+    private KlineInterval GetKlineInterval(string interval)
+    {
+        return interval switch
+        {
+            "1m" => KlineInterval.OneMinute,
+            "3m" => KlineInterval.ThreeMinutes,
+            "5m" => KlineInterval.FiveMinutes,
+            "15m" => KlineInterval.FifteenMinutes,
+            "30m" => KlineInterval.ThirtyMinutes,
+            "1h" => KlineInterval.OneHour,
+            "2h" => KlineInterval.TwoHour,
+            "4h" => KlineInterval.FourHour,
+            "6h" => KlineInterval.SixHour,
+            "8h" => KlineInterval.EightHour,
+            "12h" => KlineInterval.TwelveHour,
+            "1d" => KlineInterval.OneDay,
+            _ => KlineInterval.OneHour
+        };
     }
 }
