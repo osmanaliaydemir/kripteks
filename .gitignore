@@ -1,0 +1,65 @@
+# Eski Projeler (Arşivlenmiş)
+_legacy_archive/
+
+# .NET
+backend-api/**/bin/
+backend-api/**/obj/
+backend-api/**/*.user
+backend-api/**/*.suo
+backend-api/**/*.cache
+backend-api/.vs/
+backend-api/**/.vscode/
+backend-api/**/*.dll
+backend-api/**/*.pdb
+
+# Next.js
+client-next/.next/
+client-next/out/
+client-next/node_modules/
+client-next/.env*.local
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Logs
+*.log
+uvicorn.log
+frontend.log
+
+# Environment Variables
+.env
+.env.local
+.env.production
+*.env
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+kripteks.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.Python
+*.so
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; padding: 20px; margin: 0; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .header { background-color: #ef4444; color: white; padding: 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .content { padding: 30px; }
+        .alert-box { background-color: #fef2f2; border: 1px solid #fee2e2; color: #b91c1c; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: 500; }
+        .details-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .details-table th { text-align: left; padding: 12px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 14px; }
+        .details-table td { padding: 12px; border-bottom: 1px solid #e2e8f0; color: #0f172a; font-weight: 600; font-size: 16px; }
+        .amount-row td { color: #ef4444; font-size: 18px; }
+        .footer { background-color: #f8fafc; padding: 15px; text-align: center; color: #94a3b8; font-size: 12px; border-top: 1px solid #e2e8f0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚠️ İşlem Başarısız</h1>
+        </div>
+        <div class="content">
+            <div class="alert-box">
+                {{StrategyName}} stratejisi <strong>{{Symbol}}</strong> için ALIM sinyali üretti ancak hesabınızda yeterli bakiye bulunamadığı için işlem açılamadı.
+            </div>
+
+            <table class="details-table">
+                <tr>
+                    <th>Kripto Varlık</th>
+                    <td>{{Symbol}}</td>
+                </tr>
+                <tr>
+                    <th>Strateji</th>
+                    <td>{{StrategyName}}</td>
+                </tr>
+                <tr>
+                    <th>İşlem Tutarı (Gereken)</th>
+                    <td>${{RequiredAmount}}</td>
+                </tr>
+                <tr>
+                    <th>Mevcut Bakiye</th>
+                    <td>${{CurrentBalance}}</td>
+                </tr>
+                <tr class="amount-row">
+                    <th>Eksik Tutar</th>
+                    <td>-${{MissingAmount}}</td>
+                </tr>
+            </table>
+
+            <p style="color: #64748b; font-size: 14px; text-align: center;">
+                Otomatik işlemlerin devam etmesi için lütfen hesabınıza bakiye yükleyiniz.
+            </p>
+        </div>
+        <div class="footer">
+            &copy; {{Year}} Kripteks Algorithmic Trading Bot
+        </div>
+    </div>
+</body>
+</html>
