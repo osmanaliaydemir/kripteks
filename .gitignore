@@ -2,21 +2,21 @@
 _legacy_archive/
 
 # .NET
-backend-api/**/bin/
-backend-api/**/obj/
-backend-api/**/*.user
-backend-api/**/*.suo
-backend-api/**/*.cache
-backend-api/.vs/
-backend-api/**/.vscode/
-backend-api/**/*.dll
-backend-api/**/*.pdb
+backend/**/bin/
+backend/**/obj/
+backend/**/*.user
+backend/**/*.suo
+backend/**/*.cache
+backend/.vs/
+backend/**/.vscode/
+backend/**/*.dll
+backend/**/*.pdb
 
 # Next.js
-client-next/.next/
-client-next/out/
-client-next/node_modules/
-client-next/.env*.local
+frontend/.next/
+frontend/out/
+frontend/node_modules/
+frontend/.env*.local
 
 # Node
 node_modules/

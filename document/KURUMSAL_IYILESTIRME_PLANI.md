@@ -22,7 +22,7 @@
 #### 1. **Backend - Middleware & Security**
 
 - [ ] **Global Exception Handler Middleware** ekle
-  - Lokasyon: `backend-api/src/Kripteks.Api/Middleware/ExceptionMiddleware.cs`
+  - Lokasyon: `backend/src/Kripteks.Api/Middleware/ExceptionMiddleware.cs`
   - Tüm hataları merkezi olarak yakala ve loglama yap
   
 - [ ] **Request Logging Middleware** ekle
@@ -49,17 +49,17 @@
 
 - [ ] **FluentValidation** ekle
   - `CreateBotRequest`, `LoginRequest` gibi DTOlar için validation rules
-  - Lokasyon: `backend-api/src/Kripteks.Core/Validators/`
+  - Lokasyon: `backend/src/Kripteks.Core/Validators/`
   
 - [ ] **AutoMapper** ekle
   - Entity ↔ DTO dönüşümleri için
-  - Lokasyon: `backend-api/src/Kripteks.Infrastructure/Mappings/`
+  - Lokasyon: `backend/src/Kripteks.Infrastructure/Mappings/`
 
 #### 4. **Backend - Repository Pattern**
 
 - [ ] **Generic Repository** pattern ekle
   - `IRepository<T>`, `Repository<T>` oluştur
-  - Lokasyon: `backend-api/src/Kripteks.Core/Repositories/`
+  - Lokasyon: `backend/src/Kripteks.Core/Repositories/`
   - Tüm DbContext erişimlerini buradan yap
   
 - [ ] **Unit of Work** pattern ekle
@@ -68,12 +68,12 @@
 #### 5. **Backend - Testing**
 
 - [ ] **Unit Tests** projesi oluştur
-  - Lokasyon: `backend-api/tests/Kripteks.UnitTests/`
+  - Lokasyon: `backend/tests/Kripteks.UnitTests/`
   - xUnit + Moq kullan
   - Services ve Strategies test et
   
 - [ ] **Integration Tests** projesi oluştur
-  - Lokasyon: `backend-api/tests/Kripteks.IntegrationTests/`
+  - Lokasyon: `backend/tests/Kripteks.IntegrationTests/`
   - API endpoints test et
 
 #### 6. **Backend - Documentation**
@@ -84,7 +84,7 @@
   - Authorization için Bearer token açıklaması
   
 - [ ] **README.md** ekle
-  - Lokasyon: `backend-api/README.md`
+  - Lokasyon: `backend/README.md`
   - Setup, migration, seeding açıklamaları
 
 ---
@@ -106,20 +106,20 @@
 - [ ] **Hangfire** entegrasyonu
   - BotEngine'i Hangfire ile yönet
   - Dashboard ekle
-  - Lokasyon: `backend-api/src/Kripteks.Api/Jobs/`
+  - Lokasyon: `backend/src/Kripteks.Api/Jobs/`
 
 #### 9. **Backend - Caching**
 
 - [ ] **IMemoryCache** veya **Redis** entegrasyonu
   - Market data için cache
   - Strategy results cache
-  - Lokasyon: `backend-api/src/Kripteks.Infrastructure/Caching/`
+  - Lokasyon: `backend/src/Kripteks.Infrastructure/Caching/`
 
 #### 10. **Backend - Email Templates**
 
 - [ ] HTML Email template engine
   - Razor Pages veya Handlebars kullan
-  - Lokasyon: `backend-api/src/Kripteks.Api/EmailTemplates/`
+  - Lokasyon: `backend/src/Kripteks.Api/EmailTemplates/`
   - Alert, Report, Welcome gibi template'ler
 
 #### 11. **Frontend - State Management**
@@ -127,7 +127,7 @@
 - [ ] **Zustand** veya **Redux Toolkit** ekle
   - Global state management
   - User, Wallet, Bots state'leri için
-  - Lokasyon: `client-next/src/store/`
+  - Lokasyon: `frontend/src/store/`
 
 #### 12. **Frontend - API Layer**
 
@@ -135,7 +135,7 @@
   - Merkezi error handling
   - Automatic retry
   - Cache management
-  - Lokasyon: `client-next/src/api/` (mevcut `lib/api.ts` yerine)
+  - Lokasyon: `frontend/src/api/` (mevcut `lib/api.ts` yerine)
 
 #### 13. **Frontend - Form Management**
 
@@ -161,7 +161,7 @@
 - [ ] **Vitest** + **React Testing Library**
   - Component tests
   - Integration tests
-  - Lokasyon: `client-next/__tests__/`
+  - Lokasyon: `frontend/__tests__/`
 
 ---
 
@@ -219,7 +219,7 @@
 ### Backend (Güncellenmiş)
 
 ```
-backend-api/
+backend/
 ├── src/
 │   ├── Kripteks.Api/
 │   │   ├── Controllers/
@@ -266,7 +266,7 @@ backend-api/
 ### Frontend (Güncellenmiş)
 
 ```
-client-next/
+frontend/
 ├── src/
 │   ├── app/
 │   │   ├── (auth)/            ⭐ YENİ (Route groups)
@@ -360,18 +360,18 @@ document/
 
 ### Gün 3-4: Testing Altyapısı
 
-4. Unit test projesi kurulumu
+1. Unit test projesi kurulumu
 2. İlk test senaryoları (BotService, Strategies)
 
 ### Gün 5-6: Frontend İyileştirmeleri
 
-6. Atomic Design reorganization
+1. Atomic Design reorganization
 2. React Query entegrasyonu
 3. Form validation (Zod)
 
 ### Gün 7: Dokümantasyon
 
-9. API README
+1. API README
 2. Setup guide
 3. Architecture diagrams (basit şema)
 

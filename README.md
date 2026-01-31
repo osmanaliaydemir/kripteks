@@ -60,7 +60,7 @@
 ### Backend Kurulumu
 
 ```bash
-cd backend-api/src/Kripteks.Api
+cd backend/src/Kripteks.Api
 dotnet restore
 dotnet ef database update
 dotnet run --urls "http://localhost:5001"
@@ -69,7 +69,7 @@ dotnet run --urls "http://localhost:5001"
 ### Frontend Kurulumu
 
 ```bash
-cd client-next
+cd frontend
 npm install
 npm run dev
 ```
