@@ -26,51 +26,61 @@ var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = System.Text.Encoding.UTF8.GetBytes(jwtSettings["Secret"] ?? "default_secret_key_must_be_long_2026");
 
 builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(secretKey)
-    };
-
-    // SignalR için Token Okuma Ayarı (WebSocket Header desteklemez, QueryString kullanır)
-    options.Events = new JwtBearerEvents
+        options.DefaultAuthenticateScheme =
+            Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme =
+            Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
     {
-        OnMessageReceived = context =>
+        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
         {
-            var accessToken = context.Request.Query["access_token"];
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtSettings["Issuer"],
+            ValidAudience = jwtSettings["Audience"],
+            IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(secretKey)
+        };
 
-            // Bot Hub'ına gelen isteklerde token varsa al
-            var path = context.HttpContext.Request.Path;
-            if (!string.IsNullOrEmpty(accessToken) &&
-                (path.StartsWithSegments("/bot-hub")))
+        // SignalR için Token Okuma Ayarı (WebSocket Header desteklemez, QueryString kullanır)
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
             {
-                context.Token = accessToken;
+                var accessToken = context.Request.Query["access_token"];
+
+                // Bot Hub'ına gelen isteklerde token varsa al
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    (path.StartsWithSegments("/bot-hub")))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
             }
-            return Task.CompletedTask;
-        }
-    };
-});
+        };
+    });
 // Servislerin Kaydı (Dependency Injection)
 builder.Services.AddScoped<Kripteks.Core.Interfaces.IBotService, Kripteks.Infrastructure.Services.BotService>();
-builder.Services.AddSingleton<Kripteks.Core.Interfaces.IMarketDataService, Kripteks.Infrastructure.Services.BinanceMarketService>();
+builder.Services
+    .AddSingleton<Kripteks.Core.Interfaces.IMarketDataService, Kripteks.Infrastructure.Services.BinanceMarketService>();
 builder.Services.AddScoped<Kripteks.Infrastructure.Services.BacktestService>();
-builder.Services.AddSingleton<Binance.Net.Interfaces.Clients.IBinanceRestClient, Binance.Net.Clients.BinanceRestClient>();
-builder.Services.AddTransient<Kripteks.Core.Interfaces.IMailService, Kripteks.Infrastructure.Services.GmailMailService>();
-builder.Services.AddTransient<Kripteks.Core.Interfaces.INotificationService, Kripteks.Api.Services.SignalRNotificationService>();
-builder.Services.AddScoped<Kripteks.Core.Interfaces.IAnalyticsService, Kripteks.Infrastructure.Services.AnalyticsService>();
+builder.Services
+    .AddSingleton<Binance.Net.Interfaces.Clients.IBinanceRestClient, Binance.Net.Clients.BinanceRestClient>();
+builder.Services
+    .AddTransient<Kripteks.Core.Interfaces.IMailService, Kripteks.Infrastructure.Services.GmailMailService>();
+builder.Services
+    .AddTransient<Kripteks.Core.Interfaces.INotificationService, Kripteks.Api.Services.SignalRNotificationService>();
+builder.Services
+    .AddScoped<Kripteks.Core.Interfaces.IAnalyticsService, Kripteks.Infrastructure.Services.AnalyticsService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddSingleton<ILogService, LogService>(); // Singleton olabilir çünkü scope factory kullanıyor // <--- EKLENDİ (Mail Servisi)
+builder.Services
+    .AddSingleton<ILogService,
+        LogService>(); // Singleton olabilir çünkü scope factory kullanıyor // <--- EKLENDİ (Mail Servisi)
 
 // Arka Plan Servisleri (Bot Engine)
 builder.Services.AddHostedService<Kripteks.Infrastructure.Services.BotEngineService>();
@@ -87,13 +97,13 @@ builder.Services.AddCors(options =>
         builder =>
         {
             builder.SetIsOriginAllowed(origin => true) // SignalR İçin Önemli
-                   .AllowAnyMethod()
-                   .AllowAnyHeader()
-                   .AllowCredentials(); // SignalR İçin Önemli
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials(); // SignalR İçin Önemli
         });
 });
 
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(hubOptions => { hubOptions.EnableDetailedErrors = true; });
 
 var app = builder.Build();
 
@@ -106,12 +116,11 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference(); // Serves Scalar UI at /scalar/v1
 }
 
-app.UseHttpsRedirection();
 
+// app.UseHttpsRedirection(); // Localhost'ta sorun çıkarabilir
 app.UseCors("AllowAll"); // Keeping original CORS policy name as "AllowNextJs" was not defined.
-
 app.UseAuthentication(); // KİMLİK DOĞRULAMA (Login oldun mu?)
-app.UseAuthorization();  // YETKİLENDİRME (Yetkin var mı?)
+app.UseAuthorization(); // YETKİLENDİRME (Yetkin var mı?)
 
 // Seed Data
 using (var scope = app.Services.CreateScope())

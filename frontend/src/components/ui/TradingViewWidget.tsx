@@ -13,9 +13,11 @@ const TradingViewWidget = memo(({ symbol, strategy }: TradingViewWidgetProps) =>
         const script = document.createElement("script");
         script.src = "https://s3.tradingview.com/tv.js";
         script.async = true;
+        const currentContainer = container.current;
+
         script.onload = () => {
-            // @ts-ignore
-            if (window.TradingView && container.current) {
+            // @ts-expect-error External library
+            if (window.TradingView && currentContainer) {
                 // Stratejiye göre indikatörleri belirle
                 const studies: string[] = [];
 
@@ -30,7 +32,7 @@ const TradingViewWidget = memo(({ symbol, strategy }: TradingViewWidgetProps) =>
                     studies.push("STD;SMA@tv-basicstudies"); // Simple Moving Average
                 }
 
-                // @ts-ignore
+                // @ts-expect-error External library
                 new window.TradingView.widget({
                     "autosize": true,
                     "symbol": "BINANCE:" + symbol.replace('/', ''),
@@ -44,7 +46,7 @@ const TradingViewWidget = memo(({ symbol, strategy }: TradingViewWidgetProps) =>
                     "hide_top_toolbar": false,
                     "hide_legend": false,
                     "save_image": false,
-                    "container_id": container.current.id,
+                    "container_id": currentContainer.id,
 
                     // Kripteks Teması - Koyu Mod Entegrasyonu
                     "backgroundColor": "#0f172a", // Slate-900 (Ana arka plan)
@@ -101,15 +103,15 @@ const TradingViewWidget = memo(({ symbol, strategy }: TradingViewWidgetProps) =>
             }
         };
 
-        container.current?.appendChild(script);
+        currentContainer?.appendChild(script);
 
         return () => {
-            if (container.current) container.current.innerHTML = "";
+            if (currentContainer) currentContainer.innerHTML = "";
         }
     }, [symbol, strategy]);
 
     return (
-        <div className="h-[500px] w-full rounded-2xl overflow-hidden border border-slate-700/50 mt-4 mb-4 relative shadow-2xl bg-slate-900">
+        <div className="w-full h-[500px] glass-card rounded-2xl overflow-hidden relative mt-4 mb-4">
             <div id={`tv_chart_${symbol.replace('/', '')}`} ref={container} className="h-full w-full" />
         </div>
     );

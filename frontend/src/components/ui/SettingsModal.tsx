@@ -1,10 +1,8 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import { X, Key, Settings, User, Save, Eye, EyeOff, ShieldCheck, AlertTriangle, CheckCircle, UserPlus, Trash, BadgeCheck } from "lucide-react";
-import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect } from "react";
 import { SettingsService, UserService } from "@/lib/api";
+import { toast } from "sonner";
+import { AnimatePresence, motion } from "framer-motion";
+import { AlertTriangle, CheckCircle, Eye, EyeOff, Key, Save, Settings, Trash, User, UserPlus, X, BadgeCheck } from "lucide-react";
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -26,8 +24,8 @@ export default function SettingsModal({ isOpen, onClose, activeTab = 'api' }: Se
     // User Management States
     const [users, setUsers] = useState<any[]>([]);
     const [isAddingUser, setIsAddingUser] = useState(false);
-    const [showUserPassword, setShowUserPassword] = useState(false); // Yeni state
-    const [newUser, setNewUser] = useState({ firstName: "", lastName: "", email: "", password: "", role: "User" }); // Rol eklendi
+    const [showUserPassword, setShowUserPassword] = useState(false);
+    const [newUser, setNewUser] = useState({ firstName: "", lastName: "", email: "", password: "", role: "User" });
 
     // Prop değiştiğinde tab'ı güncelle
     useEffect(() => {
@@ -63,8 +61,26 @@ export default function SettingsModal({ isOpen, onClose, activeTab = 'api' }: Se
         }
     };
 
+    const handleDeleteUser = async (id: string, role: string) => {
+        if (role === 'Admin') {
+            toast.error("İşlem Engellendi", { description: "Yönetici yetkisine sahip kullanıcılar silinemez!" });
+            return;
+        }
+
+        if (!confirm("Bu kullanıcıyı silmek istediğinize emin misiniz?")) return;
+
+        try {
+            await UserService.delete(id);
+            toast.success("Kullanıcı Silindi", { description: "Kullanıcı başarıyla sistemden kaldırıldı." });
+            loadUsers();
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : "Silme işlemi başarısız.";
+            toast.error("Hata", { description: errorMessage });
+        }
+    };
+
     const handleAddUser = async () => {
-        const { firstName, lastName, email, password, role } = newUser;
+        const { firstName, lastName, email, password } = newUser;
         if (!firstName || !lastName || !email || !password) {
             toast.error("Eksik Bilgi", { description: "Lütfen tüm alanları doldurunuz." });
             return;
@@ -74,11 +90,12 @@ export default function SettingsModal({ isOpen, onClose, activeTab = 'api' }: Se
             await UserService.create(newUser);
             toast.success("Başarılı", { description: "Yeni kullanıcı eklendi." });
             setNewUser({ firstName: "", lastName: "", email: "", password: "", role: "User" });
-            setShowUserPassword(false); // <--- Şifre görünürlüğünü sıfırla
+            setShowUserPassword(false);
             setIsAddingUser(false);
             loadUsers();
-        } catch (error: any) {
-            toast.error("Hata", { description: error.message || "Kullanıcı eklenemedi." });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : "Kullanıcı eklenemedi.";
+            toast.error("Hata", { description: errorMessage });
         }
     };
 
@@ -116,13 +133,13 @@ export default function SettingsModal({ isOpen, onClose, activeTab = 'api' }: Se
                     {/* SIDEBAR */}
                     <div className="w-full md:w-64 bg-slate-950/50 border-r border-slate-800 p-4 flex flex-col gap-2">
                         <div className="mb-6 px-2">
-                            <h2 className="text-lg font-bold text-white">Ayarlar</h2>
+                            <h2 className="text-lg font-bold text-white font-display">Ayarlar</h2>
                             <p className="text-xs text-slate-500">Sistem yapılandırması</p>
                         </div>
 
                         <button
                             onClick={() => setCurrentTab('api')}
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${currentTab === 'api' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-sm' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${currentTab === 'api' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20 shadow-sm' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
                         >
                             <Key size={18} />
                             API Bağlantıları
@@ -150,7 +167,7 @@ export default function SettingsModal({ isOpen, onClose, activeTab = 'api' }: Se
                         {/* Header */}
                         <div className="h-16 border-b border-slate-800 flex items-center justify-between px-6 shrink-0">
                             <div>
-                                <h3 className="text-lg font-bold text-white">
+                                <h3 className="text-lg font-bold text-white font-display">
                                     {currentTab === 'api' && 'Borsa API Bağlantıları'}
                                     {currentTab === 'general' && 'Sistem Ayarları'}
                                     {currentTab === 'users' && 'Kullanıcı Yönetimi'}
@@ -168,37 +185,37 @@ export default function SettingsModal({ isOpen, onClose, activeTab = 'api' }: Se
                             {currentTab === 'api' && (
                                 <div className="space-y-6 max-w-2xl">
                                     {existingKey && (
-                                        <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 flex gap-3 items-center">
-                                            <CheckCircle className="text-green-500 shrink-0" size={20} />
+                                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex gap-3 items-center">
+                                            <CheckCircle className="text-emerald-500 shrink-0" size={20} />
                                             <div>
-                                                <p className="text-sm font-bold text-green-500">API Bağlantısı Aktif</p>
-                                                <p className="text-xs text-green-500/80 font-mono">Anahtar: {existingKey}</p>
+                                                <p className="text-sm font-bold text-emerald-500">API Bağlantısı Aktif</p>
+                                                <p className="text-xs text-emerald-500/80 font-mono">Anahtar: {existingKey}</p>
                                             </div>
                                         </div>
                                     )}
 
-                                    <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 flex gap-3">
-                                        <AlertTriangle className="text-yellow-500 shrink-0" size={20} />
+                                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-3">
+                                        <AlertTriangle className="text-amber-500 shrink-0" size={20} />
                                         <div>
-                                            <p className="text-sm font-bold text-yellow-500 mb-1">Güvenlik Uyarısı</p>
-                                            <p className="text-xs text-yellow-500/80 leading-relaxed">
+                                            <p className="text-sm font-bold text-amber-500 mb-1">Güvenlik Uyarısı</p>
+                                            <p className="text-xs text-amber-500/80 leading-relaxed">
                                                 API anahtarlarınız sunucularımızda şifrelenmiş olarak saklanır.
-                                                Güvenliğiniz için "Para Çekme (Withdrawal)" iznini <u>asla</u> aktifleştirmeyin.
-                                                Sadece "Spot Trading" ve "Futures Trading" izinleri yeterlidir.
+                                                Güvenliğiniz için &quot;Para Çekme (Withdrawal)&quot; iznini <u>asla</u> aktifleştirmeyin.
+                                                Sadece &quot;Spot Trading&quot; ve &quot;Futures Trading&quot; izinleri yeterlidir.
                                             </p>
                                         </div>
                                     </div>
 
                                     <div className="space-y-4">
                                         <div className="space-y-2">
-                                            <label className="text-sm font-medium text-slate-300">Binance API Key</label>
+                                            <label className="text-sm font-medium text-slate-300">Binance API Anahtarı</label>
                                             <div className="relative">
                                                 <input
                                                     type={showApiKey ? "text" : "password"}
                                                     value={apiKey}
                                                     onChange={(e) => setApiKey(e.target.value)}
-                                                    placeholder="Enter your API Key"
-                                                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 font-mono transition-all"
+                                                    placeholder="API Anahtarınızı giriniz"
+                                                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 font-mono transition-all"
                                                 />
                                                 <button
                                                     onClick={() => setShowApiKey(!showApiKey)}
@@ -210,14 +227,14 @@ export default function SettingsModal({ isOpen, onClose, activeTab = 'api' }: Se
                                         </div>
 
                                         <div className="space-y-2">
-                                            <label className="text-sm font-medium text-slate-300">Binance Secret Key</label>
+                                            <label className="text-sm font-medium text-slate-300">Binance Gizli Anahtar (Secret Key)</label>
                                             <div className="relative">
                                                 <input
                                                     type={showSecretKey ? "text" : "password"}
                                                     value={secretKey}
                                                     onChange={(e) => setSecretKey(e.target.value)}
-                                                    placeholder="Enter your Secret Key"
-                                                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 font-mono transition-all"
+                                                    placeholder="Gizli Anahtarınızı giriniz"
+                                                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 font-mono transition-all"
                                                 />
                                                 <button
                                                     onClick={() => setShowSecretKey(!showSecretKey)}
@@ -236,10 +253,10 @@ export default function SettingsModal({ isOpen, onClose, activeTab = 'api' }: Se
                                         <button
                                             onClick={handleSaveApiKeys}
                                             disabled={isSaving}
-                                            className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/20 flex items-center gap-2 transition-all disabled:opacity-50"
+                                            className="px-6 py-2.5 rounded-xl text-xs font-bold text-black bg-amber-500 hover:bg-amber-400 shadow-lg shadow-amber-500/20 flex items-center gap-2 transition-all disabled:opacity-50"
                                         >
                                             {isSaving ? (
-                                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>
                                             ) : (
                                                 <Save size={16} />
                                             )}
@@ -376,12 +393,14 @@ export default function SettingsModal({ isOpen, onClose, activeTab = 'api' }: Se
                                                         <td className="px-4 py-3">
                                                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-green-500/10 text-green-400 border border-green-500/20 flex items-center w-fit gap-1">
                                                                 <BadgeCheck size={12} />
-                                                                {u.role || 'Admin'}
+                                                                {u.role || u.Role || 'User'}
                                                             </span>
                                                         </td>
                                                         <td className="px-4 py-3 text-right">
-                                                            {/* Delete button (Demo only for now) */}
-                                                            <button className="text-slate-500 hover:text-red-400 transition-colors p-1">
+                                                            <button
+                                                                onClick={() => handleDeleteUser(u.id, u.role)}
+                                                                className="text-slate-500 hover:text-red-400 transition-colors p-1"
+                                                            >
                                                                 <Trash size={16} />
                                                             </button>
                                                         </td>

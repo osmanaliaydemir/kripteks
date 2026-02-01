@@ -29,11 +29,11 @@ export default function BotLogs({ logs, compact = false }: Props) {
     const recentLogs = logs.slice(-10);
 
     return (
-        <div className={`mt-4 bg-black/40 rounded-xl border border-slate-800 overflow-hidden font-mono text-xs ${compact ? 'opacity-70 hover:opacity-100 transition-opacity' : ''}`}>
+        <div className={`mt-4 bg-slate-950/30 rounded-xl border border-white/5 overflow-hidden font-mono text-xs ${compact ? 'opacity-70 hover:opacity-100 transition-opacity' : ''}`}>
             {/* Header */}
-            <div className="flex items-center gap-2 px-3 py-2 bg-slate-900/50 border-b border-slate-800 text-slate-400">
+            <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border-b border-white/5 text-slate-400">
                 <Terminal size={12} />
-                <span className="uppercase tracking-wider font-bold text-[10px]">{compact ? 'Özet Loglar' : 'Sistem Logları'}</span>
+                <span className="uppercase tracking-wider font-bold text-[10px]">{compact ? 'Canlı Kayıtlar' : 'Sistem Kayıtları'}</span>
             </div>
 
             {/* Log Area */}

@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:5001";
+const BASE_URL = "http://localhost:5112";
 export const API_URL = `${BASE_URL}/api`;
 export const HUB_URL = `${BASE_URL}/bot-hub`;
 
@@ -144,6 +144,18 @@ export const LogService = {
             headers: getHeaders()
         });
         if (!res.ok) throw new Error("Loglar temizlenemedi");
+        return res.json();
+    }
+};
+
+export const BacktestService = {
+    runBacktest: async (params: any) => {
+        const res = await fetch(`${API_URL}/backtest/run`, {
+            method: "POST",
+            headers: getHeaders(),
+            body: JSON.stringify(params)
+        });
+        if (!res.ok) throw new Error("Backtest başlatılamadı");
         return res.json();
     }
 };

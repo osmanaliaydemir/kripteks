@@ -48,13 +48,13 @@ export default function SearchableSelect({ options, value, onChange, placeholder
         <div className="relative" ref={wrapperRef}>
             <div
                 onClick={handleToggle}
-                className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-slate-200 outline-none flex items-center justify-between cursor-pointer hover:border-slate-600 transition-colors"
+                className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-slate-200 outline-none flex items-center justify-between cursor-pointer hover:border-primary/50 transition-colors"
             >
                 <span className={selectedOption ? "text-white font-mono" : "text-slate-500"}>
                     {selectedOption ? selectedOption.symbol : placeholder}
                 </span>
                 {isLoading ? (
-                    <div className="w-4 h-4 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin"></div>
+                    <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
                 ) : (
                     <ChevronDown size={16} className={`text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                 )}
@@ -66,13 +66,13 @@ export default function SearchableSelect({ options, value, onChange, placeholder
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
-                        className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden max-h-60 flex flex-col"
+                        className="absolute top-full left-0 right-0 mt-2 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden max-h-60 flex flex-col"
                     >
                         {/* Search Input */}
-                        <div className="p-2 border-b border-slate-700/50 sticky top-0 bg-slate-800">
+                        <div className="p-2 border-b border-white/5 sticky top-0 bg-slate-900/95">
                             {isLoading && (
-                                <div className="absolute inset-0 bg-slate-800/80 z-10 flex items-center justify-center">
-                                    <span className="text-xs text-cyan-400 font-mono animate-pulse">Fiyatlar Güncelleniyor...</span>
+                                <div className="absolute inset-0 bg-slate-900/80 z-10 flex items-center justify-center">
+                                    <span className="text-xs text-primary font-mono animate-pulse">Fiyatlar Güncelleniyor...</span>
                                 </div>
                             )}
                             <div className="relative">
@@ -81,7 +81,7 @@ export default function SearchableSelect({ options, value, onChange, placeholder
                                     type="text"
                                     autoFocus
                                     placeholder="Ara..."
-                                    className="w-full bg-slate-900/50 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder:text-slate-600 outline-none focus:border-cyan-500/50"
+                                    className="w-full bg-slate-950/50 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder:text-slate-600 outline-none focus:border-primary/50"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
@@ -99,7 +99,7 @@ export default function SearchableSelect({ options, value, onChange, placeholder
                                             setIsOpen(false);
                                             setSearchTerm("");
                                         }}
-                                        className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-sm transition-colors ${value === opt.symbol ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}`}
+                                        className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-sm transition-colors ${value === opt.symbol ? 'bg-primary/20 text-primary' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
                                     >
                                         <span className="font-mono">{opt.symbol}</span>
                                         <div className="flex items-center gap-3">

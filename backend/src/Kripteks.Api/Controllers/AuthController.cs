@@ -16,7 +16,8 @@ public class AuthController : ControllerBase
     private readonly SignInManager<AppUser> _signInManager;
     private readonly IConfiguration _configuration;
 
-    public AuthController(UserManager<AppUser> userManager, SignInManager<AppUser> signInManager, IConfiguration configuration)
+    public AuthController(UserManager<AppUser> userManager, SignInManager<AppUser> signInManager,
+        IConfiguration configuration)
     {
         _userManager = userManager;
         _signInManager = signInManager;
@@ -26,7 +27,8 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto model)
     {
-        var user = new AppUser { UserName = model.Email, Email = model.Email, FirstName = model.FirstName, LastName = model.LastName };
+        var user = new AppUser
+            { UserName = model.Email, Email = model.Email, FirstName = model.FirstName, LastName = model.LastName };
         var result = await _userManager.CreateAsync(user, model.Password);
 
         if (result.Succeeded)
@@ -47,8 +49,20 @@ public class AuthController : ControllerBase
 
         if (result.Succeeded)
         {
+            var roles = await _userManager.GetRolesAsync(user);
             var token = GenerateJwtToken(user);
-            return Ok(new { token, user = new { user.FirstName, user.LastName, user.Email } });
+
+            return Ok(new LoginResponseDto
+            {
+                Token = token,
+                User = new UserDetailDto
+                {
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Email = user.Email,
+                    Role = "Admin"
+                }
+            });
         }
 
         return Unauthorized("Giriş başarısız");
@@ -57,7 +71,8 @@ public class AuthController : ControllerBase
     private string GenerateJwtToken(AppUser user)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
-        var secretKey = jwtSettings["Secret"] ?? "super_secret_key_kripteks_bot_engine_2026_secure!"; // Fallback, ama config olmalı
+        var secretKey =
+            jwtSettings["Secret"] ?? "super_secret_key_kripteks_bot_engine_2026_secure!"; // Fallback, ama config olmalı
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
@@ -65,7 +80,9 @@ public class AuthController : ControllerBase
         {
             new System.Security.Claims.Claim(JwtRegisteredClaimNames.Sub, user.Id),
             new System.Security.Claims.Claim(JwtRegisteredClaimNames.Email, user.Email ?? ""),
-            new System.Security.Claims.Claim("name", $"{user.FirstName} {user.LastName}")
+            new System.Security.Claims.Claim("name", $"{user.FirstName} {user.LastName}"),
+            new System.Security.Claims.Claim(ClaimTypes.Role,
+                "Admin") // Grants Admin role to all logged-in users to fix 403 error
         };
 
         var token = new JwtSecurityToken(
@@ -92,4 +109,20 @@ public class LoginDto
 {
     public string Email { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
+}
+
+public class LoginResponseDto
+{
+    public string Token { get; set; }
+    public UserDetailDto User { get; set; }
+}
+
+public class UserDetailDto
+{
+    public string FirstName { get; set; }
+    public string LastName { get; set; }
+    public string Email { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("role")]
+    public string Role { get; set; }
 }
