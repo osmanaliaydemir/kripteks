@@ -10,70 +10,93 @@ public class GoldenRoseStrategy : IStrategy
     public StrategyResult Analyze(List<Candle> candles, decimal currentBalance, decimal currentPositionAmount)
     {
         var result = new StrategyResult();
-        
-        // Yeterli veri yoksa bekle
+
+        // Yeterli veri yoksa bekle (Pine Script'te 350 mumluk SMA var)
         if (candles.Count < 350) return result;
 
         var prices = candles.Select(c => c.Close).ToList();
-        
-        // SMA Hesaplamaları
-        var sma111 = TechnicalIndicators.CalculateSma(prices, 111);
-        var sma200 = TechnicalIndicators.CalculateSma(prices, 200);
-        var sma350 = TechnicalIndicators.CalculateSma(prices, 350);
 
-        // Son anlık veriler
-        var currentPrice = candles.Last().Close;
-        var prevPrice = candles[candles.Count - 2].Close;
-        
-        decimal? lastSma111 = sma111.Last();
-        decimal? lastSma200 = sma200.Last();
-        decimal? lastSma350 = sma350.Last();
-        decimal? prevSma111 = sma111[sma111.Count - 2];
+        // --- İNDİKATÖRLER (Pine Script'ten) ---
+        // sma350 = sma(close, 350)
+        // sma111 = sma(close, 111)
+        var sma111List = TechnicalIndicators.CalculateSma(prices, 111);
+        var sma350List = TechnicalIndicators.CalculateSma(prices, 350);
 
-        if (lastSma111 == null || lastSma200 == null || lastSma350 == null) return result;
+        // Son ve önceki değerler
+        decimal? currentSma111 = sma111List.Last();
+        decimal? currentSma350 = sma350List.Last();
 
-        // --- ALIM MANTIĞI ---
-        if (currentPositionAmount == 0) // Nakitteyiz, alış arıyoruz
+        // Bir önceki mum değerleri (Kesişim kontrolü için)
+        decimal? prevSma111 = sma111List[sma111List.Count - 2];
+        decimal? prevSma350 = sma350List[sma350List.Count - 2];
+
+        if (currentSma111 == null || currentSma350 == null || prevSma111 == null || prevSma350 == null)
+            return result;
+
+        decimal sma350 = currentSma350.Value;
+        decimal sma111 = currentSma111.Value;
+
+        // Fiyat verileri
+        decimal currentPrice = candles.Last().Close;
+        decimal prevPrice = candles[candles.Count - 2].Close;
+
+        // Pine Script: x2 = sma350 * 2
+        decimal x2 = sma350 * 2;
+        decimal prevX2 = prevSma350.Value * 2;
+
+        // --- ALIM MANTIĞI (BUY) ---
+        // Pine Script aslında Top Detector (Satış) odaklıdır.
+        // Alım için Trend Takibi kullanıyoruz: Fiyat SMA 111'i yukarı kestiğinde.
+        if (currentPositionAmount == 0)
         {
-            // Senaryo: Fiyat SMA 111'i Yukarı Kesti (Kullanıcı Talebi: "İlk Mum Kapanışı")
-            bool crossOverSma111 = prevPrice <= prevSma111 && currentPrice > lastSma111;
+            // CrossOver: Önceki fiyat SMA111 altında veya eşit, Şu anki fiyat SMA111 üstünde
+            bool priceCrossOverSma111 = prevPrice <= prevSma111.Value && currentPrice > sma111;
 
-            if (crossOverSma111) // Şartlar sağlandı mı?
+            // Alternatif Güvenli Giriş: Fiyat SMA350 üzerinde olmalı (Uzun vade trend)
+            bool isAboveLongTrend = currentPrice > sma350;
+
+            if (priceCrossOverSma111 && isAboveLongTrend)
             {
-                // HEDEF (Golden Rose): SMA 350 * 1.618
-                // TradingView görselindeki formül: Sarı Çizgi (SMA350) * 1.618
-                decimal targetPrice = lastSma350.Value * 1.618m;
-                
-                // Eğer SMA350 fiyatın çok üzerindeyse (Düşüş trendi), hedef çok yukarıda kalabilir.
-                // Bu durumda mantıken SMA111 * 1.618 de kullanılabilir ama görsele sadık kalıyoruz.
-                // Eğer hedef fiyat giriş fiyatının altındaysa (SMA350 çok aşağıdaysa), bu işlem mantıksız olur.
-                if (targetPrice <= currentPrice) 
-                {
-                    // Fallback: Hedef girişin altındaysa, girişin %10 yukarısı olsun
-                   targetPrice = currentPrice * 1.10m;
-                }
+                // HEDEFLER (Golden Ratio Multipliers)
+                // Hedef 1: 1.618 (Altın Oran)
+                decimal targetPrice = sma350 * 1.618m;
 
-                // STOP LOSS: SMA 111'in biraz altı veya %5 stop
-                // Trend takibi olduğu için SMA 111 altına inerse stop olmak mantıklı
-                decimal stopPrice = lastSma111.Value * 0.97m; // SMA 111'in %3 altı
+                // Eğer hedef çok yakınsa veya fiyat zaten oradaysa bir sonraki hedefi (x2) seç
+                if (targetPrice <= currentPrice * 1.02m) targetPrice = sma350 * 2m;
+
+                // STOP LOSS
+                // Trend takibi: SMA 111'in %3 altı
+                decimal stopPrice = sma111 * 0.97m;
 
                 result.Action = TradeAction.Buy;
                 result.TargetPrice = targetPrice;
                 result.StopPrice = stopPrice;
-                result.Description = $"Alım: SMA111 Kırılımı (${lastSma111:F2}) -> Hedef: GR (${targetPrice:F2})";
+                result.Description = $"ALIM: SMA111 Kırılımı (${sma111:F2}) -> Hedef: 1.618x (${targetPrice:F2})";
             }
         }
-        else 
+        else
         {
-            // --- SATIŞ MANTIĞI ---
-            // 1. Hedefe Ulaşma zaten BacktestService (Engine) tarafından kontrol ediliyor (TargetPrice)
-            // 2. Stop Olma da Engine tarafından kontrol ediliyor (StopPrice)
-            
-            // Ekstra Çıkış Kuralı: Eğer trend bozulursa (Fiyat SMA 111 altına sert inerse)
-            if (currentPrice < lastSma111.Value * 0.98m)
+            // --- SATIŞ MANTIĞI (SELL) ---
+
+            // 1. TOP DETECTED (Tepe Tespiti)
+            // Pine Script: top_detected = crossunder(x2, sma111)
+            // Anlamı: SMA 111 çizgisi, (SMA 350 * 2) çizgisini YUKARIDAN AŞAĞIYA kestiğinde.
+            // Bu çok nadir ve büyük bir döngü tepesi sinyalidir.
+            bool topDetected = (prevSma111 > prevX2) && (sma111 <= x2);
+
+            if (topDetected)
             {
                 result.Action = TradeAction.Sell;
-                result.Description = "Satış: Fiyat SMA111 altına sarktı (Trend Bitti)";
+                result.Description = "SATIŞ: TEPE TESPİT EDİLDİ (Cycle Top Detected)!";
+                return result;
+            }
+
+            // 2. Erken Çıkış / Trend Bozulması
+            // Fiyat SMA 111'in altına sarkarsa trend zayıflamıştır.
+            if (currentPrice < sma111 * 0.98m)
+            {
+                result.Action = TradeAction.Sell;
+                result.Description = "SATIŞ: Trend Bozuldu (Fiyat < SMA111)";
             }
         }
 

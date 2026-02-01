@@ -21,8 +21,50 @@ public static class TechnicalIndicators
             {
                 sum += prices[i - j];
             }
+
             result.Add(sum / period);
         }
+
+        return result;
+    }
+
+    // Exponential Moving Average (EMA)
+    public static List<decimal?> CalculateEma(List<decimal> prices, int period)
+    {
+        var result = new List<decimal?>();
+        decimal multiplier = 2.0m / (period + 1);
+
+        for (int i = 0; i < prices.Count; i++)
+        {
+            if (i < period - 1)
+            {
+                result.Add(null);
+                continue;
+            }
+
+            if (i == period - 1)
+            {
+                // İlk EMA değeri SMA ile başlar
+                decimal sum = 0;
+                for (int j = 0; j < period; j++) sum += prices[j];
+                result.Add(sum / period);
+            }
+            else
+            {
+                // EMA = (Close - PreviousEMA) * Multiplier + PreviousEMA
+                decimal? prevEma = result.Last();
+                if (prevEma.HasValue)
+                {
+                    decimal ema = (prices[i] - prevEma.Value) * multiplier + prevEma.Value;
+                    result.Add(ema);
+                }
+                else
+                {
+                    result.Add(null);
+                }
+            }
+        }
+
         return result;
     }
 

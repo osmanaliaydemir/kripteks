@@ -30,7 +30,7 @@ public class BotService : IBotService
             .ToListAsync();
 
         var botDtos = new List<BotDto>();
-        foreach(var b in bots)
+        foreach (var b in bots)
         {
             var logs = await _context.Logs
                 .Where(l => l.BotId == b.Id)
@@ -54,6 +54,7 @@ public class BotService : IBotService
                 Logs = logs
             });
         }
+
         return botDtos;
     }
 
@@ -95,25 +96,26 @@ public class BotService : IBotService
 
         if (isImmediateBuy)
         {
-             // Hemen Al ise bakiyeyi kes
-             if (wallet.Balance < request.Amount)
-             {
-                 throw new InvalidOperationException($"Yetersiz Bakiye! Mevcut: {wallet.Balance}, İstenen: {request.Amount}");
-             }
-             
-             wallet.Balance -= request.Amount;
-             wallet.LockedBalance += request.Amount;
-             wallet.LastUpdated = DateTime.UtcNow;
+            // Hemen Al ise bakiyeyi kes
+            if (wallet.Balance < request.Amount)
+            {
+                throw new InvalidOperationException(
+                    $"Yetersiz Bakiye! Mevcut: {wallet.Balance}, İstenen: {request.Amount}");
+            }
 
-             var transaction = new WalletTransaction
-             {
-                 WalletId = wallet.Id,
-                 Amount = -request.Amount,
-                 Type = TransactionType.BotInvestment,
-                 Description = $"Bot Başlatıldı (Hemen Al): {request.Symbol}",
-                 CreatedAt = DateTime.UtcNow
-             };
-             _context.WalletTransactions.Add(transaction);
+            wallet.Balance -= request.Amount;
+            wallet.LockedBalance += request.Amount;
+            wallet.LastUpdated = DateTime.UtcNow;
+
+            var transaction = new WalletTransaction
+            {
+                WalletId = wallet.Id,
+                Amount = -request.Amount,
+                Type = TransactionType.BotInvestment,
+                Description = $"Bot Başlatıldı (Hemen Al): {request.Symbol}",
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.WalletTransactions.Add(transaction);
         }
 
         // 3. Anlık fiyatı çek (Sadece bilgi amaçlı)
@@ -122,7 +124,7 @@ public class BotService : IBotService
         var bot = new Bot
         {
             Symbol = request.Symbol,
-            StrategyName = request.StrategyId, 
+            StrategyName = request.StrategyId,
             Amount = request.Amount,
             Interval = request.Interval ?? "1h",
             StopLoss = request.StopLoss,
@@ -134,8 +136,8 @@ public class BotService : IBotService
             CreatedAt = DateTime.UtcNow,
             Logs = new List<Log>
             {
-                new Log 
-                { 
+                new Log
+                {
                     Message = $"👀 Bot Pusuya Yattı! {request.Symbol} için Golden Rose sinyali bekleniyor...",
                     Level = LogLevel.Info,
                     Timestamp = DateTime.UtcNow
@@ -161,46 +163,67 @@ public class BotService : IBotService
             bot.Status = BotStatus.Stopped;
             // bot.UpdatedAt = DateTime.UtcNow; // Entity'de yok
 
-            var log = new Log { Message = "Bot kullanıcı tarafından manuel durduruldu.", Level = LogLevel.Warning, Timestamp = DateTime.UtcNow, BotId = bot.Id };
+            var log = new Log
+            {
+                Message = "Bot kullanıcı tarafından manuel durduruldu.", Level = LogLevel.Warning,
+                Timestamp = DateTime.UtcNow, BotId = bot.Id
+            };
             _context.Logs.Add(log);
-            
-            bool shouldRefund = bot.Status == BotStatus.Running; // Running ise kesin pozisyondadır (veya bloke bakiyedir)
-            
+
+            bool shouldRefund =
+                bot.Status == BotStatus.Running; // Running ise kesin pozisyondadır (veya bloke bakiyedir)
+
             // Eğer WaitingForEntry ise ve Market Al (Hemen Al) seçildiyse para başta kesilmişti.
             if (oldStatus == BotStatus.WaitingForEntry && bot.StrategyName == "strategy-market-buy")
             {
-                 shouldRefund = true;
+                shouldRefund = true;
             }
 
-            if (shouldRefund) 
+            if (shouldRefund)
             {
                 var wallet = await _context.Wallets.FirstOrDefaultAsync();
-                if (wallet != null) {
+                if (wallet != null)
+                {
                     wallet.LockedBalance -= bot.Amount;
-                    
+
                     // Eğer pozisyon açıksa PNL'i de hesaba kat
                     decimal pnl = bot.CurrentPnl; // WaitingForEntry ise 0 dır zaten
                     decimal returnAmount = bot.Amount + pnl;
-                    
+
                     wallet.Balance += returnAmount;
                     wallet.LastUpdated = DateTime.UtcNow;
-                    
-                    _context.WalletTransactions.Add(new WalletTransaction { 
-                        WalletId = wallet.Id, 
-                        Amount = returnAmount, 
-                        Type = TransactionType.BotReturn, 
+
+                    _context.WalletTransactions.Add(new WalletTransaction
+                    {
+                        WalletId = wallet.Id,
+                        Amount = returnAmount,
+                        Type = TransactionType.BotReturn,
                         Description = $"Manuel Durdurma: {bot.Symbol}",
                         CreatedAt = DateTime.UtcNow
                     });
-                    
+
                     await _notificationService.NotifyWalletUpdate(wallet);
                 }
             }
 
             await _context.SaveChangesAsync();
-            
+
             // Client'ı Bilgilendir
-            await _notificationService.NotifyBotUpdate(bot);
+            await _notificationService.NotifyBotUpdate(new BotDto
+            {
+                Id = bot.Id,
+                Symbol = bot.Symbol,
+                StrategyName = bot.StrategyName,
+                Amount = bot.Amount,
+                Interval = bot.Interval,
+                StopLoss = bot.StopLoss,
+                TakeProfit = bot.TakeProfit,
+                Status = bot.Status.ToString(),
+                CreatedAt = bot.CreatedAt,
+                Pnl = bot.CurrentPnl,
+                PnlPercent = bot.CurrentPnlPercent,
+                Logs = bot.Logs
+            });
             await _notificationService.NotifyLog(bot.Id.ToString(), log);
         }
     }

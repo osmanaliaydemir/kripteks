@@ -30,11 +30,8 @@ export default function BotLogs({ logs, compact = false }: Props) {
 
     return (
         <div className={`mt-4 bg-slate-950/30 rounded-xl border border-white/5 overflow-hidden font-mono text-xs ${compact ? 'opacity-70 hover:opacity-100 transition-opacity' : ''}`}>
-            {/* Header */}
-            <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border-b border-white/5 text-slate-400">
-                <Terminal size={12} />
-                <span className="uppercase tracking-wider font-bold text-[10px]">{compact ? 'Canlı Kayıtlar' : 'Sistem Kayıtları'}</span>
-            </div>
+            {/* Header Removed - Controlled by Parent Accordion */}
+
 
             {/* Log Area */}
             <div

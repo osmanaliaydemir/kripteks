@@ -20,9 +20,10 @@ public class SummaryStatsController : ControllerBase
     public async Task<IActionResult> GetStats()
     {
         var totalBots = await _context.Bots.CountAsync();
-        var activeBots = await _context.Bots.CountAsync(b => b.Status == BotStatus.Running);
+        var activeBots =
+            await _context.Bots.CountAsync(b => b.Status == BotStatus.Running || b.Status == BotStatus.WaitingForEntry);
         var stoppedBots = await _context.Bots.CountAsync(b => b.Status == BotStatus.Stopped);
-        
+
         // Toplam Hacim (Trade tablosundan topla)
         var totalVolume = await _context.Trades.SumAsync(t => (decimal?)t.Total) ?? 0;
 

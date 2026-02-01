@@ -22,7 +22,7 @@ public class WalletController : ControllerBase
     public async Task<IActionResult> GetWallet()
     {
         var wallet = await _context.Wallets.FirstOrDefaultAsync();
-        
+
         // Cüzdan yoksa varsayılan oluştur
         if (wallet == null)
         {
@@ -36,9 +36,25 @@ public class WalletController : ControllerBase
             .Where(b => b.Status == BotStatus.Running)
             .SumAsync(b => b.CurrentPnl);
 
-        return Ok(new 
+        // Self-Healing: Check if LockedBalance matches actual active bots
+        var actualLocked = await _context.Bots
+            .Where(b => b.Status == BotStatus.Running ||
+                        (b.Status == BotStatus.WaitingForEntry && b.StrategyName == "strategy-market-buy"))
+            .SumAsync(b => b.Amount);
+
+        if (wallet.LockedBalance != actualLocked)
         {
-            current_balance = wallet.Balance + wallet.LockedBalance + totalActivePnl, // Toplam Varlık (Cüzdan + Bloke + Kar/Zarar)
+            // Adjust Balance to absorb difference, preserving Total Balance
+            // If Locked was high (600) and Actual is low (0), we release 600 to Balance.
+            wallet.Balance += (wallet.LockedBalance - actualLocked);
+            wallet.LockedBalance = actualLocked;
+            await _context.SaveChangesAsync();
+        }
+
+        return Ok(new
+        {
+            current_balance =
+                wallet.Balance + wallet.LockedBalance + totalActivePnl, // Toplam Varlık (Cüzdan + Bloke + Kar/Zarar)
             available_balance = wallet.AvailableBalance,
             locked_balance = wallet.LockedBalance,
             total_pnl = totalActivePnl
@@ -51,7 +67,7 @@ public class WalletController : ControllerBase
         var transactions = await _context.WalletTransactions
             .OrderByDescending(t => t.CreatedAt)
             .Take(50) // Son 50 işlem
-            .Select(t => new 
+            .Select(t => new
             {
                 t.Id,
                 t.Amount,

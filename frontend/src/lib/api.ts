@@ -155,7 +155,16 @@ export const BacktestService = {
             headers: getHeaders(),
             body: JSON.stringify(params)
         });
-        if (!res.ok) throw new Error("Backtest başlatılamadı");
+        if (!res.ok) {
+            let errorMessage = "Backtest başlatılamadı";
+            try {
+                const errorData = await res.json();
+                errorMessage = errorData.message || errorData.title || JSON.stringify(errorData);
+            } catch {
+                errorMessage = await res.text();
+            }
+            throw new Error(errorMessage);
+        }
         return res.json();
     }
 };

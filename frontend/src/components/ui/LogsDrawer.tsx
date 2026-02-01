@@ -96,7 +96,7 @@ export default function LogsDrawer({ isOpen, onClose }: LogsDrawerProps) {
                                         <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></div>
                                         <div className="absolute inset-0 bg-amber-500/50 rounded-full blur-sm animate-pulse"></div>
                                     </div>
-                                    Sistem Kayıtları
+                                    İşlem Kayıtları
                                 </h2>
                                 <p className="text-xs text-slate-500 font-mono mt-1">Canlı Akış • Son 100 kayıt</p>
                             </div>

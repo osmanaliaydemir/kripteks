@@ -7,10 +7,11 @@ import { PlayCircle, Sliders, TrendingUp, BarChart2, Calendar, Clock, DollarSign
 import SearchableSelect from "./SearchableSelect";
 
 interface Trade {
-    date: string;
-    type: "BUY" | "SELL";
-    price: number;
-    amount: number;
+    type: string;
+    entryDate: string;
+    exitDate: string;
+    entryPrice: number;
+    exitPrice: number;
     pnl: number;
 }
 
@@ -42,14 +43,20 @@ import { Coin, Strategy } from "@/types";
 interface BacktestPanelProps {
     coins: Coin[];
     strategies: Strategy[];
+    onRefreshCoins?: () => void;
+    isCoinsLoading?: boolean;
 }
 
-export default function BacktestPanel({ coins, strategies }: BacktestPanelProps) {
+export default function BacktestPanel({ coins, strategies, onRefreshCoins, isCoinsLoading }: BacktestPanelProps) {
     const [symbol, setSymbol] = useState(coins.length > 0 ? coins[0].symbol : "BTCUSDT");
     const [interval, setInterval] = useState("1h");
     const [strategy, setStrategy] = useState("RSI_Strategy");
-    const [startDate, setStartDate] = useState("2023-01-01");
-    const [endDate, setEndDate] = useState("2023-12-31");
+    const [startDate, setStartDate] = useState(() => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - 1);
+        return d.toISOString().split('T')[0];
+    });
+    const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
     const [balance, setBalance] = useState(1000);
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<BacktestResult | null>(null);
@@ -61,17 +68,18 @@ export default function BacktestPanel({ coins, strategies }: BacktestPanelProps)
             const data = await BacktestService.runBacktest({
                 symbol,
                 interval,
-                strategy,
+                strategyId: strategy,
                 startDate,
                 endDate,
                 initialBalance: balance
             });
 
-            if (data?.success && data.result) {
-                setResult(data.result);
+            if (data) {
+                setResult(data); // Backend direkt result dönüyor
                 toast.success("Backtest Tamamlandı", { description: "Sonuçlar aşağıda listelenmiştir." });
             } else {
-                toast.error("Hata", { description: data?.message || "Backtest çalıştırılamadı." });
+                // Bu bloğa düşmesi zor ama yine de
+                toast.error("Hata", { description: "Backtest sonucu boş döndü." });
             }
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : "Bağlantı hatası oluştu.";
@@ -109,6 +117,8 @@ export default function BacktestPanel({ coins, strategies }: BacktestPanelProps)
                                 onChange={setSymbol}
                                 options={coins.map(c => ({ id: c.symbol, label: c.symbol, ...c }))}
                                 placeholder="Seçiniz..."
+                                onOpen={onRefreshCoins}
+                                isLoading={isCoinsLoading}
                             />
                         </div>
 
@@ -202,14 +212,14 @@ export default function BacktestPanel({ coins, strategies }: BacktestPanelProps)
                     <div className="glass-card p-5 rounded-xl border border-white/10 flex flex-col items-center justify-center text-center gap-2">
                         <span className="text-xs uppercase font-bold text-slate-500">Toplam Kâr/Zarar</span>
                         <span className={`text-2xl font-bold font-mono ${result.totalPnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                            {result.totalPnl >= 0 ? "+" : ""}{result.totalPnl}%
+                            {result.totalPnl >= 0 ? "+" : ""}{Number(result.totalPnl).toFixed(2)}%
                         </span>
                     </div>
 
                     <div className="glass-card p-5 rounded-xl border border-white/10 flex flex-col items-center justify-center text-center gap-2">
                         <span className="text-xs uppercase font-bold text-slate-500">Başarılı İşlem</span>
                         <span className="text-2xl font-bold text-white font-mono">
-                            {result.winRate}%
+                            {Number(result.winRate).toFixed(2)}%
                         </span>
                     </div>
 
@@ -223,7 +233,7 @@ export default function BacktestPanel({ coins, strategies }: BacktestPanelProps)
                     <div className="glass-card p-5 rounded-xl border border-white/10 flex flex-col items-center justify-center text-center gap-2">
                         <span className="text-xs uppercase font-bold text-slate-500">Maksimum Düşüş</span>
                         <span className="text-2xl font-bold text-rose-400 font-mono">
-                            {result.maxDrawdown}%
+                            {Number(result.maxDrawdown).toFixed(2)}%
                         </span>
                     </div>
 
@@ -238,26 +248,36 @@ export default function BacktestPanel({ coins, strategies }: BacktestPanelProps)
                                 <table className="w-full text-left border-collapse">
                                     <thead>
                                         <tr className="text-[10px] uppercase text-slate-500 border-b border-white/10">
-                                            <th className="px-4 py-3">Tarih</th>
+                                            <th className="px-4 py-3">Giriş Tarihi</th>
+                                            <th className="px-4 py-3">Çıkış Tarihi</th>
                                             <th className="px-4 py-3">Tür</th>
-                                            <th className="px-4 py-3">Fiyat</th>
-                                            <th className="px-4 py-3 text-right">Miktar</th>
+                                            <th className="px-4 py-3">Giriş</th>
+                                            <th className="px-4 py-3">Çıkış</th>
                                             <th className="px-4 py-3 text-right">Kâr/Zarar</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5 text-sm">
                                         {result.trades.map((trade: Trade, idx: number) => (
                                             <tr key={idx} className="hover:bg-white/5 transition-colors">
-                                                <td className="px-4 py-3 text-slate-400 font-mono">{trade.date}</td>
+                                                <td className="px-4 py-3 text-slate-400 font-mono text-xs">
+                                                    {new Date(trade.entryDate).toLocaleString('tr-TR')}
+                                                </td>
+                                                <td className="px-4 py-3 text-slate-400 font-mono text-xs">
+                                                    {new Date(trade.exitDate).toLocaleString('tr-TR')}
+                                                </td>
                                                 <td className="px-4 py-3">
-                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${trade.type === 'BUY' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${trade.pnl > 0 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
                                                         {trade.type}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-3 text-white font-mono">${trade.price}</td>
-                                                <td className="px-4 py-3 text-right text-slate-300 font-mono">{trade.amount}</td>
-                                                <td className={`px-4 py-3 text-right font-bold font-mono ${trade.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                                                    {trade.pnl >= 0 ? "+" : ""}{trade.pnl}
+                                                <td className="px-4 py-3 text-white font-mono text-xs">
+                                                    ${Number(trade.entryPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 8 })}
+                                                </td>
+                                                <td className="px-4 py-3 text-white font-mono text-xs">
+                                                    ${Number(trade.exitPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 8 })}
+                                                </td>
+                                                <td className={`px-4 py-3 text-right font-bold font-mono text-xs ${trade.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                                                    {trade.pnl >= 0 ? "+" : ""}{Number(trade.pnl).toFixed(2)}
                                                 </td>
                                             </tr>
                                         ))}
