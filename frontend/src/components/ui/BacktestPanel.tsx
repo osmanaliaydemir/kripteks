@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { BacktestService } from "@/lib/api";
 import { toast } from "sonner";
-import { PlayCircle, Sliders, TrendingUp, BarChart2, Calendar, Clock, DollarSign, Activity, AlertCircle } from "lucide-react";
+import { PlayCircle, Sliders, TrendingUp, BarChart2, Calendar, Clock, DollarSign, Activity, AlertCircle, Info } from "lucide-react";
 import SearchableSelect from "./SearchableSelect";
 
 interface Trade {
@@ -48,7 +49,7 @@ interface BacktestPanelProps {
 }
 
 export default function BacktestPanel({ coins, strategies, onRefreshCoins, isCoinsLoading }: BacktestPanelProps) {
-    const [symbol, setSymbol] = useState(coins.length > 0 ? coins[0].symbol : "BTCUSDT");
+    const [symbol, setSymbol] = useState("");
     const [interval, setInterval] = useState("1h");
     const [strategy, setStrategy] = useState("RSI_Strategy");
     const [startDate, setStartDate] = useState(() => {
@@ -56,12 +57,20 @@ export default function BacktestPanel({ coins, strategies, onRefreshCoins, isCoi
         d.setMonth(d.getMonth() - 1);
         return d.toISOString().split('T')[0];
     });
-    const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
     const [balance, setBalance] = useState(1000);
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<BacktestResult | null>(null);
 
+    const selectedStrategyObj = useMemo(() => {
+        return strategies.find(s => s.id === strategy) || strategies[0];
+    }, [strategy, strategies]);
+
     const handleRunBacktest = async () => {
+        if (!symbol) {
+            toast.warning("Sembol Seçilmedi", { description: "Lütfen backtest yapmak istediğiniz bir parite seçiniz." });
+            return;
+        }
+
         setLoading(true);
         setResult(null);
         try {
@@ -70,7 +79,6 @@ export default function BacktestPanel({ coins, strategies, onRefreshCoins, isCoi
                 interval,
                 strategyId: strategy,
                 startDate,
-                endDate,
                 initialBalance: balance
             });
 
@@ -106,94 +114,112 @@ export default function BacktestPanel({ coins, strategies, onRefreshCoins, isCoi
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1">
-                                <Activity size={12} /> Sembol
-                            </label>
-                            {/* Not: SearchableSelect daha önce güncellenmişti */}
-                            <SearchableSelect
-                                value={symbol}
-                                onChange={setSymbol}
-                                options={coins.map(c => ({ id: c.symbol, label: c.symbol, ...c }))}
-                                placeholder="Seçiniz..."
-                                onOpen={onRefreshCoins}
-                                isLoading={isCoinsLoading}
-                            />
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        {/* Sol Taraf - Giriş Alanları */}
+                        <div className="lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div className="space-y-1.5 text-left">
+                                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1">
+                                    <Activity size={12} /> Sembol
+                                </label>
+                                <SearchableSelect
+                                    value={symbol}
+                                    onChange={setSymbol}
+                                    options={coins.map(c => ({ id: c.symbol, label: c.symbol, ...c }))}
+                                    placeholder="Seçiniz..."
+                                    onOpen={onRefreshCoins}
+                                    isLoading={isCoinsLoading}
+                                />
+                            </div>
+
+                            <div className="space-y-1.5 text-left">
+                                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1">
+                                    <Clock size={12} /> Zaman Dilimi (Interval)
+                                </label>
+                                <select
+                                    value={interval}
+                                    onChange={(e) => setInterval(e.target.value)}
+                                    className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 appearance-none"
+                                >
+                                    {intervals.map((int) => (
+                                        <option key={int.value} value={int.value}>{int.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="space-y-1.5 text-left">
+                                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1">
+                                    <Calendar size={12} /> Başlangıç Tarihi
+                                </label>
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 uppercase"
+                                />
+                            </div>
+
+                            <div className="space-y-1.5 text-left">
+                                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1">
+                                    <DollarSign size={12} /> Başlangıç Bakiyesi ($)
+                                </label>
+                                <input
+                                    type="number"
+                                    value={balance}
+                                    onChange={(e) => setBalance(Number(e.target.value))}
+                                    className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 font-mono"
+                                />
+                            </div>
                         </div>
 
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1">
-                                <Clock size={12} /> Zaman Dilimi (Interval)
-                            </label>
-                            <select
-                                value={interval}
-                                onChange={(e) => setInterval(e.target.value)}
-                                className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 appearance-none"
-                            >
-                                {intervals.map((int) => (
-                                    <option key={int.value} value={int.value}>{int.label}</option>
-                                ))}
-                            </select>
-                        </div>
+                        {/* Sağ Taraf - Strateji Bilgisi */}
+                        <div className="lg:col-span-5 space-y-5">
+                            <div className="space-y-1.5 text-left">
+                                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1">
+                                    <TrendingUp size={12} /> Strateji
+                                </label>
+                                <select
+                                    value={strategy}
+                                    onChange={(e) => setStrategy(e.target.value)}
+                                    className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 appearance-none"
+                                >
+                                    {strategies.map((str) => (
+                                        <option key={str.id} value={str.id}>{str.name}</option>
+                                    ))}
+                                </select>
 
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1">
-                                <TrendingUp size={12} /> Strateji
-                            </label>
-                            <select
-                                value={strategy}
-                                onChange={(e) => setStrategy(e.target.value)}
-                                className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 appearance-none"
-                            >
-                                {strategies.map((str) => (
-                                    <option key={str.id} value={str.id}>{str.name}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1">
-                                <Calendar size={12} /> Başlangıç Tarihi
-                            </label>
-                            <input
-                                type="date"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                                className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 uppercase"
-                            />
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1">
-                                <Calendar size={12} /> Bitiş Tarihi
-                            </label>
-                            <input
-                                type="date"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                                className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 uppercase"
-                            />
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1">
-                                <DollarSign size={12} /> Başlangıç Bakiyesi ($)
-                            </label>
-                            <input
-                                type="number"
-                                value={balance}
-                                onChange={(e) => setBalance(Number(e.target.value))}
-                                className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50 font-mono"
-                            />
+                                <AnimatePresence mode="wait">
+                                    {selectedStrategyObj && (
+                                        <motion.div
+                                            key={selectedStrategyObj.id}
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: 10 }}
+                                            className="mt-3 p-4 bg-primary/5 border border-primary/10 rounded-xl flex gap-3 items-start group/desc min-h-[100px]"
+                                        >
+                                            <div className="mt-0.5 p-2 bg-primary/10 rounded-lg text-primary shrink-0 group-hover/desc:bg-primary/20 transition-colors">
+                                                <Info size={16} />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <p className="text-[10px] uppercase font-bold text-primary/70 tracking-wider">Strateji Mantığı</p>
+                                                <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                                                    {selectedStrategyObj.description || "Bu strateji için açıklama bulunamadı."}
+                                                </p>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         </div>
                     </div>
 
                     <div className="mt-6 flex justify-end">
                         <button
                             onClick={handleRunBacktest}
-                            disabled={loading}
-                            className="px-6 py-3 rounded-xl bg-primary hover:bg-amber-400 text-black font-bold text-sm shadow-lg shadow-primary/20 flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={loading || !symbol}
+                            className={`px-6 py-3 rounded-xl font-bold text-sm shadow-lg flex items-center gap-2 transition-all ${loading || !symbol
+                                    ? "bg-slate-800 text-slate-500 cursor-not-allowed opacity-50"
+                                    : "bg-primary hover:bg-amber-400 text-black shadow-primary/20"
+                                }`}
                         >
                             {loading ? (
                                 <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>

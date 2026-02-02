@@ -23,6 +23,7 @@ export interface Coin {
 export interface Strategy {
     id: string;
     name: string;
+    description?: string;
 }
 
 export interface Wallet {

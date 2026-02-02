@@ -29,13 +29,18 @@ public class BacktestService
         DateTime startTime;
         DateTime endTime = DateTime.UtcNow;
 
-        if (!string.IsNullOrEmpty(request.StartDate) && !string.IsNullOrEmpty(request.EndDate))
+        if (!string.IsNullOrEmpty(request.StartDate))
         {
             // Kullanıcı özel tarih seçmiş
-            if (DateTime.TryParse(request.StartDate, out var s) && DateTime.TryParse(request.EndDate, out var e))
+            if (DateTime.TryParse(request.StartDate, out var s))
             {
                 startTime = s;
-                endTime = e.AddDays(1).AddSeconds(-1); // Gün sonu
+
+                // EndDate varsa onu kullan, yoksa bugünün sonuna kadar (Default UtcNow zaten)
+                if (!string.IsNullOrEmpty(request.EndDate) && DateTime.TryParse(request.EndDate, out var e))
+                {
+                    endTime = e.AddDays(1).AddSeconds(-1); // Gün sonu
+                }
             }
             else
             {

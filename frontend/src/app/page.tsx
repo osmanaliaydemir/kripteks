@@ -509,7 +509,7 @@ export default function Dashboard() {
                         </div>
                     )}
                     {/* TAB NAVIGATION */}
-                    <div className="glass-card p-1.5 flex gap-1 mb-6 w-fit bg-slate-900/60 sticky top-4 z-40 backdrop-blur-md">
+                    <div className="glass-card p-1.5 flex gap-1 mb-6 w-fit bg-slate-900/60">
                         <TabButton id="active" label="Aktif Botlar" count={activeBots.length} activeTab={activeTab} setActiveTab={setActiveTab} icon={<Activity size={16} />} />
                         <TabButton id="history" label="Geçmiş" activeTab={activeTab} setActiveTab={setActiveTab} icon={<History size={16} />} />
                         <TabButton id="backtest" label="Simülasyon" activeTab={activeTab} setActiveTab={setActiveTab} icon={<FlaskConical size={16} />} />
