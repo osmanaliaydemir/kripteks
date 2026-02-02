@@ -19,6 +19,9 @@ public class BotDto
     public decimal CurrentPnl { get; set; }
     public decimal CurrentPnlPercent { get; set; }
     public List<Log> Logs { get; set; } = new();
+    public bool IsTrailingStop { get; set; }
+    public decimal? TrailingStopDistance { get; set; }
+    public decimal? MaxPriceReached { get; set; }
 }
 
 public class CreateBotRequest
@@ -29,4 +32,6 @@ public class CreateBotRequest
     public string Interval { get; set; } = "1h";
     public decimal? TakeProfit { get; set; }
     public decimal? StopLoss { get; set; }
+    public bool IsTrailingStop { get; set; } = false;
+    public decimal? TrailingStopDistance { get; set; }
 }

@@ -9,6 +9,8 @@ using Microsoft.Extensions.Logging;
 using Binance.Net.Interfaces.Clients;
 using Binance.Net.Enums;
 using Kripteks.Core.DTOs;
+using BotLogLevel = Kripteks.Core.Entities.LogLevel;
+using BotTransactionType = Kripteks.Core.Entities.TransactionType;
 
 namespace Kripteks.Infrastructure.Services;
 
@@ -94,7 +96,6 @@ public class BotEngineService : BackgroundService
         try
         {
             IStrategy strategy = GetStrategy(bot.StrategyName);
-            if (strategy == null) return;
 
             var interval = GetKlineInterval(bot.Interval);
             var klines =
@@ -131,7 +132,7 @@ public class BotEngineService : BackgroundService
                     {
                         Message =
                             $"⚠️ ALIM SİNYALİ GELDİ ANCAK BAKİYE YETERSİZ! İstek: ${bot.Amount}, Mevcut: ${currentBalance}",
-                        Level = Kripteks.Core.Entities.LogLevel.Warning,
+                        Level = BotLogLevel.Warning,
                         Timestamp = DateTime.UtcNow
                     };
                     bot.Logs.Add(log);
@@ -153,7 +154,7 @@ public class BotEngineService : BackgroundService
                 {
                     WalletId = wallet.Id,
                     Amount = -bot.Amount,
-                    Type = Kripteks.Core.Entities.TransactionType.BotInvestment,
+                    Type = BotTransactionType.BotInvestment,
                     Description = $"Otomatik Alım: {bot.Symbol} ({bot.StrategyName})",
                     CreatedAt = DateTime.UtcNow
                 });
@@ -164,6 +165,7 @@ public class BotEngineService : BackgroundService
                 bot.EntryPrice = currentPrice;
                 bot.CurrentPnl = 0;
                 bot.CurrentPnlPercent = 0;
+                bot.MaxPriceReached = currentPrice; // İz süren stop için başlangıç fiyatı
 
                 if (signal.TargetPrice > 0) bot.TakeProfit = ((signal.TargetPrice - currentPrice) / currentPrice) * 100;
                 if (signal.StopPrice > 0) bot.StopLoss = ((currentPrice - signal.StopPrice) / currentPrice) * 100;
@@ -171,7 +173,7 @@ public class BotEngineService : BackgroundService
                 var successLog = new Log
                 {
                     Message = $"⚡ SİNYAL GELDİ: Alım Yapıldı! Fiyat: ${currentPrice}. Hedef: ${signal.TargetPrice:F8}",
-                    Level = Kripteks.Core.Entities.LogLevel.Info,
+                    Level = BotLogLevel.Info,
                     Timestamp = DateTime.UtcNow
                 };
                 bot.Logs.Add(successLog);
@@ -217,7 +219,6 @@ public class BotEngineService : BackgroundService
             string exitReason = "";
 
             IStrategy strategy = GetStrategy(bot.StrategyName);
-            if (strategy != null)
             {
                 var interval = GetKlineInterval(bot.Interval);
                 var klines =
@@ -249,6 +250,27 @@ public class BotEngineService : BackgroundService
                 finalStatus = BotStatus.Stopped;
                 if (pnlAmount > 0) finalStatus = BotStatus.Completed;
             }
+            // --- TRAILING STOP LOGIC ---
+            else if (bot.IsTrailingStop && bot.TrailingStopDistance.HasValue)
+            {
+                if (bot.MaxPriceReached == null || currentPrice > bot.MaxPriceReached)
+                {
+                    bot.MaxPriceReached = currentPrice;
+                    // Log atalım mı? Çok sık olmasın.
+                }
+
+                decimal trailingStopPrice = bot.MaxPriceReached.Value * (1 - (bot.TrailingStopDistance.Value / 100));
+
+                if (currentPrice <= trailingStopPrice)
+                {
+                    shouldExit = true;
+                    finalStatus = BotStatus.Stopped;
+                    if (pnlAmount > 0) finalStatus = BotStatus.Completed;
+                    exitReason =
+                        $"📉 İZ SÜREN STOP TETİKLENDİ (%{bot.TrailingStopDistance:F2} mesafe, Tepe: {bot.MaxPriceReached:F2})";
+                }
+            }
+            // ---------------------------
             else if (bot.TakeProfit.HasValue && pnlPercent >= bot.TakeProfit.Value)
             {
                 shouldExit = true;
@@ -276,7 +298,7 @@ public class BotEngineService : BackgroundService
                         var infoLog = new Log
                         {
                             Message = $"[İşlemde] Fiyat: ${currentPrice} | PNL: %{pnlPercent:F2} (${pnlAmount:F2})",
-                            Level = Kripteks.Core.Entities.LogLevel.Info, Timestamp = DateTime.UtcNow
+                            Level = BotLogLevel.Info, Timestamp = DateTime.UtcNow
                         };
                         bot.Logs.Add(infoLog);
                         await notificationService.NotifyLog(bot.Id.ToString(), infoLog);
@@ -308,7 +330,7 @@ public class BotEngineService : BackgroundService
             {
                 WalletId = wallet.Id,
                 Amount = returnAmount,
-                Type = Kripteks.Core.Entities.TransactionType.BotReturn,
+                Type = BotTransactionType.BotReturn,
                 Description = $"Bot Kapatıldı: {bot.Symbol} | {reason}",
                 CreatedAt = DateTime.UtcNow
             });
@@ -317,10 +339,10 @@ public class BotEngineService : BackgroundService
         }
 
         var log1 = new Log
-            { Message = reason, Level = Kripteks.Core.Entities.LogLevel.Info, Timestamp = DateTime.UtcNow };
+            { Message = reason, Level = BotLogLevel.Info, Timestamp = DateTime.UtcNow };
         var log2 = new Log
         {
-            Message = $"🏁 İşlem Sonlandı. Kasa: {wallet?.Balance:F2}", Level = Kripteks.Core.Entities.LogLevel.Info,
+            Message = $"🏁 İşlem Sonlandı. Kasa: {wallet?.Balance:F2}", Level = BotLogLevel.Info,
             Timestamp = DateTime.UtcNow
         };
 
@@ -340,6 +362,7 @@ public class BotEngineService : BackgroundService
     {
         if (id == "strategy-market-buy") return new MarketBuyStrategy();
         if (id == "strategy-golden-rose") return new GoldenRoseStrategy();
+        if (id == "strategy-alpha-trend") return new AlphaTrendStrategy();
         return new GoldenRoseStrategy(); // Fallback
     }
 
@@ -378,7 +401,10 @@ public class BotEngineService : BackgroundService
             CreatedAt = bot.CreatedAt, // Note: DTO uses CreatedAt
             Pnl = bot.CurrentPnl,
             PnlPercent = bot.CurrentPnlPercent,
-            Logs = bot.Logs
+            Logs = bot.Logs,
+            IsTrailingStop = bot.IsTrailingStop,
+            TrailingStopDistance = bot.TrailingStopDistance,
+            MaxPriceReached = bot.MaxPriceReached
         };
     }
 }

@@ -4,39 +4,406 @@ import { useEffect, useState, useRef } from "react";
 import { Bot, Strategy, Coin, Wallet, User, DashboardStats } from "@/types";
 import { BotService, MarketService, WalletService, HUB_URL } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity, TrendingUp, BarChart2, DollarSign, Wallet as WalletIcon, ChevronDown, Loader2, FlaskConical, History, Database, Settings, LogOut, User as UserIcon, Key, Zap, Cpu, Square, AlertTriangle } from "lucide-react";
+import { Activity, TrendingUp, BarChart2, DollarSign, Wallet as WalletIcon, ChevronDown, Loader2, FlaskConical, History, Database, Settings, LogOut, User as UserIcon, Key, Zap, Cpu, Square, AlertTriangle, Info, Clock, X, Bot as BotIcon } from "lucide-react";
 import SearchableSelect from "@/components/ui/SearchableSelect";
 import TradingViewWidget from "@/components/ui/TradingViewWidget";
 import BotLogs from "@/components/ui/BotLogs";
 import WalletModal from "@/components/ui/WalletModal";
-import SettingsModal from "@/components/ui/SettingsModal";
-import LogsDrawer from "@/components/ui/LogsDrawer";
 import confetti from "canvas-confetti";
 import { toast } from "sonner";
-import { HubConnectionBuilder, HubConnection } from "@microsoft/signalr";
-import BacktestPanel from "@/components/ui/BacktestPanel";
-import AnalyticsDashboard from "@/components/ui/AnalyticsDashboard";
+import Link from "next/link";
+import Navbar from "@/components/ui/Navbar";
+import { useUI } from "@/context/UIContext";
+import { useSignalR } from "@/context/SignalRContext";
+
+
+interface StatCardProps {
+    title: string;
+    value: string | number;
+    icon: React.ReactNode;
+    trend?: string;
+    trendUp?: boolean;
+    delay: number;
+    highlight?: boolean;
+    onClick?: () => void;
+}
+
+function StatCard({ title, value, icon, trend, trendUp, delay, highlight, onClick }: StatCardProps) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay, duration: 0.5 }}
+            onClick={onClick}
+            className={`glass-card p-5 relative overflow-hidden group ${onClick ? 'cursor-pointer' : ''} ${highlight ? 'border-primary/20 bg-primary/5' : ''}`}
+        >
+            <div className="flex justify-between items-start mb-4 relative z-10">
+                <div>
+                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">{title}</p>
+                    <h3 className="text-2xl font-display font-bold text-white tracking-wide">{value}</h3>
+                </div>
+                <div className={`p-3 rounded-xl ${highlight ? 'bg-primary/20' : 'bg-slate-800/50'} border border-white/5`}>
+                    {icon}
+                </div>
+            </div>
+            {trend && (
+                <div className={`flex items-center gap-2 text-xs font-medium ${trendUp ? 'text-emerald-400' : 'text-slate-500'}`}>
+                    {trendUp && <TrendingUp size={14} />}
+                    {trend}
+                </div>
+            )}
+            <div className={`absolute -bottom-4 -right-4 w-24 h-24 rounded-full blur-2xl opacity-20 pointer-events-none group-hover:opacity-30 transition-opacity ${highlight ? 'bg-primary' : 'bg-white'}`}></div>
+        </motion.div>
+    );
+}
+
+interface TabButtonProps {
+    id: 'active' | 'history';
+    label: string;
+    count?: number;
+    activeTab: string;
+    setActiveTab: (id: 'active' | 'history') => void;
+    icon: React.ReactNode;
+}
+
+function TabButton({ id, label, count, activeTab, setActiveTab, icon }: TabButtonProps) {
+    return (
+        <button
+            onClick={() => setActiveTab(id)}
+            className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2.5 ${activeTab === id
+                ? 'bg-slate-800 text-white shadow-lg ring-1 ring-white/10'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                }`}
+        >
+            {icon}
+            {label}
+            {count !== undefined && <span className={`px-1.5 py-0.5 rounded text-[10px] bg-slate-700 text-slate-300 ml-1`}>{count}</span>}
+        </button>
+    );
+}
+
+interface EmptyStateProps {
+    title: string;
+    description: string;
+    icon: React.ReactNode;
+}
+
+function EmptyState({ title, description, icon }: EmptyStateProps) {
+    return (
+        <div className="flex flex-col items-center justify-center py-20 bg-slate-900/40 border border-dashed border-slate-800 rounded-3xl">
+            <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mb-4 text-slate-600">
+                {icon}
+            </div>
+            <h3 className="text-white font-display font-bold text-lg mb-2">{title}</h3>
+            <p className="text-slate-500 text-sm max-w-xs text-center">{description}</p>
+        </div>
+    );
+}
+
+interface BotCardProps {
+    bot: Bot;
+    isActive: boolean;
+    activeChartBotId: string | null;
+    setActiveChartBotId: (id: string | null) => void;
+    handleStopBot: (id: string) => void;
+    onStrategyClick: (id: string) => void;
+}
+
+function BotCard({ bot, isActive, activeChartBotId, setActiveChartBotId, handleStopBot, onStrategyClick }: BotCardProps) {
+    const [isLogsOpen, setIsLogsOpen] = useState(false);
+
+    return (
+        <motion.div
+            layout
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className={`glass-card overflow-hidden group ${isActive
+                ? 'bg-slate-800/40 border-l-4 border-l-emerald-500'
+                : 'bg-slate-900/30 opacity-70 hover:opacity-100 border-l-4 border-l-slate-700'
+                }`}
+        >
+            <div className="p-5 flex flex-col sm:flex-row items-center gap-6">
+
+                {/* Symbol Icon */}
+                <div className="relative">
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold shadow-lg ${isActive
+                        ? 'bg-linear-to-br from-slate-800 to-slate-900 text-white border border-white/5'
+                        : 'bg-slate-800 text-slate-600'
+                        }`}>
+                        {bot.symbol.substring(0, 1)}
+                    </div>
+                    {isActive && <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-slate-900 rounded-full animate-pulse"></div>}
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 w-full text-center sm:text-left">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
+                        <h3 className="text-white font-display font-bold text-xl tracking-wide">{bot.symbol}</h3>
+                        <div className="flex items-center justify-center sm:justify-start gap-2">
+                            {/* Status Badge */}
+                            {bot.status === 'WaitingForEntry' && (
+                                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 uppercase tracking-wider animate-pulse">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
+                                    Sinyal Bekleniyor
+                                </span>
+                            )}
+                            {bot.status === 'Running' && (
+                                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-wider">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                                    Pozisyonda
+                                </span>
+                            )}
+                            {bot.status === 'Stopped' && (
+                                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-500 border border-rose-500/20 uppercase tracking-wider">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
+                                    Durduruldu
+                                </span>
+                            )}
+
+                            <button onClick={() => onStrategyClick(bot.strategyId || bot.strategyName)} className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-white/5 uppercase hidden sm:block hover:bg-slate-700 hover:text-white transition-colors">
+                                {bot.strategyName}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Dynamic Status Text */}
+                    <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-3 text-xs text-slate-500 font-mono mt-1 w-full">
+                        <div className="flex items-center gap-3 shrink-0">
+                            <span className="flex items-center gap-1"><DollarSign size={12} /> {bot.amount} Teminat</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* PNL Display */}
+                <div className="flex flex-col items-center sm:items-end min-w-[100px]">
+                    <span className={`text-2xl font-bold font-mono tracking-tight ${bot.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {bot.pnl >= 0 ? '+' : ''}{bot.pnl?.toFixed(2)}$
+                    </span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${bot.pnl >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                        %{bot.pnlPercent?.toFixed(2)} ROI
+                    </span>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0 shrink-0">
+                    <button
+                        onClick={() => setActiveChartBotId(activeChartBotId === bot.id ? null : bot.id)}
+                        className={`flex-1 sm:flex-none p-3 rounded-xl border transition-all ${activeChartBotId === bot.id ? 'bg-secondary text-white border-secondary shadow-lg shadow-secondary/20' : 'bg-slate-800 text-slate-400 border-white/5 hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50'}`}
+                    >
+                        <Activity size={18} />
+                    </button>
+
+                    {isActive && (
+                        <button
+                            onClick={() => handleStopBot(bot.id)}
+                            className="flex-1 sm:flex-none p-3 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all active:scale-95"
+                            title="Acil Durdur"
+                        >
+                            <Square size={18} className="fill-current" />
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* EXPANDED CONTENT */}
+            {/* EXPANDED CONTENT */}
+            <div className="border-t border-white/5 bg-black/20">
+                <AnimatePresence>
+                    {activeChartBotId === bot.id && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden"
+                        >
+                            <div className="p-4">
+                                <TradingViewWidget symbol={bot.symbol} strategy={bot.strategyName} />
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Logs Accordion */}
+                <div className={activeChartBotId === bot.id ? "border-t border-white/5" : ""}>
+                    <button
+                        onClick={() => setIsLogsOpen(!isLogsOpen)}
+                        className="w-full flex items-center justify-between px-4 py-3 text-xs font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-colors group/logs"
+                    >
+                        <span className="flex items-center gap-2 font-mono tracking-wider">
+                            <span className="text-secondary">{'>_'}</span>
+                            İŞLEM KAYITLARI
+                        </span>
+                        <ChevronDown size={14} className={`transition-transform duration-300 text-slate-500 group-hover/logs:text-white ${isLogsOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    <AnimatePresence>
+                        {isLogsOpen && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden"
+                            >
+                                <div className="p-4 pt-0">
+                                    <BotLogs logs={bot.logs || []} compact={!isActive} />
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            </div>
+        </motion.div>
+    );
+}
+
+function InfoTooltip({ text }: { text: string }) {
+    const [isVisible, setIsVisible] = useState(false);
+    return (
+        <div className="relative inline-block ml-1" onMouseEnter={() => setIsVisible(true)} onMouseLeave={() => setIsVisible(false)}>
+            <div className="p-0.5 rounded-full hover:bg-white/10 transition-colors cursor-help text-slate-500 hover:text-slate-300">
+                <Info size={12} />
+            </div>
+            <AnimatePresence>
+                {isVisible && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9, y: 5 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 5 }}
+                        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-3 bg-slate-900/95 backdrop-blur-md border border-white/10 rounded-xl shadow-2xl z-50 pointer-events-none"
+                    >
+                        <p className="text-[10px] leading-relaxed text-slate-300 font-semibold">{text}</p>
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-slate-900/95"></div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
+const STRATEGY_DETAILS: Record<string, { title: string; description: string; timeline: { title: string; desc: string; icon: any; color: string }[] }> = {
+    "strategy-golden-rose": {
+        title: "Golden Rose Trend Strategy",
+        description: "SMA 111-200-350 trend takibi ve Fibonacci 1.618 kar al hedefli özel strateji. Bitcoin halving döngüleri için optimize edilmiştir.",
+        timeline: [
+            { title: "Trend Analizi", desc: "SMA 111, SMA 200 ve SMA 350 indikatörleri taranarak uzun vadeli trend yönü ve gücü belirlenir.", icon: Activity, color: "text-slate-400 border-slate-500/20 bg-slate-500/10" },
+            { title: "Giriş Sinyali", desc: "Fiyat, belirlenen hareketli ortalamaların (SMA) üzerine çıktığında ve trend onayı alındığında ALIM emri girilir.", icon: TrendingUp, color: "text-emerald-400 border-emerald-500/20 bg-emerald-500/10" },
+            { title: "Döngü Tepesi", desc: "Bitcoin halving döngülerine göre hesaplanan tepe noktaları (x2) hedef alınır.", icon: BarChart2, color: "text-blue-400 border-blue-500/20 bg-blue-500/10" },
+            { title: "Altın Oran Çıkış", desc: "Fibonacci 1.618 seviyesine ulaşıldığında 'Altın Oran Kar' realizasyonu yapılır ve pozisyon kapatılır.", icon: DollarSign, color: "text-amber-400 border-amber-500/20 bg-amber-500/10" }
+        ]
+    },
+    "strategy-market-buy": {
+        title: "Market Maker (Hızlı Al-Sat)",
+        description: "Anlık fiyat hareketlerinden yararlanarak kısa vadeli (scalping) işlemler açar.",
+        timeline: [
+            { title: "Fırsat Yakalama", desc: "Ani fiyat düşüşlerinde (Dip Noktalar) tepki alımları hedeflenir.", icon: Activity, color: "text-slate-400 border-slate-500/20 bg-slate-500/10" },
+            { title: "Hızlı Giriş", desc: "Destek noktasına temas edildiğinde milisaniyeler içinde ALIM yapılır.", icon: TrendingUp, color: "text-emerald-400 border-emerald-500/20 bg-emerald-500/10" },
+            { title: "Kısa Bekleme", desc: "Pozisyon süresi minimumda tutulur, küçük karlar hedeflenir.", icon: Clock, color: "text-blue-400 border-blue-500/20 bg-blue-500/10" },
+            { title: "Çıkış", desc: "%1-%2 gibi hedeflerde anında kar satışı gerçekleştirilir.", icon: DollarSign, color: "text-amber-400 border-amber-500/20 bg-amber-500/10" }
+        ]
+    },
+    "strategy-sma-crossover": {
+        title: "SMA Kesişimi (Trend)",
+        description: "İki farklı hareketli ortalamanın (Örn: SMA 9 ve SMA 21) kesişimlerini takip eden klasik trend stratejisi.",
+        timeline: [
+            { title: "Veri Analizi", desc: "Kısa ve uzun vadeli ortalamalar sürekli hesaplanır.", icon: Activity, color: "text-slate-400 border-slate-500/20 bg-slate-500/10" },
+            { title: "Golden Cross", desc: "Kısa vadeli ortalama, uzun vadeli ortalamayı yukarı kestiğinde ALIM sinyali üretilir.", icon: TrendingUp, color: "text-emerald-400 border-emerald-500/20 bg-emerald-500/10" },
+            { title: "Trend Sürüşü", desc: "Kesişim devam ettiği sürece pozisyon korunur.", icon: Activity, color: "text-blue-400 border-blue-500/20 bg-blue-500/10" },
+            { title: "Death Cross", desc: "Kısa vade, uzun vadeyi aşağı kestiğinde SATIŞ sinyali ile çıkılır.", icon: LogOut, color: "text-rose-400 border-rose-500/20 bg-rose-500/10" }
+        ]
+    }
+};
+
+function StrategyModal({ isOpen, onClose, strategyId }: { isOpen: boolean; onClose: () => void; strategyId: string | null }) {
+    if (!isOpen || !strategyId) return null;
+
+    const details = STRATEGY_DETAILS[strategyId] || {
+        title: strategyId,
+        description: "Bu strateji için detaylı bilgi bulunamadı.",
+        timeline: []
+    };
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}></div>
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="relative bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl"
+            >
+                {/* Header */}
+                <div className="p-6 pb-4 border-b border-white/5 flex items-start justify-between bg-slate-800/30">
+                    <div>
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="p-1.5 rounded-lg bg-primary/10 text-primary"><Activity size={18} /></span>
+                            <h2 className="text-lg font-bold text-white">{details.title}</h2>
+                        </div>
+                        <p className="text-xs text-slate-400 leading-relaxed max-w-sm">{details.description}</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 -mr-2 -mt-2 text-slate-500 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                        <X size={20} />
+                    </button>
+                </div>
+
+                {/* Timeline */}
+                <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
+                    {details.timeline.map((step, index) => (
+                        <div key={index} className="relative pl-8 group">
+                            {/* Vertical Line */}
+                            {index !== details.timeline.length - 1 && (
+                                <div className="absolute left-[15px] top-8 bottom-[-24px] w-0.5 bg-slate-800 group-hover:bg-slate-700 transition-colors"></div>
+                            )}
+
+                            {/* Node */}
+                            <div className={`absolute left-0 top-1 w-8 h-8 rounded-xl flex items-center justify-center border transition-all shadow-lg ${step.color}`}>
+                                <step.icon size={14} />
+                            </div>
+
+                            {/* Content */}
+                            <div>
+                                <h3 className="text-sm font-bold text-white mb-1 group-hover:text-primary transition-colors">{step.title}</h3>
+                                <p className="text-xs text-slate-400 leading-relaxed bg-slate-950/50 p-3 rounded-lg border border-white/5">
+                                    {step.desc}
+                                </p>
+                            </div>
+                        </div>
+                    ))}
+
+                    {details.timeline.length === 0 && (
+                        <div className="text-center py-8 text-slate-500">
+                            <BotIcon size={32} className="mx-auto mb-2 opacity-50" />
+                            <p className="text-xs">Strateji detayları hazırlanıyor...</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer */}
+                <div className="p-4 bg-slate-950/50 border-t border-white/5 text-center">
+                    <p className="text-[10px] text-slate-500">
+                        * Piyasa koşullarına göre sinyal süreleri değişiklik gösterebilir.
+                    </p>
+                </div>
+            </motion.div>
+        </div>
+    );
+}
 
 export default function Dashboard() {
     const [bots, setBots] = useState<Bot[]>([]);
+    const [selectedStrategyId, setSelectedStrategyId] = useState<string | null>(null);
     const [coins, setCoins] = useState<Coin[]>([]);
     const [strategies, setStrategies] = useState<Strategy[]>([]);
     const [wallet, setWallet] = useState<Wallet | null>(null);
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [user, setUser] = useState<User | null>(null);
-    const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-    // Settings Modal States
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const [isLogsOpen, setIsLogsOpen] = useState(false);
-    const [settingsTab, setSettingsTab] = useState<'api' | 'general' | 'users'>('api');
-
-    const [activeTab, setActiveTab] = useState<'active' | 'history' | 'backtest' | 'analytics'>('active');
-    const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
     const [isLoading, setIsLoading] = useState(true);
     const [isCoinsLoading, setIsCoinsLoading] = useState(false);
     const [activeChartBotId, setActiveChartBotId] = useState<string | null>(null);
-    const [isSignalRConnected, setIsSignalRConnected] = useState(false);
+    const { connection } = useSignalR();
+
+    const { openWallet } = useUI();
 
     // Bot Status Tracking for Notifications
     const prevBotsRef = useRef<Bot[]>([]);
@@ -48,9 +415,37 @@ export default function Dashboard() {
     const [takeProfit, setTakeProfit] = useState("");
     const [stopLoss, setStopLoss] = useState("");
     const [selectedInterval, setSelectedInterval] = useState("1h");
+    const [isTrailingEnabled, setIsTrailingEnabled] = useState(false);
+    const [trailingDistance, setTrailingDistance] = useState("2");
     const [isStarting, setIsStarting] = useState(false);
 
-    const connectionRef = useRef<HubConnection | null>(null);
+
+
+    // --- API HANDLERS (Moved UP) ---
+    const fetchInitialData = async () => {
+        try {
+            const [botsData, strategiesData, walletData, statsData] = await Promise.all([
+                BotService.getAll(),
+                MarketService.getStrategies(),
+                WalletService.get(),
+                MarketService.getStats()
+            ]);
+            setBots(botsData);
+            setStrategies(strategiesData);
+            setWallet(walletData);
+            setStats(statsData);
+            if (strategiesData.length > 0) setSelectedStrategy(strategiesData[0].id);
+        } catch (error) { console.error("Veri hatası", error); } finally { setIsLoading(false); }
+    };
+
+    const refreshCoins = async () => { setIsCoinsLoading(true); try { const coinsData = await MarketService.getCoins(); setCoins(coinsData); } catch (e) { console.error(e); } setIsCoinsLoading(false); };
+
+    const fetchLiveUpdates = async () => {
+        try {
+            const [botsData, walletData, statsData] = await Promise.all([BotService.getAll(), WalletService.get(), MarketService.getStats()]);
+            setBots(botsData); setWallet(walletData); setStats(statsData);
+        } catch (e) { console.error(e) }
+    };
 
     useEffect(() => {
         // Token Check
@@ -76,51 +471,15 @@ export default function Dashboard() {
         const interval = setInterval(() => {
             if (isMounted) fetchLiveUpdates();
         }, 10000);
+    }, []);
 
-        // SIGNALR CONNECTION
-        const connection = new HubConnectionBuilder()
-            .withUrl(HUB_URL, {
-                accessTokenFactory: () => localStorage.getItem("token") || ""
-            })
-            .withAutomaticReconnect()
-            .build();
+    useEffect(() => {
+        if (!connection) return;
 
-        const startConnection = async () => {
-            if (connection.state === "Connected") {
-                if (isMounted) setIsSignalRConnected(true);
-                return;
-            }
-
-            try {
-                if (connection.state === "Disconnected") {
-                    await connection.start();
-                    if (isMounted) {
-                        console.log("SignalR Connected!");
-                        setIsSignalRConnected(true);
-                    }
-                }
-            } catch (err: any) {
-                // "stopped during negotiation" hatası React Strict Mode temizliği sırasında normaldir, konsola basma.
-                const isNegotiationError = err.message?.includes("stopped during negotiation");
-                if (!isNegotiationError) {
-                    console.error("SignalR Connection Error: ", err);
-                }
-
-                if (isMounted && connection.state === "Disconnected") {
-                    setTimeout(startConnection, isNegotiationError ? 100 : 5000);
-                }
-            }
-        };
-
-        startConnection();
-
-        // Bağlantı durumlarını takip et
-        connection.onclose(() => { if (isMounted) setIsSignalRConnected(false); });
-        connection.onreconnecting(() => { if (isMounted) setIsSignalRConnected(false); });
-        connection.onreconnected(() => { if (isMounted) setIsSignalRConnected(true); });
+        let isMounted = true;
 
         // Listeners
-        connection.on("BotUpdated", (updatedBot: Bot) => {
+        const handleBotUpdated = (updatedBot: Bot) => {
             if (!isMounted) return;
             setBots(prev => {
                 const index = prev.findIndex(b => b.id === updatedBot.id);
@@ -131,9 +490,9 @@ export default function Dashboard() {
                 }
                 return [updatedBot, ...prev];
             });
-        });
+        };
 
-        connection.on("LogAdded", (botId: string, log: any) => {
+        const handleLogAdded = (botId: string, log: any) => {
             if (!isMounted) return;
             setBots(prev => prev.map(b => {
                 if (b.id === botId) {
@@ -143,19 +502,23 @@ export default function Dashboard() {
                 }
                 return b;
             }));
-        });
+        };
 
-        connection.on("WalletUpdated", (updatedWallet: Wallet) => {
+        const handleWalletUpdated = (updatedWallet: Wallet) => {
             if (isMounted) setWallet(updatedWallet);
-        });
+        };
+
+        connection.on("BotUpdated", handleBotUpdated);
+        connection.on("LogAdded", handleLogAdded);
+        connection.on("WalletUpdated", handleWalletUpdated);
 
         return () => {
             isMounted = false;
-            clearInterval(interval);
-            connection.stop().catch(() => { });
-            setIsSignalRConnected(false);
+            connection.off("BotUpdated", handleBotUpdated);
+            connection.off("LogAdded", handleLogAdded);
+            connection.off("WalletUpdated", handleWalletUpdated);
         };
-    }, []);
+    }, [connection]);
 
     // Check for Bot Status Changes
     useEffect(() => {
@@ -186,30 +549,7 @@ export default function Dashboard() {
         else if (selectedStrategy === "strategy-sma-crossover") setSelectedInterval("15m");
     }, [selectedStrategy]);
 
-    const fetchInitialData = async () => {
-        try {
-            const [botsData, strategiesData, walletData, statsData] = await Promise.all([
-                BotService.getAll(),
-                MarketService.getStrategies(),
-                WalletService.get(),
-                MarketService.getStats()
-            ]);
-            setBots(botsData);
-            setStrategies(strategiesData);
-            setWallet(walletData);
-            setStats(statsData);
-            if (strategiesData.length > 0) setSelectedStrategy(strategiesData[0].id);
-        } catch (error) { console.error("Veri hatası", error); } finally { setIsLoading(false); }
-    };
 
-    const refreshCoins = async () => { setIsCoinsLoading(true); try { const coinsData = await MarketService.getCoins(); setCoins(coinsData); } catch (e) { console.error(e); } setIsCoinsLoading(false); };
-
-    const fetchLiveUpdates = async () => {
-        try {
-            const [botsData, walletData, statsData] = await Promise.all([BotService.getAll(), WalletService.get(), MarketService.getStats()]);
-            setBots(botsData); setWallet(walletData); setStats(statsData);
-        } catch (e) { console.error(e) }
-    };
     const handleStartBot = async () => {
         if (!selectedCoin || !selectedStrategy || amount <= 0) {
             toast.warning("Hatalı Giriş", { description: "Lütfen coin, strateji ve tutar alanlarını kontrol ediniz." });
@@ -224,10 +564,12 @@ export default function Dashboard() {
                 amount: amount,
                 interval: selectedInterval,
                 takeProfit: takeProfit ? Number(takeProfit) : null,
-                stopLoss: stopLoss ? Number(stopLoss) : null
+                stopLoss: stopLoss ? Number(stopLoss) : null,
+                isTrailingStop: isTrailingEnabled,
+                trailingStopDistance: isTrailingEnabled ? Number(trailingDistance) : null
             };
 
-            await BotService.start(payload);
+            await BotService.create(payload);
             toast.success("Bot Başlatıldı", { description: `${selectedCoin} üzerinde işlem başladı.` });
             await fetchLiveUpdates();
 
@@ -283,88 +625,7 @@ export default function Dashboard() {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20">
 
             {/* HEADER BAR */}
-            <header className="flex items-center justify-between mb-10">
-                {/* Logo & Brand */}
-                <div className="flex items-center gap-4">
-                    <div className="relative group">
-                        <div className="absolute inset-0 bg-primary/40 rounded-xl blur-lg group-hover:blur-xl transition-all"></div>
-                        <div className="bg-slate-900 border border-white/10 p-2.5 rounded-xl shadow-lg relative">
-                            <Activity className="text-secondary w-6 h-6" />
-                        </div>
-                    </div>
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <h1 className="text-2xl font-display font-bold text-white tracking-wide">
-                                KRIP<span className="text-primary">TEKS</span>
-                            </h1>
-                        </div>
-                        <p className="text-[10px] text-slate-400 font-mono tracking-widest uppercase opacity-80">Otonom Motor v2.1</p>
-                    </div>
-                </div>
-
-                {/* Right Side: Status & Profile */}
-                <div className="flex items-center gap-6">
-                    {/* System Status */}
-                    <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-slate-900/40 rounded-full border border-white/5 backdrop-blur-sm">
-                        <div className="relative flex h-2.5 w-2.5">
-                            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isSignalRConnected ? 'bg-emerald-400' : 'bg-rose-500'}`}></span>
-                            <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isSignalRConnected ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
-                        </div>
-                        <span className="text-xs text-slate-300 font-medium tracking-wide">{isSignalRConnected ? 'SİSTEM ÇEVRİMİÇİ' : 'BAĞLANTI YOK'}</span>
-                    </div>
-
-                    {/* Profile */}
-                    <div className="relative z-50">
-                        <button
-                            onClick={() => setIsProfileOpen(!isProfileOpen)}
-                            className="flex items-center gap-3 glass-card px-2 py-1.5 pl-4 pr-1.5 transition-all group hover:bg-slate-800"
-                        >
-                            <div className="text-right hidden sm:block">
-                                <p className="text-xs font-bold text-white leading-tight group-hover:text-primary transition-colors">
-                                    {user?.firstName || "Misafir"}
-                                </p>
-                                <p className="text-[10px] text-slate-400 font-mono leading-tight">
-                                    {(user?.role || user?.Role) === 'Admin' ? 'YÖNETİCİ' : ((user?.role || user?.Role)?.toUpperCase() || 'MİSAFİR')}
-                                </p>
-                            </div>
-                            <div className="w-9 h-9 bg-linear-to-br from-primary to-primary-light rounded-lg flex items-center justify-center text-slate-900 font-bold text-sm shadow-lg">
-                                {user?.firstName?.charAt(0) || "Y"}
-                            </div>
-                        </button>
-
-                        <AnimatePresence>
-                            {isProfileOpen && (
-                                <>
-                                    <div className="fixed inset-0 z-10" onClick={() => setIsProfileOpen(false)}></div>
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                        className="absolute right-0 mt-3 w-64 glass-card p-2 z-20 flex flex-col gap-1"
-                                    >
-                                        <div className="px-4 py-3 mb-2 bg-white/5 rounded-xl border border-white/5">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Giriş Yapılan Hesap</p>
-                                            <p className="text-sm font-bold text-white truncate">{user?.email || "admin@kripteks.com"}</p>
-                                        </div>
-
-                                        <MenuButton icon={<Key size={14} />} label="API Bağlantıları" onClick={() => { setSettingsTab('api'); setIsSettingsOpen(true); setIsProfileOpen(false); }} />
-                                        <MenuButton icon={<Settings size={14} />} label="Sistem Ayarları" onClick={() => { setSettingsTab('general'); setIsSettingsOpen(true); setIsProfileOpen(false); }} />
-                                        <MenuButton icon={<UserIcon size={14} />} label="Kullanıcı Yönetimi" onClick={() => { setSettingsTab('users'); setIsSettingsOpen(true); setIsProfileOpen(false); }} />
-                                        <MenuButton icon={<Database size={14} />} label="İşlem Kayıtları" onClick={() => { setIsLogsOpen(true); setIsProfileOpen(false); }} />
-
-                                        <div className="h-px bg-white/10 my-1"></div>
-
-                                        <button onClick={handleLogout} className="w-full text-left px-3 py-2.5 text-xs font-bold text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 rounded-lg flex items-center gap-3 transition-colors">
-                                            <LogOut size={14} />
-                                            Çıkış Yap
-                                        </button>
-                                    </motion.div>
-                                </>
-                            )}
-                        </AnimatePresence>
-                    </div>
-                </div>
-            </header>
+            <Navbar user={user} />
 
 
 
@@ -384,13 +645,19 @@ export default function Dashboard() {
 
                             <div className="space-y-3">
                                 <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Kripto Varlık</label>
+                                    <div className="flex items-center gap-1 pl-1">
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Kripto Varlık</label>
+                                        <InfoTooltip text="İşlem yapılacak kripto para çiftini seçin (Örn: BTC/USDT)." />
+                                    </div>
                                     <SearchableSelect options={coins.map(c => ({ id: c.symbol, label: c.symbol, ...c }))} value={selectedCoin} onChange={setSelectedCoin} placeholder="Coin Seçiniz..." onOpen={refreshCoins} isLoading={isCoinsLoading} />
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-3">
                                     <div className="col-span-2 space-y-1">
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Strateji</label>
+                                        <div className="flex items-center gap-1 pl-1">
+                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Strateji</label>
+                                            <InfoTooltip text="Botun alım-satım kararlarını vereceği teknik analiz algoritması." />
+                                        </div>
                                         <div className="relative">
                                             <select
                                                 className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2 text-slate-200 outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-all appearance-none text-sm"
@@ -403,7 +670,10 @@ export default function Dashboard() {
                                         </div>
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Zaman</label>
+                                        <div className="flex items-center gap-1 pl-1">
+                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Zaman</label>
+                                            <InfoTooltip text="Grafik verilerinin analiz edileceği zaman dilimi (1m: 1 dakika, 1h: 1 saat)." />
+                                        </div>
                                         <div className="relative">
                                             <select
                                                 className="w-full bg-slate-950/50 border border-white/10 rounded-xl pl-3 pr-8 py-2 text-slate-200 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all appearance-none text-sm font-mono"
@@ -419,8 +689,17 @@ export default function Dashboard() {
 
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center px-1">
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tutar (USDT)</label>
-                                        {wallet && (<span className={`text-[10px] font-mono ${isInsufficientBalance ? 'text-rose-400' : 'text-slate-500'}`}> Kullanılabilir: <span className="text-slate-300 font-bold">${wallet.available_balance?.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span> </span>)}
+                                        <div className="flex items-center gap-1">
+                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tutar (USDT)</label>
+                                            <InfoTooltip text="Bota ayrılacak sermaye tutarı. Bakiyenizin bir kısmını veya tamamını kullanabilirsiniz." />
+                                        </div>
+                                        {wallet && (
+                                            <span className={`text-[10px] font-mono flex items-center ${isInsufficientBalance ? 'text-rose-400' : 'text-slate-500'}`}>
+                                                Kullanılabilir
+                                                <InfoTooltip text="Cüzdanınızdaki harcanabilir spot USDT bakiyesidir." />
+                                                : <span className="text-slate-300 font-bold ml-1">${wallet.available_balance?.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
+                                            </span>
+                                        )}
                                     </div>
                                     <div className="relative group/input">
                                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold group-focus-within/input:text-primary transition-colors">$</span>
@@ -431,13 +710,75 @@ export default function Dashboard() {
 
                                 <div className="grid grid-cols-2 gap-3 pt-1">
                                     <div className="space-y-1">
-                                        <label className="block text-[10px] font-bold text-emerald-500/80 uppercase tracking-widest pl-1">Kar Al %</label>
+                                        <div className="flex items-center gap-1 pl-1">
+                                            <label className="block text-[10px] font-bold text-emerald-500/80 uppercase tracking-widest">Kar Al %</label>
+                                            <InfoTooltip text="Belirlenen kâr oranına ulaşıldığında botun işlemi otomatik kapatmasını sağlar." />
+                                        </div>
                                         <input type="number" placeholder="İsteğe Bağlı" className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2 text-slate-200 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-all font-mono" value={takeProfit} onChange={(e) => setTakeProfit(e.target.value)} />
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="block text-[10px] font-bold text-rose-500/80 uppercase tracking-widest pl-1">Zarar Durdur %</label>
+                                        <div className="flex items-center gap-1 pl-1">
+                                            <label className="block text-[10px] font-bold text-rose-500/80 uppercase tracking-widest">Zarar Durdur %</label>
+                                            <InfoTooltip text="Fiyat düşüşlerinde zararınızı sınırlandırmak için işlemin otomatik kapatılacağı oran." />
+                                        </div>
                                         <input type="number" placeholder="İsteğe Bağlı" className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2 text-slate-200 text-sm outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500/50 transition-all font-mono" value={stopLoss} onChange={(e) => setStopLoss(e.target.value)} />
                                     </div>
+                                </div>
+
+                                <div className="p-3 bg-slate-950/40 rounded-xl border border-white/5 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`p-1.5 rounded-lg ${isTrailingEnabled ? 'bg-amber-500/10 text-amber-500' : 'bg-slate-800 text-slate-500'}`}>
+                                                <TrendingUp size={14} />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center">
+                                                    <p className="text-[11px] font-bold text-slate-200">İz Süren Stop (Trailing)</p>
+                                                    <InfoTooltip text="Fiyat yükseldikçe stop seviyesini yukarı taşıyan akıllı bir mekanizmadır. Kazancınızı maksimize ederken ani düşüşlerde kârı korur." />
+                                                </div>
+                                                <p className="text-[9px] text-slate-500">Kârı takip ederek stop yükseltir</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => setIsTrailingEnabled(!isTrailingEnabled)}
+                                            className={`w-10 h-5 rounded-full transition-all relative ${isTrailingEnabled ? 'bg-amber-500' : 'bg-slate-700'}`}
+                                        >
+                                            <motion.div
+                                                animate={{ x: isTrailingEnabled ? 20 : 2 }}
+                                                className="absolute top-1 w-3 h-3 bg-white rounded-full shadow-sm"
+                                            />
+                                        </button>
+                                    </div>
+
+                                    <AnimatePresence>
+                                        {isTrailingEnabled && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: 'auto', opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                className=""
+                                            >
+                                                <div className="pt-2 border-t border-white/5 space-y-2">
+                                                    <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase">
+                                                        <div className="flex items-center">
+                                                            <span>Takip Mesafesi</span>
+                                                            <InfoTooltip text="Fiyatın zirve noktasından ne kadar geriye düştüğünde çıkış yapılacağını belirler. %2 seçerseniz, fiyat tepeden %2 düştüğü an satılır." />
+                                                        </div>
+                                                        <span className="text-amber-500 font-mono">%{trailingDistance}</span>
+                                                    </div>
+                                                    <input
+                                                        type="range"
+                                                        min="0.5"
+                                                        max="10"
+                                                        step="0.1"
+                                                        value={trailingDistance}
+                                                        onChange={(e) => setTrailingDistance(e.target.value)}
+                                                        className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                                                    />
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
 
                                 <div className="pt-3">
@@ -479,7 +820,7 @@ export default function Dashboard() {
                             </div>
 
                             <div
-                                onClick={() => setIsWalletModalOpen(true)}
+                                onClick={() => openWallet()}
                                 className="glass-card p-4 flex flex-col justify-between relative overflow-hidden group cursor-pointer border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors"
                             >
                                 <div className="flex justify-between items-start z-10">
@@ -512,8 +853,6 @@ export default function Dashboard() {
                     <div className="glass-card p-1.5 flex gap-1 mb-6 w-fit bg-slate-900/60">
                         <TabButton id="active" label="Aktif Botlar" count={activeBots.length} activeTab={activeTab} setActiveTab={setActiveTab} icon={<Activity size={16} />} />
                         <TabButton id="history" label="Geçmiş" activeTab={activeTab} setActiveTab={setActiveTab} icon={<History size={16} />} />
-                        <TabButton id="backtest" label="Simülasyon" activeTab={activeTab} setActiveTab={setActiveTab} icon={<FlaskConical size={16} />} />
-                        <TabButton id="analytics" label="Raporlar" activeTab={activeTab} setActiveTab={setActiveTab} icon={<BarChart2 size={16} />} />
                     </div>
 
                     {/* CONTENT AREA */}
@@ -526,7 +865,7 @@ export default function Dashboard() {
                                         <EmptyState title="Sistem Boşta" description="İşlem yapmak için sol panelden yeni bir bot başlatın." icon={<Cpu size={48} />} />
                                     ) : (
                                         activeBots.map((bot) => (
-                                            <BotCard key={bot.id} bot={bot} isActive={true} activeChartBotId={activeChartBotId} setActiveChartBotId={setActiveChartBotId} handleStopBot={handleStopBot} />
+                                            <BotCard key={bot.id} bot={bot} isActive={true} activeChartBotId={activeChartBotId} setActiveChartBotId={setActiveChartBotId} handleStopBot={handleStopBot} onStrategyClick={setSelectedStrategyId} />
                                         ))
                                     )}
                                 </motion.div>
@@ -539,42 +878,20 @@ export default function Dashboard() {
                                         <EmptyState title="Geçmiş Yok" description="Tamamlanan işlemler burada görünecektir." icon={<History size={48} />} />
                                     ) : (
                                         historyBots.map((bot) => (
-                                            <BotCard key={bot.id} bot={bot} isActive={false} activeChartBotId={activeChartBotId} setActiveChartBotId={setActiveChartBotId} handleStopBot={handleStopBot} />
+                                            <BotCard key={bot.id} bot={bot} isActive={false} activeChartBotId={activeChartBotId} setActiveChartBotId={setActiveChartBotId} handleStopBot={handleStopBot} onStrategyClick={setSelectedStrategyId} />
                                         ))
                                     )}
                                 </motion.div>
                             )}
 
-                            {/* BACKTEST TAB */}
-                            {activeTab === 'backtest' && (
-                                <motion.div key="backtest" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                                    <div className="glass-card p-6">
-                                        <BacktestPanel
-                                            coins={coins}
-                                            strategies={strategies}
-                                            onRefreshCoins={refreshCoins}
-                                            isCoinsLoading={isCoinsLoading}
-                                        />
-                                    </div>
-                                </motion.div>
-                            )}
 
-                            {/* ANALYTICS TAB */}
-                            {activeTab === 'analytics' && (
-                                <motion.div key="analytics" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                                    <div className="glass-card p-6">
-                                        <AnalyticsDashboard />
-                                    </div>
-                                </motion.div>
-                            )}
+
                         </AnimatePresence>
                     </div>
                 </div>
             </div>
 
-            <WalletModal isOpen={isWalletModalOpen} onClose={() => setIsWalletModalOpen(false)} />
-            <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} activeTab={settingsTab} />
-            <LogsDrawer isOpen={isLogsOpen} onClose={() => setIsLogsOpen(false)} />
+
             {/* Confirmation Modal */}
             <AnimatePresence>
                 {confirmStopId && (
@@ -618,261 +935,11 @@ export default function Dashboard() {
                 )}
             </AnimatePresence>
 
+            {/* Strategy Details Modal */}
+            <StrategyModal isOpen={!!selectedStrategyId} onClose={() => setSelectedStrategyId(null)} strategyId={selectedStrategyId} />
+
         </main>
     );
 }
 
-// --- SUB COMPONENTS ---
 
-// --- SUB COMPONENTS ---
-
-interface MenuButtonProps {
-    icon: React.ReactNode;
-    label: string;
-    onClick: () => void;
-}
-
-function MenuButton({ icon, label, onClick }: MenuButtonProps) {
-    return (
-        <button onClick={onClick} className="w-full text-left px-3 py-2.5 text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg flex items-center gap-3 transition-colors">
-            <div className="p-1.5 bg-slate-800 rounded-md text-slate-400 group-hover:text-primary transition-colors">{icon}</div>
-            {label}
-        </button>
-    );
-}
-
-interface StatCardProps {
-    title: string;
-    value: string | number;
-    icon: React.ReactNode;
-    trend?: string;
-    trendUp?: boolean;
-    delay: number;
-    highlight?: boolean;
-    onClick?: () => void;
-}
-
-function StatCard({ title, value, icon, trend, trendUp, delay, highlight, onClick }: StatCardProps) {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay, duration: 0.5 }}
-            onClick={onClick}
-            className={`glass-card p-5 relative overflow-hidden group ${onClick ? 'cursor-pointer' : ''} ${highlight ? 'border-primary/20 bg-primary/5' : ''}`}
-        >
-            <div className="flex justify-between items-start mb-4 relative z-10">
-                <div>
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">{title}</p>
-                    <h3 className="text-2xl font-display font-bold text-white tracking-wide">{value}</h3>
-                </div>
-                <div className={`p-3 rounded-xl ${highlight ? 'bg-primary/20' : 'bg-slate-800/50'} border border-white/5`}>
-                    {icon}
-                </div>
-            </div>
-            {trend && (
-                <div className={`flex items-center gap-2 text-xs font-medium ${trendUp ? 'text-emerald-400' : 'text-slate-500'}`}>
-                    {trendUp && <TrendingUp size={14} />}
-                    {trend}
-                </div>
-            )}
-            <div className={`absolute -bottom-4 -right-4 w-24 h-24 rounded-full blur-2xl opacity-20 pointer-events-none group-hover:opacity-30 transition-opacity ${highlight ? 'bg-primary' : 'bg-white'}`}></div>
-        </motion.div>
-    );
-}
-
-interface TabButtonProps {
-    id: 'active' | 'history' | 'backtest' | 'analytics';
-    label: string;
-    count?: number;
-    activeTab: string;
-    setActiveTab: (id: 'active' | 'history' | 'backtest' | 'analytics') => void;
-    icon: React.ReactNode;
-}
-
-function TabButton({ id, label, count, activeTab, setActiveTab, icon }: TabButtonProps) {
-    return (
-        <button
-            onClick={() => setActiveTab(id)}
-            className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2.5 ${activeTab === id
-                ? 'bg-slate-800 text-white shadow-lg ring-1 ring-white/10'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                }`}
-        >
-            {icon}
-            {label}
-            {count !== undefined && <span className={`px-1.5 py-0.5 rounded text-[10px] bg-slate-700 text-slate-300 ml-1`}>{count}</span>}
-        </button>
-    );
-}
-
-interface EmptyStateProps {
-    title: string;
-    description: string;
-    icon: React.ReactNode;
-}
-
-function EmptyState({ title, description, icon }: EmptyStateProps) {
-    return (
-        <div className="flex flex-col items-center justify-center py-20 bg-slate-900/40 border border-dashed border-slate-800 rounded-3xl">
-            <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mb-4 text-slate-600">
-                {icon}
-            </div>
-            <h3 className="text-white font-display font-bold text-lg mb-2">{title}</h3>
-            <p className="text-slate-500 text-sm max-w-xs text-center">{description}</p>
-        </div>
-    );
-}
-
-interface BotCardProps {
-    bot: Bot;
-    isActive: boolean;
-    activeChartBotId: string | null;
-    setActiveChartBotId: (id: string | null) => void;
-    handleStopBot: (id: string) => void;
-}
-
-function BotCard({ bot, isActive, activeChartBotId, setActiveChartBotId, handleStopBot }: BotCardProps) {
-    const [isLogsOpen, setIsLogsOpen] = useState(false);
-
-    return (
-        <motion.div
-            layout
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className={`glass-card overflow-hidden group ${isActive
-                ? 'bg-slate-800/40 border-l-4 border-l-emerald-500'
-                : 'bg-slate-900/30 opacity-70 hover:opacity-100 border-l-4 border-l-slate-700'
-                }`}
-        >
-            <div className="p-5 flex flex-col sm:flex-row items-center gap-6">
-
-                {/* Symbol Icon */}
-                <div className="relative">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold shadow-lg ${isActive
-                        ? 'bg-linear-to-br from-slate-800 to-slate-900 text-white border border-white/5'
-                        : 'bg-slate-800 text-slate-600'
-                        }`}>
-                        {bot.symbol.substring(0, 1)}
-                    </div>
-                    {isActive && <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-slate-900 rounded-full animate-pulse"></div>}
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 w-full text-center sm:text-left">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
-                        <h3 className="text-white font-display font-bold text-xl tracking-wide">{bot.symbol}</h3>
-                        <div className="flex items-center justify-center sm:justify-start gap-2">
-                            {/* Status Badge */}
-                            {bot.status === 'WaitingForEntry' && (
-                                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 uppercase tracking-wider animate-pulse">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
-                                    Sinyal Bekleniyor
-                                </span>
-                            )}
-                            {bot.status === 'Running' && (
-                                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-wider">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                                    Pozisyonda
-                                </span>
-                            )}
-                            {bot.status === 'Stopped' && (
-                                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-500 border border-rose-500/20 uppercase tracking-wider">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
-                                    Durduruldu
-                                </span>
-                            )}
-
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-white/5 uppercase hidden sm:block">{bot.strategyName}</span>
-                        </div>
-                    </div>
-
-                    {/* Dynamic Status Text */}
-                    <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-3 text-xs text-slate-500 font-mono mt-1 w-full">
-                        <div className="flex items-center gap-3 shrink-0">
-                            <span className="flex items-center gap-1"><DollarSign size={12} /> {bot.amount} Teminat</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* PNL Display */}
-                <div className="flex flex-col items-center sm:items-end min-w-[100px]">
-                    <span className={`text-2xl font-bold font-mono tracking-tight ${bot.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {bot.pnl >= 0 ? '+' : ''}{bot.pnl?.toFixed(2)}$
-                    </span>
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${bot.pnl >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                        %{bot.pnlPercent?.toFixed(2)} ROI
-                    </span>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0 shrink-0">
-                    <button
-                        onClick={() => setActiveChartBotId(activeChartBotId === bot.id ? null : bot.id)}
-                        className={`flex-1 sm:flex-none p-3 rounded-xl border transition-all ${activeChartBotId === bot.id ? 'bg-secondary text-white border-secondary shadow-lg shadow-secondary/20' : 'bg-slate-800 text-slate-400 border-white/5 hover:bg-secondary/10 hover:text-secondary hover:border-secondary/50'}`}
-                    >
-                        <Activity size={18} />
-                    </button>
-
-                    {isActive && (
-                        <button
-                            onClick={() => handleStopBot(bot.id)}
-                            className="flex-1 sm:flex-none p-3 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all active:scale-95"
-                            title="Acil Durdur"
-                        >
-                            <Square size={18} className="fill-current" />
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {/* EXPANDED CONTENT */}
-            <AnimatePresence>
-                {(isActive || activeChartBotId === bot.id) && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="border-t border-white/5 bg-black/20"
-                    >
-                        {activeChartBotId === bot.id && (
-                            <div className="p-4">
-                                <TradingViewWidget symbol={bot.symbol} strategy={bot.strategyName} />
-                            </div>
-                        )}
-
-                        {/* Logs Accordion */}
-                        <div className="border-t border-white/5">
-                            <button
-                                onClick={() => setIsLogsOpen(!isLogsOpen)}
-                                className="w-full flex items-center justify-between px-4 py-3 text-xs font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-colors group/logs"
-                            >
-                                <span className="flex items-center gap-2 font-mono tracking-wider">
-                                    <span className="text-secondary">{'>_'}</span>
-                                    İŞLEM KAYITLARI
-                                </span>
-                                <ChevronDown size={14} className={`transition-transform duration-300 text-slate-500 group-hover/logs:text-white ${isLogsOpen ? 'rotate-180' : ''}`} />
-                            </button>
-
-                            <AnimatePresence>
-                                {isLogsOpen && (
-                                    <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: "auto", opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                        className="overflow-hidden"
-                                    >
-                                        <div className="p-4 pt-0">
-                                            <BotLogs logs={bot.logs || []} compact={!isActive} />
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </motion.div>
-    );
-}

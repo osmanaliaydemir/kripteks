@@ -7,71 +7,86 @@ public class GoldenRoseStrategy : IStrategy
 {
     public string Name => "Golden Rose Trend Strategy";
 
+    private int _sma1 = 111;
+    private int _sma2 = 350;
+    private decimal _tpMultiplier = 1.618m;
+    private decimal _cycleTopMultiplier = 2m;
+
+    public void SetParameters(Dictionary<string, string> parameters)
+    {
+        if (parameters.TryGetValue("sma1", out var v1) && int.TryParse(v1, out var sma1)) _sma1 = sma1;
+        if (parameters.TryGetValue("sma2", out var v2) && int.TryParse(v2, out var sma2)) _sma2 = sma2;
+        if (parameters.TryGetValue("tp", out var vtp) && decimal.TryParse(vtp, out var tp)) _tpMultiplier = tp;
+        if (parameters.TryGetValue("cycleTop", out var vct) && decimal.TryParse(vct, out var ct))
+            _cycleTopMultiplier = ct;
+    }
+
     public StrategyResult Analyze(List<Candle> candles, decimal currentBalance, decimal currentPositionAmount)
     {
         var result = new StrategyResult();
 
-        // Yeterli veri yoksa bekle (Pine Script'te 350 mumluk SMA var)
-        if (candles.Count < 350) return result;
+        // Yeterli veri yoksa bekle (En büyük SMA kadar mum lazım)
+        int maxSma = Math.Max(_sma1, _sma2);
+        if (candles.Count < maxSma) return result;
 
         var prices = candles.Select(c => c.Close).ToList();
 
         // --- İNDİKATÖRLER (Pine Script'ten) ---
-        // sma350 = sma(close, 350)
-        // sma111 = sma(close, 111)
-        var sma111List = TechnicalIndicators.CalculateSma(prices, 111);
-        var sma350List = TechnicalIndicators.CalculateSma(prices, 350);
+        // sma1 = sma(close, 111)
+        // sma2 = sma(close, 350)
+        var sma1List = TechnicalIndicators.CalculateSma(prices, _sma1);
+        var sma2List = TechnicalIndicators.CalculateSma(prices, _sma2);
 
         // Son ve önceki değerler
-        decimal? currentSma111 = sma111List.Last();
-        decimal? currentSma350 = sma350List.Last();
+        decimal? currentSma1 = sma1List.Last();
+        decimal? currentSma2 = sma2List.Last();
 
         // Bir önceki mum değerleri (Kesişim kontrolü için)
-        decimal? prevSma111 = sma111List[sma111List.Count - 2];
-        decimal? prevSma350 = sma350List[sma350List.Count - 2];
+        decimal? prevSma1 = sma1List[sma1List.Count - 2];
+        decimal? prevSma2 = sma2List[sma2List.Count - 2];
 
-        if (currentSma111 == null || currentSma350 == null || prevSma111 == null || prevSma350 == null)
+        if (currentSma1 == null || currentSma2 == null || prevSma1 == null || prevSma2 == null)
             return result;
 
-        decimal sma350 = currentSma350.Value;
-        decimal sma111 = currentSma111.Value;
+        decimal sma2 = currentSma2.Value;
+        decimal sma1 = currentSma1.Value;
 
         // Fiyat verileri
         decimal currentPrice = candles.Last().Close;
         decimal prevPrice = candles[candles.Count - 2].Close;
 
-        // Pine Script: x2 = sma350 * 2
-        decimal x2 = sma350 * 2;
-        decimal prevX2 = prevSma350.Value * 2;
+        // Pine Script: x2 = sma2 * 2
+        decimal x2 = sma2 * _cycleTopMultiplier;
+        decimal prevX2 = prevSma2.Value * _cycleTopMultiplier;
 
         // --- ALIM MANTIĞI (BUY) ---
-        // Pine Script aslında Top Detector (Satış) odaklıdır.
-        // Alım için Trend Takibi kullanıyoruz: Fiyat SMA 111'i yukarı kestiğinde.
+        // Alım için Trend Takibi kullanıyoruz: Fiyat SMA1'i yukarı kestiğinde.
         if (currentPositionAmount == 0)
         {
-            // CrossOver: Önceki fiyat SMA111 altında veya eşit, Şu anki fiyat SMA111 üstünde
-            bool priceCrossOverSma111 = prevPrice <= prevSma111.Value && currentPrice > sma111;
+            // CrossOver: Önceki fiyat SMA1 altında veya eşit, Şu anki fiyat SMA1 üstünde
+            bool priceCrossOverSma1 = prevPrice <= prevSma1.Value && currentPrice > sma1;
 
-            // Alternatif Güvenli Giriş: Fiyat SMA350 üzerinde olmalı (Uzun vade trend)
-            bool isAboveLongTrend = currentPrice > sma350;
+            // Alternatif Güvenli Giriş: Fiyat SMA2 üzerinde olmalı (Uzun vade trend)
+            bool isAboveLongTrend = currentPrice > sma2;
 
-            if (priceCrossOverSma111 && isAboveLongTrend)
+            if (priceCrossOverSma1 && isAboveLongTrend)
             {
                 // HEDEFLER (Golden Ratio Multipliers)
-                // Hedef 1: 1.618 (Altın Oran)
-                decimal targetPrice = sma350 * 1.618m;
+                // Hedef 1: Default 1.618 (Altın Oran)
+                decimal targetPrice = sma2 * _tpMultiplier;
 
                 // Eğer hedef çok yakınsa veya fiyat zaten oradaysa bir sonraki hedefi (x2) seç
-                if (targetPrice <= currentPrice * 1.02m) targetPrice = sma350 * 2m;
+                if (targetPrice <= currentPrice * 1.02m) targetPrice = sma2 * _cycleTopMultiplier;
 
                 // STOP LOSS
-                // Trend takibi: SMA 111'in %3 altı
-                decimal stopPrice = sma111 * 0.97m;
+                // Trend takibi: SMA1'in %3 altı
+                decimal stopPrice = sma1 * 0.97m;
 
                 result.Action = TradeAction.Buy;
                 result.TargetPrice = targetPrice;
                 result.StopPrice = stopPrice;
-                result.Description = $"ALIM: SMA111 Kırılımı (${sma111:F2}) -> Hedef: 1.618x (${targetPrice:F2})";
+                result.Description =
+                    $"ALIM: SMA{_sma1} Kırılımı (${sma1:F2}) -> Hedef: {_tpMultiplier}x (${targetPrice:F2})";
             }
         }
         else
@@ -79,10 +94,9 @@ public class GoldenRoseStrategy : IStrategy
             // --- SATIŞ MANTIĞI (SELL) ---
 
             // 1. TOP DETECTED (Tepe Tespiti)
-            // Pine Script: top_detected = crossunder(x2, sma111)
-            // Anlamı: SMA 111 çizgisi, (SMA 350 * 2) çizgisini YUKARIDAN AŞAĞIYA kestiğinde.
-            // Bu çok nadir ve büyük bir döngü tepesi sinyalidir.
-            bool topDetected = (prevSma111 > prevX2) && (sma111 <= x2);
+            // Pine Script: top_detected = crossunder(x2, sma1)
+            // Anlamı: SMA1 çizgisi, (SMA2 * Mult) çizgisini YUKARIDAN AŞAĞIYA kestiğinde.
+            bool topDetected = (prevSma1 > prevX2) && (sma1 <= x2);
 
             if (topDetected)
             {
@@ -92,11 +106,11 @@ public class GoldenRoseStrategy : IStrategy
             }
 
             // 2. Erken Çıkış / Trend Bozulması
-            // Fiyat SMA 111'in altına sarkarsa trend zayıflamıştır.
-            if (currentPrice < sma111 * 0.98m)
+            // Fiyat SMA1'in altına sarkarsa trend zayıflamıştır.
+            if (currentPrice < sma1 * 0.98m)
             {
                 result.Action = TradeAction.Sell;
-                result.Description = "SATIŞ: Trend Bozuldu (Fiyat < SMA111)";
+                result.Description = $"SATIŞ: Trend Bozuldu (Fiyat < SMA{_sma1})";
             }
         }
 

@@ -4,6 +4,7 @@ using Kripteks.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Kripteks.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260202080807_AddTrailingStop")]
+    partial class AddTrailingStop
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -109,16 +112,13 @@ namespace Kripteks.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<decimal>("CurrentPnl")
-                        .HasPrecision(18, 8)
-                        .HasColumnType("decimal(18,8)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("CurrentPnlPercent")
-                        .HasPrecision(18, 8)
-                        .HasColumnType("decimal(18,8)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("EntryPrice")
-                        .HasPrecision(18, 8)
-                        .HasColumnType("decimal(18,8)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Interval")
                         .IsRequired()
@@ -128,8 +128,7 @@ namespace Kripteks.Infrastructure.Migrations
                         .HasColumnType("bit");
 
                     b.Property<decimal?>("MaxPriceReached")
-                        .HasPrecision(18, 8)
-                        .HasColumnType("decimal(18,8)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -152,8 +151,7 @@ namespace Kripteks.Infrastructure.Migrations
                         .HasColumnType("decimal(18,8)");
 
                     b.Property<decimal?>("TrailingStopDistance")
-                        .HasPrecision(18, 8)
-                        .HasColumnType("decimal(18,8)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
@@ -224,49 +222,6 @@ namespace Kripteks.Infrastructure.Migrations
                     b.HasIndex("BotId");
 
                     b.ToTable("Logs");
-                });
-
-            modelBuilder.Entity("Kripteks.Core.Entities.SystemSetting", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal?>("DefaultAmount")
-                        .HasPrecision(18, 8)
-                        .HasColumnType("decimal(18,8)");
-
-                    b.Property<string>("DefaultTimeframe")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("EnableTelegramNotifications")
-                        .HasColumnType("bit");
-
-                    b.Property<decimal?>("GlobalStopLossPercent")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)");
-
-                    b.Property<int?>("MaxActiveBots")
-                        .HasColumnType("int");
-
-                    b.Property<string>("TelegramBotToken")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("TelegramChatId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("SystemSettings");
                 });
 
             modelBuilder.Entity("Kripteks.Core.Entities.Trade", b =>

@@ -80,4 +80,44 @@ public static class TechnicalIndicators
 
         return (high, low);
     }
+
+    // Relative Strength Index (RSI)
+    public static List<decimal?> CalculateRsi(List<decimal> prices, int period = 14)
+    {
+        var result = new List<decimal?>();
+        if (prices.Count <= period)
+        {
+            for (int i = 0; i < prices.Count; i++) result.Add(null);
+            return result;
+        }
+
+        var gains = new List<decimal>();
+        var losses = new List<decimal>();
+
+        for (int i = 1; i < prices.Count; i++)
+        {
+            decimal diff = prices[i] - prices[i - 1];
+            gains.Add(diff > 0 ? diff : 0);
+            losses.Add(diff < 0 ? Math.Abs(diff) : 0);
+        }
+
+        decimal avgGain = gains.Take(period).Average();
+        decimal avgLoss = losses.Take(period).Average();
+
+        for (int i = 0; i <= period; i++) result.Add(null);
+
+        decimal rs = avgLoss == 0 ? 100 : avgGain / avgLoss;
+        result.Add(100 - (100 / (1 + rs)));
+
+        for (int i = period + 1; i < gains.Count; i++)
+        {
+            avgGain = (avgGain * (period - 1) + gains[i]) / period;
+            avgLoss = (avgLoss * (period - 1) + losses[i]) / period;
+
+            rs = avgLoss == 0 ? 100 : avgGain / avgLoss;
+            result.Add(100 - (100 / (1 + rs)));
+        }
+
+        return result;
+    }
 }

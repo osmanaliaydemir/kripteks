@@ -1,169 +1,221 @@
-const BASE_URL = "http://localhost:5112";
+const BASE_URL = "http://localhost:5292";
 export const API_URL = `${BASE_URL}/api`;
 export const HUB_URL = `${BASE_URL}/bot-hub`;
 
 const getHeaders = () => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : "";
     return {
         "Content-Type": "application/json",
-        ...(token ? { "Authorization": `Bearer ${token}` } : {})
+        "Authorization": `Bearer ${token}`
     };
+};
+
+const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+    const res = await fetch(url, {
+        ...options,
+        headers: {
+            ...getHeaders(),
+            ...options.headers
+        }
+    });
+
+    if (res.status === 401) {
+        if (typeof window !== "undefined") {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            window.location.href = "/login";
+        }
+    }
+
+    return res;
 };
 
 export const BotService = {
     getAll: async () => {
-        const res = await fetch(`${API_URL}/bots`, { headers: getHeaders() });
-        if (res.status === 401) { window.location.href = '/login'; return []; }
-        if (!res.ok) throw new Error("Bot verileri alınamadı");
+        const res = await fetchWithAuth(`${API_URL}/bots`);
         return res.json();
     },
-
-    start: async (data: any) => {
-        // Backend "POST /bots/start" bekliyor
-        const res = await fetch(`${API_URL}/bots/start`, {
+    getById: async (id: string) => {
+        const res = await fetchWithAuth(`${API_URL}/bots/${id}`);
+        return res.json();
+    },
+    create: async (bot: any) => {
+        const res = await fetchWithAuth(`${API_URL}/bots/start`, {
             method: "POST",
-            headers: getHeaders(), // Content-Type zaten içinde
-            body: JSON.stringify(data),
+            body: JSON.stringify(bot)
         });
-        // Hata mesajını backend'den oku
-        if (!res.ok) {
-            const errorText = await res.text();
-            throw new Error(errorText || "Bot başlatılamadı");
-        }
         return res.json();
     },
-
+    update: async (id: string, bot: any) => {
+        const res = await fetchWithAuth(`${API_URL}/bots/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(bot)
+        });
+        return res.json();
+    },
+    delete: async (id: string) => {
+        const res = await fetchWithAuth(`${API_URL}/bots/${id}`, {
+            method: "DELETE"
+        });
+        return res.json();
+    },
+    start: async (id: string) => {
+        const res = await fetchWithAuth(`${API_URL}/bots/${id}/start`, {
+            method: "POST"
+        });
+        return res.json();
+    },
     stop: async (id: string) => {
-        const res = await fetch(`${API_URL}/bots/${id}/stop`, { method: "POST", headers: getHeaders() });
-        if (!res.ok) throw new Error("Bot durdurulamadı");
+        const res = await fetchWithAuth(`${API_URL}/bots/${id}/stop`, {
+            method: "POST"
+        });
         return res.json();
     }
 };
 
 export const MarketService = {
-    getStrategies: async () => {
-        const res = await fetch(`${API_URL}/Strategies`, { headers: getHeaders() });
-        if (!res.ok) return [];
+    getMarkets: async () => {
+        const res = await fetchWithAuth(`${API_URL}/stocks`);
         return res.json();
     },
-
     getCoins: async () => {
-        const res = await fetch(`${API_URL}/Stocks`, { headers: getHeaders() });
-        if (!res.ok) return [];
+        const res = await fetchWithAuth(`${API_URL}/stocks`);
         return res.json();
     },
-
+    getStrategies: async () => {
+        const res = await fetchWithAuth(`${API_URL}/strategies`);
+        return res.json();
+    },
     getStats: async () => {
-        const res = await fetch(`${API_URL}/SummaryStats`, { headers: getHeaders() });
-        if (!res.ok) return null;
+        const res = await fetchWithAuth(`${API_URL}/analytics/stats`);
         return res.json();
     }
 };
 
 export const WalletService = {
-    get: async () => {
-        const res = await fetch(`${API_URL}/wallet`, { headers: getHeaders() });
-        if (!res.ok) return null;
+    getWallet: async () => {
+        const res = await fetchWithAuth(`${API_URL}/wallet`);
         return res.json();
     },
-
+    get: async () => {
+        const res = await fetchWithAuth(`${API_URL}/wallet`);
+        return res.json();
+    },
     getTransactions: async () => {
-        const res = await fetch(`${API_URL}/wallet/transactions`, { headers: getHeaders() });
-        if (!res.ok) return [];
+        const res = await fetchWithAuth(`${API_URL}/wallet/transactions`);
         return res.json();
     }
 };
 
 export const AnalyticsService = {
     getStats: async () => {
-        const res = await fetch(`${API_URL}/analytics/stats`, { headers: getHeaders() });
-        if (!res.ok) return null;
+        const res = await fetchWithAuth(`${API_URL}/analytics/stats`);
+        return res.json();
+    },
+    getChartData: async () => {
+        const res = await fetchWithAuth(`${API_URL}/analytics/chart`);
         return res.json();
     },
     getEquityCurve: async () => {
-        const res = await fetch(`${API_URL}/analytics/equity`, { headers: getHeaders() });
-        if (!res.ok) return [];
+        const res = await fetchWithAuth(`${API_URL}/analytics/equity`);
         return res.json();
     },
     getStrategyPerformance: async () => {
-        const res = await fetch(`${API_URL}/analytics/performance`, { headers: getHeaders() });
-        if (!res.ok) return [];
+        const res = await fetchWithAuth(`${API_URL}/analytics/performance`);
         return res.json();
     }
-}
+};
+
+export const LogService = {
+    getLogs: async (limit: number = 50) => {
+        const res = await fetchWithAuth(`${API_URL}/logs?limit=${limit}`);
+        return res.json();
+    }
+};
+
+export const StrategyService = {
+    getAll: async () => {
+        const res = await fetchWithAuth(`${API_URL}/strategies`);
+        return res.json();
+    }
+};
+
+export const BacktestService = {
+    run: async (data: any) => {
+        const res = await fetchWithAuth(`${API_URL}/backtest`, {
+            method: "POST",
+            body: JSON.stringify(data)
+        });
+        return res.json();
+    }
+};
+
+export const AuthService = {
+    changePassword: async (currentPassword: string, newPassword: string) => {
+        const res = await fetchWithAuth(`${API_URL}/auth/change-password`, {
+            method: "POST",
+            body: JSON.stringify({ currentPassword, newPassword })
+        });
+        if (!res.ok) {
+            const json = await res.json();
+            throw new Error(json.message || "Şifre değiştirilemedi");
+        }
+        return res.json();
+    }
+};
 
 export const SettingsService = {
     getKeys: async () => {
-        const res = await fetch(`${API_URL}/settings/keys`, { headers: getHeaders() });
+        const res = await fetchWithAuth(`${API_URL}/settings/keys`);
         if (!res.ok) return null;
         return res.json();
     },
     saveKeys: async (apiKey: string, secretKey: string) => {
-        const res = await fetch(`${API_URL}/settings/keys`, {
+        const res = await fetchWithAuth(`${API_URL}/settings/keys`, {
             method: "POST",
-            headers: getHeaders(),
             body: JSON.stringify({ apiKey, secretKey })
         });
         if (!res.ok) throw new Error("Kayıt başarısız");
+        return res.json();
+    },
+    getGeneral: async () => {
+        const res = await fetchWithAuth(`${API_URL}/settings/general`);
+        if (!res.ok) return null;
+        return res.json();
+    },
+    saveGeneral: async (data: any) => {
+        const res = await fetchWithAuth(`${API_URL}/settings/general`, {
+            method: "POST",
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error("Ayarlar kaydedilemedi");
         return res.json();
     }
 };
 
 export const UserService = {
     getAll: async () => {
-        const res = await fetch(`${API_URL}/users`, { headers: getHeaders() });
-        if (!res.ok) return [];
+        const res = await fetchWithAuth(`${API_URL}/users`);
         return res.json();
     },
     create: async (data: any) => {
-        const res = await fetch(`${API_URL}/users`, {
+        const res = await fetchWithAuth(`${API_URL}/users`, {
             method: "POST",
-            headers: { ...getHeaders(), "Content-Type": "application/json" },
             body: JSON.stringify(data)
         });
         if (!res.ok) {
             const json = await res.json();
-            throw new Error(json.message || "Kullanıcı oluşturulurken hata oluştu");
+            throw new Error(json.message || "Kullanıcı eklenemedi");
         }
         return res.json();
-    }
-};
-
-export const LogService = {
-    getAll: async (limit = 100, level?: string) => {
-        let url = `${API_URL}/logs?limit=${limit}`;
-        if (level && level !== 'All') url += `&level=${level}`;
-
-        const res = await fetch(url, { headers: getHeaders() });
-        if (!res.ok) return [];
-        return res.json();
     },
-    clear: async () => {
-        const res = await fetch(`${API_URL}/logs`, {
-            method: "DELETE",
-            headers: getHeaders()
-        });
-        if (!res.ok) throw new Error("Loglar temizlenemedi");
-        return res.json();
-    }
-};
-
-export const BacktestService = {
-    runBacktest: async (params: any) => {
-        const res = await fetch(`${API_URL}/backtest/run`, {
-            method: "POST",
-            headers: getHeaders(),
-            body: JSON.stringify(params)
+    delete: async (id: string) => {
+        const res = await fetchWithAuth(`${API_URL}/users/${id}`, {
+            method: "DELETE"
         });
         if (!res.ok) {
-            let errorMessage = "Backtest başlatılamadı";
-            try {
-                const errorData = await res.json();
-                errorMessage = errorData.message || errorData.title || JSON.stringify(errorData);
-            } catch {
-                errorMessage = await res.text();
-            }
-            throw new Error(errorMessage);
+            const json = await res.json();
+            throw new Error(json.message || "Kullanıcı silinemedi");
         }
         return res.json();
     }

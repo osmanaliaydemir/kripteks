@@ -1,11 +1,9 @@
 using Kripteks.Core.Entities;
 using Kripteks.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using System.Threading.Tasks;
 
 namespace Kripteks.Api.Controllers;
 
@@ -15,12 +13,10 @@ namespace Kripteks.Api.Controllers;
 public class SettingsController : ControllerBase
 {
     private readonly AppDbContext _context;
-    private readonly UserManager<AppUser> _userManager;
 
-    public SettingsController(AppDbContext context, UserManager<AppUser> userManager)
+    public SettingsController(AppDbContext context)
     {
         _context = context;
-        _userManager = userManager;
     }
 
     [HttpGet("keys")]
@@ -36,8 +32,8 @@ public class SettingsController : ControllerBase
 
         // Güvenlik için Secret Key'i asla tam dönmüyoruz.
         // Sadece maskeli API Key dönüyoruz.
-        var maskedKey = creds.ApiKey.Length > 8 
-            ? string.Concat(creds.ApiKey.AsSpan(0, 4), "****", creds.ApiKey.AsSpan(creds.ApiKey.Length - 4)) 
+        var maskedKey = creds.ApiKey.Length > 8
+            ? string.Concat(creds.ApiKey.AsSpan(0, 4), "****", creds.ApiKey.AsSpan(creds.ApiKey.Length - 4))
             : "****";
 
         return Ok(new { hasKeys = true, apiKey = maskedKey });
@@ -79,6 +75,56 @@ public class SettingsController : ControllerBase
 
         await _context.SaveChangesAsync();
         return Ok(new { message = "API anahtarları başarıyla kaydedildi." });
+    }
+
+    [HttpGet("general")]
+    public async Task<IActionResult> GetGeneralSettings()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId == null) return Unauthorized();
+
+        var settings = await _context.SystemSettings
+            .FirstOrDefaultAsync(x => x.UserId == userId);
+
+        if (settings == null)
+        {
+            // Varsayılan ayarlar
+            return Ok(new SystemSetting { UserId = userId });
+        }
+
+        return Ok(settings);
+    }
+
+    [HttpPost("general")]
+    public async Task<IActionResult> SaveGeneralSettings([FromBody] SystemSetting model)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId == null) return Unauthorized();
+
+        var existing = await _context.SystemSettings
+            .FirstOrDefaultAsync(x => x.UserId == userId);
+
+        if (existing != null)
+        {
+            existing.TelegramBotToken = model.TelegramBotToken;
+            existing.TelegramChatId = model.TelegramChatId;
+            existing.EnableTelegramNotifications = model.EnableTelegramNotifications;
+            existing.GlobalStopLossPercent = model.GlobalStopLossPercent;
+            existing.MaxActiveBots = model.MaxActiveBots;
+            existing.DefaultTimeframe = model.DefaultTimeframe;
+            existing.DefaultAmount = model.DefaultAmount;
+            existing.UpdatedAt = DateTime.UtcNow;
+            _context.SystemSettings.Update(existing);
+        }
+        else
+        {
+            model.UserId = userId;
+            model.UpdatedAt = DateTime.UtcNow;
+            await _context.SystemSettings.AddAsync(model);
+        }
+
+        await _context.SaveChangesAsync();
+        return Ok(new { message = "Sistem ayarları başarıyla kaydedildi." });
     }
 }
 

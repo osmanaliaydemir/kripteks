@@ -16,16 +16,21 @@ public class Bot
     public decimal EntryPrice { get; set; } // İşleme Giriş Fiyatı
     public decimal CurrentPnl { get; set; } // Anlık Kar/Zarar (USDT)
     public decimal CurrentPnlPercent { get; set; } // Anlık Kar/Zarar (%)
-    
+
     // Navigation Properties
     public List<Trade> Trades { get; set; } = new();
     public List<Log> Logs { get; set; } = new();
+
+    // Trailing Stop Alanları
+    public bool IsTrailingStop { get; set; } = false;
+    public decimal? TrailingStopDistance { get; set; } // % cinsinden (Örn: 2)
+    public decimal? MaxPriceReached { get; set; } // Takip edilen en yüksek fiyat
 }
 
 public enum BotStatus
 {
     Stopped,
-    Running,        // Pozisyonda (Alım Yapılmış)
+    Running, // Pozisyonda (Alım Yapılmış)
     Paused,
     Completed,
     WaitingForEntry // Sinyal Bekliyor (Henüz Alım Yapılmadı)

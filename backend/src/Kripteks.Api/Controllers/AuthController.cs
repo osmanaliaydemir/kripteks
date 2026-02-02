@@ -1,5 +1,6 @@
 using Kripteks.Core.Entities;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -49,7 +50,6 @@ public class AuthController : ControllerBase
 
         if (result.Succeeded)
         {
-            var roles = await _userManager.GetRolesAsync(user);
             var token = GenerateJwtToken(user);
 
             return Ok(new LoginResponseDto
@@ -59,7 +59,7 @@ public class AuthController : ControllerBase
                 {
                     FirstName = user.FirstName,
                     LastName = user.LastName,
-                    Email = user.Email,
+                    Email = user.Email ?? string.Empty,
                     Role = "Admin"
                 }
             });
@@ -76,13 +76,12 @@ public class AuthController : ControllerBase
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var claims = new List<System.Security.Claims.Claim>
+        var claims = new List<Claim>
         {
-            new System.Security.Claims.Claim(JwtRegisteredClaimNames.Sub, user.Id),
-            new System.Security.Claims.Claim(JwtRegisteredClaimNames.Email, user.Email ?? ""),
-            new System.Security.Claims.Claim("name", $"{user.FirstName} {user.LastName}"),
-            new System.Security.Claims.Claim(ClaimTypes.Role,
-                "Admin") // Grants Admin role to all logged-in users to fix 403 error
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id),
+            new Claim(JwtRegisteredClaimNames.Email, user.Email ?? ""),
+            new Claim("name", $"{user.FirstName} {user.LastName}"),
+            new Claim(ClaimTypes.Role, "Admin")
         };
 
         var token = new JwtSecurityToken(
@@ -95,6 +94,31 @@ public class AuthController : ControllerBase
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto model)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId == null) return Unauthorized();
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null) return NotFound();
+
+        var result = await _userManager.ChangePasswordAsync(user, model.CurrentPassword, model.NewPassword);
+        if (result.Succeeded)
+        {
+            return Ok(new { message = "Şifre başarıyla değiştirildi." });
+        }
+
+        return BadRequest(new { message = "Şifre değiştirilemedi.", errors = result.Errors });
+    }
+}
+
+public class ChangePasswordDto
+{
+    public string CurrentPassword { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
 }
 
 public class RegisterDto
@@ -113,16 +137,16 @@ public class LoginDto
 
 public class LoginResponseDto
 {
-    public string Token { get; set; }
-    public UserDetailDto User { get; set; }
+    public string Token { get; set; } = string.Empty;
+    public UserDetailDto User { get; set; } = new();
 }
 
 public class UserDetailDto
 {
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
-    public string Email { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
 
     [System.Text.Json.Serialization.JsonPropertyName("role")]
-    public string Role { get; set; }
+    public string Role { get; set; } = string.Empty;
 }

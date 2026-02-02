@@ -20,4 +20,11 @@ public class BacktestController : ControllerBase
         var result = await _backtestService.RunBacktestAsync(request);
         return Ok(result);
     }
+
+    [HttpPost("optimize")]
+    public async Task<ActionResult<OptimizationResultDto>> Optimize([FromBody] BacktestRequestDto request)
+    {
+        var result = await _backtestService.OptimizeBacktestAsync(request);
+        return Ok(result);
+    }
 }

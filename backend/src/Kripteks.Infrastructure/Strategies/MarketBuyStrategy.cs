@@ -6,6 +6,11 @@ public class MarketBuyStrategy : IStrategy
 {
     public string Name => "Hemen Al (Market Buy)";
 
+    public void SetParameters(Dictionary<string, string> parameters)
+    {
+        // No parameters for market buy for now
+    }
+
     public StrategyResult Analyze(List<Candle> candles, decimal currentBalance, decimal currentPositionAmount)
     {
         var result = new StrategyResult();
@@ -15,10 +20,10 @@ public class MarketBuyStrategy : IStrategy
         {
             result.Action = TradeAction.Buy;
             result.Description = "Kullanıcı isteği ile anında alım (Market Buy)";
-            
+
             // Hemen Al modunda otomatik hedef/stop yoktur, kullanıcı manuel belirler.
             // Ancak boş dönmemek adına 0 veriyoruz, BotEngine manuel değerleri koruyacaktır.
-            result.TargetPrice = 0; 
+            result.TargetPrice = 0;
             result.StopPrice = 0;
         }
         else

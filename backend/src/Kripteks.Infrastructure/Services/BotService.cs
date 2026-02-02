@@ -3,23 +3,17 @@ using Kripteks.Core.Entities;
 using Kripteks.Core.Interfaces;
 using Kripteks.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Kripteks.Infrastructure.Services;
 
 public class BotService : IBotService
 {
     private readonly AppDbContext _context;
-    private readonly IMarketDataService _marketService;
     private readonly INotificationService _notificationService;
 
-    public BotService(AppDbContext context, IMarketDataService marketService, INotificationService notificationService)
+    public BotService(AppDbContext context, INotificationService notificationService)
     {
         _context = context;
-        _marketService = marketService;
         _notificationService = notificationService;
     }
 
@@ -49,9 +43,11 @@ public class BotService : IBotService
                 TakeProfit = b.TakeProfit,
                 Status = b.Status.ToString(),
                 CreatedAt = b.CreatedAt,
-                Pnl = b.CurrentPnl,
                 PnlPercent = b.CurrentPnlPercent,
-                Logs = logs
+                Logs = logs,
+                IsTrailingStop = b.IsTrailingStop,
+                TrailingStopDistance = b.TrailingStopDistance,
+                MaxPriceReached = b.MaxPriceReached
             });
         }
 
@@ -61,7 +57,7 @@ public class BotService : IBotService
     public async Task<BotDto> GetBotByIdAsync(Guid id)
     {
         var bot = await _context.Bots.FindAsync(id);
-        if (bot == null) return null;
+        if (bot == null) return null!;
 
         var logs = await _context.Logs
             .Where(l => l.BotId == id)
@@ -79,9 +75,11 @@ public class BotService : IBotService
             TakeProfit = bot.TakeProfit,
             Status = bot.Status.ToString(),
             CreatedAt = bot.CreatedAt,
-            Pnl = bot.CurrentPnl,
             PnlPercent = bot.CurrentPnlPercent,
-            Logs = logs
+            Logs = logs,
+            IsTrailingStop = bot.IsTrailingStop,
+            TrailingStopDistance = bot.TrailingStopDistance,
+            MaxPriceReached = bot.MaxPriceReached
         };
     }
 
@@ -118,17 +116,19 @@ public class BotService : IBotService
             _context.WalletTransactions.Add(transaction);
         }
 
-        // 3. Anlık fiyatı çek (Sadece bilgi amaçlı)
-        decimal currentPrice = await _marketService.GetPriceAsync(request.Symbol);
+        // 3. Anlık fiyatı çek (Sadece bilgi amaçlı - İleride log için kullanılabilir)
+        // decimal currentPrice = await _marketService.GetPriceAsync(request.Symbol);
 
         var bot = new Bot
         {
             Symbol = request.Symbol,
             StrategyName = request.StrategyId,
             Amount = request.Amount,
-            Interval = request.Interval ?? "1h",
+            Interval = request.Interval,
             StopLoss = request.StopLoss,
             TakeProfit = request.TakeProfit,
+            IsTrailingStop = request.IsTrailingStop,
+            TrailingStopDistance = request.TrailingStopDistance,
             Status = BotStatus.WaitingForEntry, // Pusu Modu
             EntryPrice = 0, // Henüz almadık
             CurrentPnl = 0,

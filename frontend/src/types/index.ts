@@ -1,6 +1,7 @@
 export interface Bot {
     id: string;
     symbol: string;
+    strategyId?: string;
     strategyName: string;
     amount: number;
     interval: string;
