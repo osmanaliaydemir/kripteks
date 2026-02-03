@@ -19,21 +19,10 @@ public class BotService : IBotService
 
     public async Task<List<BotDto>> GetAllBotsAsync()
     {
-        var bots = await _context.Bots
+        return await _context.Bots
             .Where(b => !b.IsArchived)
             .OrderByDescending(b => b.CreatedAt)
-            .ToListAsync();
-
-        var botDtos = new List<BotDto>();
-        foreach (var b in bots)
-        {
-            var logs = await _context.Logs
-                .Where(l => l.BotId == b.Id)
-                .OrderByDescending(l => l.Timestamp)
-                .Take(50)
-                .ToListAsync();
-
-            botDtos.Add(new BotDto
+            .Select(b => new BotDto
             {
                 Id = b.Id,
                 Symbol = b.Symbol,
@@ -45,15 +34,16 @@ public class BotService : IBotService
                 Status = b.Status.ToString(),
                 CreatedAt = b.CreatedAt,
                 PnlPercent = b.CurrentPnlPercent,
-                Logs = logs,
                 IsTrailingStop = b.IsTrailingStop,
                 TrailingStopDistance = b.TrailingStopDistance,
                 MaxPriceReached = b.MaxPriceReached,
-                IsArchived = b.IsArchived
-            });
-        }
-
-        return botDtos;
+                IsArchived = b.IsArchived,
+                Logs = b.Logs
+                    .OrderByDescending(l => l.Timestamp)
+                    .Take(50)
+                    .ToList()
+            })
+            .ToListAsync();
     }
 
     public async Task<BotDto> GetBotByIdAsync(Guid id)

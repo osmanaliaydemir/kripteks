@@ -13,6 +13,17 @@
 
   --animate-float: float 6s ease-in-out infinite;
   --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-shimmer: shimmer 2s infinite linear;
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+
+    100% {
+      background-position: 200% 0;
+    }
+  }
 
   @keyframes float {
 
@@ -33,7 +44,12 @@
   }
 
   .glass-card {
-    @apply bg-slate-800/40 backdrop-blur-lg border border-white/5 shadow-lg rounded-2xl transition-all duration-300 hover:bg-slate-800/60 hover:border-white/10 hover:shadow-amber-500/10 hover:-translate-y-1;
+    @apply bg-slate-900/60 backdrop-blur-xl border border-white/5 shadow-xl rounded-2xl transition-all duration-500 ease-out;
+    @apply hover:bg-slate-800/80 hover:border-white/10 hover:shadow-primary/5 hover:-translate-y-1.5 hover:scale-[1.01];
+  }
+
+  .font-mono {
+    font-feature-settings: "tnum" on, "lnum" on;
   }
 
   .text-gradient {

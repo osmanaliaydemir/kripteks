@@ -34,7 +34,7 @@ export default function Step4_Review({
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Header */}
             <div className="space-y-1 text-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-primary to-amber-500 rounded-full mx-auto flex items-center justify-center shadow-lg shadow-primary/20 mb-4 animate-pulse">
+                <div className="w-16 h-16 bg-linear-to-br from-primary to-amber-500 rounded-full mx-auto flex items-center justify-center shadow-lg shadow-primary/20 mb-4 animate-pulse">
                     <Zap size={32} className="text-white fill-white" />
                 </div>
                 <h3 className="text-2xl font-display font-bold text-white">Hazır mısınız?</h3>

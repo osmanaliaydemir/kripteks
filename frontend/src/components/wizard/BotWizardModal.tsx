@@ -101,7 +101,7 @@ export default function BotWizardModal({
                 {/* Header / Progress */}
                 <div className="px-4 py-4 md:px-8 md:py-6 border-b border-white/5 bg-slate-900/50 flex items-center justify-between shrink-0">
                     <div>
-                        <h2 className="text-lg md:text-xl font-display font-bold text-white tracking-wide">Yeni Bot Oluştur</h2>
+                        <h2 className="text-lg md:text-xl font-display font-bold text-white tracking-widest">Yeni Bot Oluştur</h2>
                         <div className="flex items-center gap-2 mt-2">
                             {[1, 2, 3, 4].map((s) => (
                                 <div key={s} className={`h-1.5 rounded-full transition-all duration-500 ${s <= step ? 'w-8 bg-primary' : 'w-2 bg-slate-800'}`}></div>
