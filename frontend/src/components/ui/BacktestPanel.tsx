@@ -132,20 +132,49 @@ export default function BacktestPanel({ coins, strategies, onRefreshCoins, isCoi
     const chartData = useMemo(() => {
         if (!result || !result.candles) return [];
 
-        return result.candles.map(candle => {
-            const time = new Date(candle.time).getTime();
-            const buyTrade = result.trades.find(t => new Date(t.entryDate).getTime() === time);
-            const sellTrade = result.trades.find(t => new Date(t.exitDate).getTime() === time);
+        const startTimestamp = new Date(startDate).getTime();
+        const sortedTrades = [...result.trades].sort((a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
 
-            return {
-                ...candle,
-                displayTime: new Date(candle.time).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
-                displayDate: new Date(candle.time).toLocaleDateString('tr-TR'),
-                buySignal: buyTrade ? candle.low * 0.998 : null,
-                sellSignal: sellTrade ? candle.high * 1.002 : null,
-            };
-        });
-    }, [result]);
+        return result.candles
+            .filter(candle => new Date(candle.time).getTime() >= startTimestamp)
+            .map(candle => {
+                const candleTime = new Date(candle.time).getTime();
+
+                // Realized PnL up to this candle
+                const totalRealizedSoFar = sortedTrades
+                    .filter(t => new Date(t.exitDate).getTime() <= candleTime)
+                    .reduce((sum, t) => sum + t.pnl, 0);
+
+                let equity = balance + totalRealizedSoFar;
+
+                // Unrealized PnL for currently open position
+                const openTrade = sortedTrades.find(t =>
+                    new Date(t.entryDate).getTime() <= candleTime &&
+                    new Date(t.exitDate).getTime() > candleTime
+                );
+
+                if (openTrade) {
+                    const realizedAtEntry = sortedTrades
+                        .filter(t => new Date(t.exitDate).getTime() < new Date(openTrade.entryDate).getTime())
+                        .reduce((sum, t) => sum + t.pnl, 0);
+                    const qty = (balance + realizedAtEntry) / openTrade.entryPrice;
+                    equity += (candle.close - openTrade.entryPrice) * qty;
+                }
+
+                const buyTrade = result.trades.find(t => new Date(t.entryDate).getTime() === candleTime);
+                const sellTrade = result.trades.find(t => new Date(t.exitDate).getTime() === candleTime);
+
+                return {
+                    ...candle,
+                    equity,
+                    displayTime: new Date(candle.time).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+                    displayDate: new Date(candle.time).toLocaleDateString('tr-TR'),
+                    // Place signals on the equity line with small offsets
+                    buySignal: buyTrade ? equity * 0.995 : null,
+                    sellSignal: sellTrade ? equity * 1.005 : null,
+                };
+            });
+    }, [result, startDate, balance]);
 
     const handleRunBacktest = async () => {
         if (!symbol) {
@@ -553,10 +582,11 @@ export default function BacktestPanel({ coins, strategies, onRefreshCoins, isCoi
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
                                         <XAxis
-                                            dataKey="displayTime"
+                                            dataKey="time"
                                             axisLine={false}
                                             tickLine={false}
                                             tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }}
+                                            tickFormatter={(val) => new Date(val).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                                             minTickGap={60}
                                         />
                                         <YAxis
@@ -565,26 +595,38 @@ export default function BacktestPanel({ coins, strategies, onRefreshCoins, isCoi
                                             tickLine={false}
                                             tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }}
                                             orientation="right"
-                                            tickFormatter={(val) => `$${val.toLocaleString()}`}
+                                            tickFormatter={(val) => `$${Number(val).toLocaleString('tr-TR', { maximumFractionDigits: 0 })}`}
                                         />
                                         <Tooltip
                                             content={({ active, payload }) => {
                                                 if (active && payload && payload.length) {
                                                     const data = payload[0].payload;
                                                     return (
-                                                        <div className="bg-slate-900 border border-white/20 p-5 rounded-2xl shadow-[0_25px_50px_rgba(0,0,0,0.5)] ring-1 ring-white/10">
+                                                        <div className="bg-slate-950/95 border border-white/20 p-5 rounded-2xl shadow-[0_25px_50px_rgba(0,0,0,0.5)] ring-1 ring-white/10 backdrop-blur-xl">
                                                             <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-2">
                                                                 <Calendar size={10} /> {data.displayDate} <Clock size={10} className="ml-2" /> {data.displayTime}
                                                             </div>
-                                                            <div className="text-2xl font-mono font-bold text-white mb-3 tracking-tighter">${data.close.toLocaleString()}</div>
+                                                            <div className="text-2xl font-mono font-bold text-white mb-2 tracking-tighter">${Number(data.equity).toFixed(2)}</div>
+
+                                                            <div className="flex flex-col gap-1.5 mb-3">
+                                                                <div className="flex justify-between items-center text-[10px] uppercase font-bold text-slate-500 tracking-tighter">
+                                                                    <span>Portföy Değeri</span>
+                                                                    <span className="text-white">${Number(data.equity).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                                </div>
+                                                                <div className="flex justify-between items-center text-[10px] uppercase font-bold text-slate-500 tracking-tighter border-t border-white/5 pt-1.5">
+                                                                    <span>Fiyat ({symbol})</span>
+                                                                    <span className="text-slate-300">${Number(data.close).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 8 })}</span>
+                                                                </div>
+                                                            </div>
+
                                                             {data.buySignal && (
-                                                                <div className="flex items-center gap-2.5 text-emerald-400 text-xs font-bold bg-emerald-400/15 px-3 py-2 rounded-xl border border-emerald-400/20">
-                                                                    <div className="w-2 h-2 rounded-full bg-emerald-400"></div> SİNYAL: ALIŞ POSİZYONU
+                                                                <div className="flex items-center gap-2.5 text-emerald-400 text-[10px] font-bold bg-emerald-400/15 px-3 py-2 rounded-xl border border-emerald-400/20">
+                                                                    <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse"></div> SİNYAL: ALIŞ POSİZYONU
                                                                 </div>
                                                             )}
                                                             {data.sellSignal && (
-                                                                <div className="flex items-center gap-2.5 text-rose-400 text-xs font-bold bg-rose-400/15 px-3 py-2 rounded-xl border border-rose-400/20">
-                                                                    <div className="w-2 h-2 rounded-full bg-rose-400"></div> SİNYAL: SATIŞ / ÇIKIŞ
+                                                                <div className="flex items-center gap-2.5 text-rose-400 text-[10px] font-bold bg-rose-400/15 px-3 py-2 rounded-xl border border-rose-400/20">
+                                                                    <div className="w-2 h-2 rounded-full bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.5)] animate-pulse"></div> SİNYAL: SATIŞ / ÇIKIŞ
                                                                 </div>
                                                             )}
                                                         </div>
@@ -595,12 +637,13 @@ export default function BacktestPanel({ coins, strategies, onRefreshCoins, isCoi
                                         />
                                         <Area
                                             type="monotone"
-                                            dataKey="close"
+                                            dataKey="equity"
                                             stroke="var(--color-primary, #3b82f6)"
                                             strokeWidth={3}
                                             fillOpacity={1}
                                             fill="url(#chartGradient)"
                                             animationDuration={1500}
+                                            activeDot={{ r: 6, fill: "#fff", stroke: "var(--color-primary, #3b82f6)", strokeWidth: 2 }}
                                         />
                                         <Scatter dataKey="buySignal" fill="#10b981">
                                             {chartData.map((_entry, index) => (
