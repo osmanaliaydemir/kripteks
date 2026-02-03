@@ -106,13 +106,8 @@ builder.Services.AddSignalR(hubOptions => { hubOptions.EnableDetailedErrors = tr
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi(); // Generates /openapi/v1.json
-
-    // Basic Auth Removed for Local Development Ease
-    app.MapScalarApiReference(); // Serves Scalar UI at /scalar/v1
-}
+app.MapOpenApi(); // Generates /openapi/v1.json
+app.MapScalarApiReference(); // Serves Scalar UI at /scalar/v1
 
 
 // app.UseHttpsRedirection(); // Localhost'ta sorun çıkarabilir
