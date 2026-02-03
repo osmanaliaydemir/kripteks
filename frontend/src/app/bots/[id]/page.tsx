@@ -8,7 +8,7 @@ import { ArrowLeft, Activity, StopCircle, PlayCircle, Trash2, Clock, TrendingUp,
 import { motion } from "framer-motion";
 import Navbar from "@/components/ui/Navbar";
 import { toast } from "sonner";
-import LoadingSkeleton from "@/components/ui/LoadingSkeleton";
+import { StatCardSkeleton, TableSkeleton } from "@/components/ui/Skeletons";
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
@@ -91,7 +91,30 @@ export default function BotDetailPage({ params }: { params: Promise<{ id: string
         return (
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20">
                 <Navbar user={null} />
-                <LoadingSkeleton />
+
+                {/* Header Skeleton */}
+                <div className="mb-8 flex justify-between items-center animate-pulse">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-slate-800/50 rounded-xl"></div>
+                        <div className="space-y-2">
+                            <div className="w-32 h-8 bg-slate-800/50 rounded-lg"></div>
+                            <div className="w-48 h-4 bg-slate-800/20 rounded-lg"></div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* KPIs Skeleton */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                    <StatCardSkeleton />
+                    <StatCardSkeleton />
+                    <StatCardSkeleton />
+                    <StatCardSkeleton />
+                </div>
+
+                {/* Table Skeleton */}
+                <div className="glass-card p-6 border border-white/5">
+                    <TableSkeleton rows={8} />
+                </div>
             </main>
         );
     }
@@ -143,22 +166,22 @@ export default function BotDetailPage({ params }: { params: Promise<{ id: string
 
             {/* KPIS */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                <div className="glass-card p-5 border border-white/5">
+                <div className="glass-card p-6 border border-white/5 transition-all hover:bg-white/2">
                     <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">Toplam Yatırım</p>
                     <h3 className="text-2xl font-display font-bold text-white">${bot.amount.toLocaleString()}</h3>
                 </div>
-                <div className="glass-card p-5 border border-white/5">
+                <div className="glass-card p-6 border border-white/5 transition-all hover:bg-white/2">
                     <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">Anlık PnL</p>
-                    <h3 className={`text-2xl font-display font-bold ${bot.pnlPercent >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    <h3 className={`text-2xl font-mono font-bold ${bot.pnlPercent >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                         {bot.pnlPercent >= 0 ? '+' : ''}%{bot.pnlPercent.toFixed(2)}
                     </h3>
                     <p className="text-xs text-slate-500 mt-1">${bot.currentPnl.toFixed(2)}</p>
                 </div>
-                <div className="glass-card p-5 border border-white/5">
+                <div className="glass-card p-6 border border-white/5 transition-all hover:bg-white/2">
                     <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">Max Fiyat</p>
-                    <h3 className="text-2xl font-display font-bold text-white">${bot.maxPriceReached?.toFixed(4) || '-'}</h3>
+                    <h3 className="text-2xl font-mono font-bold text-white">${bot.maxPriceReached?.toFixed(4) || '-'}</h3>
                 </div>
-                <div className="glass-card p-5 border border-white/5">
+                <div className="glass-card p-6 border border-white/5 transition-all hover:bg-white/2">
                     <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">İz Süren Stop</p>
                     <div className="flex items-center gap-2">
                         <span className={`w-2 h-2 rounded-full ${bot.isTrailingStop ? 'bg-emerald-500' : 'bg-slate-700'}`}></span>
@@ -192,7 +215,7 @@ export default function BotDetailPage({ params }: { params: Promise<{ id: string
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>
-                                    <tr className="border-b border-white/5 bg-white/[0.02]">
+                                    <tr className="border-b border-white/5 bg-white/2">
                                         <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Tarih</th>
                                         <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">İşlem</th>
                                         <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Fiyat</th>
@@ -202,7 +225,7 @@ export default function BotDetailPage({ params }: { params: Promise<{ id: string
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
                                     {(bot.trades && bot.trades.length > 0) ? bot.trades.map((trade, i) => (
-                                        <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                                        <tr key={i} className="hover:bg-white/2 transition-colors">
                                             <td className="p-4 text-sm text-slate-300 font-mono">{new Date(trade.timestamp).toLocaleString()}</td>
                                             <td className="p-4">
                                                 <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${trade.type === 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>

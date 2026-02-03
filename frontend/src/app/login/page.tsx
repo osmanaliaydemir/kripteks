@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, Mail, ChevronRight, Loader2, Eye, EyeOff } from "lucide-react";
+import { Activity, Mail, Lock, ChevronRight, Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { API_URL } from "@/lib/api";
 
@@ -56,15 +56,26 @@ export default function LoginPage() {
     return (
         <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
             {/* Background Effects */}
-            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none"></div>
-            <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/10 rounded-full blur-[120px] pointer-events-none"></div>
+            <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-secondary/10 rounded-full blur-[120px] pointer-events-none"></div>
 
             <div className="w-full max-w-md bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 shadow-2xl relative z-10">
-                <div className="text-center mb-8">
-                    <div className="bg-linear-to-br from-cyan-600 to-blue-600 p-3 rounded-2xl shadow-lg shadow-cyan-500/20 flex items-center justify-center mx-auto mb-4">
-                        <Lock className="text-white w-8 h-8" />
+                <div className="text-center mb-10">
+                    <div className="flex items-center justify-center gap-4 mb-6 group">
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-primary/40 rounded-xl blur-lg group-hover:blur-xl transition-all"></div>
+                            <div className="bg-slate-900 border border-white/10 p-3 rounded-2xl shadow-lg relative">
+                                <Activity className="text-secondary w-8 h-8" />
+                            </div>
+                        </div>
+                        <div className="text-left">
+                            <h1 className="text-3xl font-display font-bold text-white tracking-widest leading-none">
+                                KRIP<span className="text-primary">TEKS</span>
+                            </h1>
+                            <p className="text-[10px] text-slate-400 font-mono tracking-[0.2em] uppercase opacity-80 mt-1">Otonom Motor v2.1</p>
+                        </div>
                     </div>
-                    <h1 className="text-2xl font-bold text-white mb-2">Hoşgeldiniz</h1>
+                    <h2 className="text-xl font-bold text-white mb-2">Hoşgeldiniz</h2>
                     <p className="text-slate-400 text-sm">Bot yönetim paneline erişmek için giriş yapın.</p>
                 </div>
 
@@ -77,7 +88,7 @@ export default function LoginPage() {
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-slate-950/50 border border-slate-700 rounded-xl pl-11 pr-4 py-3 text-white placeholder-slate-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all outline-none"
+                                className="w-full bg-slate-950/50 border border-slate-700 rounded-xl pl-11 pr-4 py-3 text-white placeholder-slate-600 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all outline-none"
                                 placeholder="ornek@mail.com"
                             />
                         </div>
@@ -91,7 +102,7 @@ export default function LoginPage() {
                                 type={showPassword ? "text" : "password"}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full bg-slate-950/50 border border-slate-700 rounded-xl pl-11 pr-12 py-3 text-white placeholder-slate-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all outline-none"
+                                className="w-full bg-slate-950/50 border border-slate-700 rounded-xl pl-11 pr-4 py-3 text-white placeholder-slate-600 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all outline-none"
                                 placeholder="••••••••"
                             />
                             <button
@@ -107,7 +118,7 @@ export default function LoginPage() {
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-cyan-900/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-6 disabled:opacity-70 disabled:cursor-not-allowed"
+                        className="w-full bg-linear-to-r from-primary to-amber-600 hover:from-primary-light hover:to-primary text-slate-900 font-bold py-3.5 rounded-xl shadow-lg shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-6 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                         {isLoading ? (
                             <Loader2 className="animate-spin" />

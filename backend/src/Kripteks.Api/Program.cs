@@ -12,6 +12,7 @@ using Binance.Net.Clients;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddHttpContextAccessor();
 
 // MSSQL Bağlantısı
 // MSSQL Bağlantısı
@@ -77,6 +78,7 @@ builder.Services.AddScoped<INotificationService, Kripteks.Api.Services.Notificat
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddSingleton<ILogService, LogService>(); // Singleton olabilir çünkü scope factory kullanıyor
+builder.Services.AddSingleton<IAuditLogService, AuditLogService>();
 
 // Arka Plan Servisleri (Bot Engine)
 builder.Services.AddHostedService<BotEngineService>();

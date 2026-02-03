@@ -15,10 +15,12 @@ import { ApiSettings } from "@/components/settings/ApiSettings";
 import { GeneralSettings } from "@/components/settings/GeneralSettings";
 import { UserManagement } from "@/components/settings/UserManagement";
 import { SecuritySettings } from "@/components/settings/SecuritySettings";
+import { AuditLogs } from "@/components/settings/AuditLogs";
+import PermissionWrapper from "@/components/auth/PermissionWrapper";
 
 function SettingsContent() {
     const searchParams = useSearchParams();
-    const [currentTab, setCurrentTab] = useState<'api' | 'general' | 'users' | 'security'>('api');
+    const [currentTab, setCurrentTab] = useState<'api' | 'general' | 'users' | 'security' | 'audit'>('api');
     const [user, setUser] = useState<UserType | null>(null);
 
     // Shared States
@@ -47,14 +49,24 @@ function SettingsContent() {
     // User Management States
     const [users, setUsers] = useState<any[]>([]);
     const [isAddingUser, setIsAddingUser] = useState(false);
+    const [isSavingUser, setIsSavingUser] = useState(false);
     const [newUser, setNewUser] = useState({ firstName: "", lastName: "", email: "", password: "", role: "User" });
 
     useEffect(() => {
         const tab = searchParams.get('tab');
-        if (tab && ['api', 'general', 'users', 'security'].includes(tab)) {
+        if (tab && ['api', 'general', 'users', 'security', 'audit'].includes(tab)) {
+            // Role-based Route Guard
+            if ((tab === 'users' || tab === 'general' || tab === 'audit') && user) {
+                const role = user.role || user.Role || "User";
+                if (role !== 'Admin') {
+                    toast.error("Yetkisiz Erişim", { description: "Bu bölüme erişim yetkiniz bulunmuyor." });
+                    setCurrentTab('api');
+                    return;
+                }
+            }
             setCurrentTab(tab as any);
         }
-    }, [searchParams]);
+    }, [searchParams, user]);
 
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -165,6 +177,7 @@ function SettingsContent() {
             return;
         }
 
+        setIsSavingUser(true);
         try {
             await UserService.create(newUser);
             toast.success("Başarılı", { description: "Yeni kullanıcı eklendi." });
@@ -173,6 +186,8 @@ function SettingsContent() {
             loadUsers();
         } catch (error: any) {
             toast.error("Hata", { description: error.message || "Kullanıcı eklenemedi." });
+        } finally {
+            setIsSavingUser(false);
         }
     };
 
@@ -217,6 +232,7 @@ function SettingsContent() {
                                 {currentTab === 'api' && 'Borsa API Bağlantıları'}
                                 {currentTab === 'general' && 'Sistem & Bildirim Ayarları'}
                                 {currentTab === 'users' && 'Kullanıcı Yönetimi'}
+                                {currentTab === 'audit' && 'Sistem İşlem Günlükleri'}
                                 {currentTab === 'security' && 'Şifre ve Güvenlik İşlemleri'}
                             </h3>
                         </div>
@@ -237,26 +253,37 @@ function SettingsContent() {
                                 )}
 
                                 {currentTab === 'general' && (
-                                    <GeneralSettings
-                                        key="general"
-                                        settings={generalSettings}
-                                        setSettings={setGeneralSettings}
-                                        isSaving={isSaving}
-                                        onSave={handleSaveGeneralSettings}
-                                    />
+                                    <PermissionWrapper roles={["Admin"]} fallback={<div className="p-12 text-center text-slate-500">Bu bölümü görüntülemek için yetkiniz yok.</div>}>
+                                        <GeneralSettings
+                                            key="general"
+                                            settings={generalSettings}
+                                            setSettings={setGeneralSettings}
+                                            isSaving={isSaving}
+                                            onSave={handleSaveGeneralSettings}
+                                        />
+                                    </PermissionWrapper>
                                 )}
 
                                 {currentTab === 'users' && (
-                                    <UserManagement
-                                        key="users"
-                                        users={users}
-                                        isAddingUser={isAddingUser}
-                                        setIsAddingUser={setIsAddingUser}
-                                        newUser={newUser}
-                                        setNewUser={setNewUser}
-                                        handleAddUser={handleAddUser}
-                                        handleDeleteUser={handleDeleteUser}
-                                    />
+                                    <PermissionWrapper roles={["Admin"]} fallback={<div className="p-12 text-center text-slate-500">Bu bölümü görüntülemek için yetkiniz yok.</div>}>
+                                        <UserManagement
+                                            key="users"
+                                            users={users}
+                                            isAddingUser={isAddingUser}
+                                            setIsAddingUser={setIsAddingUser}
+                                            isSavingUser={isSavingUser}
+                                            newUser={newUser}
+                                            setNewUser={setNewUser}
+                                            handleAddUser={handleAddUser}
+                                            handleDeleteUser={handleDeleteUser}
+                                        />
+                                    </PermissionWrapper>
+                                )}
+
+                                {currentTab === 'audit' && (
+                                    <PermissionWrapper roles={["Admin"]} fallback={<div className="p-12 text-center text-slate-500">Bu bölümü görüntülemek için yetkiniz yok.</div>}>
+                                        <AuditLogs key="audit" />
+                                    </PermissionWrapper>
                                 )}
 
                                 {currentTab === 'security' && (

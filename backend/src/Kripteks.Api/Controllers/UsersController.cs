@@ -10,7 +10,7 @@ using System.Linq;
 
 namespace Kripteks.Api.Controllers;
 
-[Authorize]
+[Authorize(Roles = "Admin")]
 [ApiController]
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
@@ -18,13 +18,15 @@ public class UsersController : ControllerBase
     private readonly UserManager<AppUser> _userManager;
     private readonly IEmailService _emailService; // <--- EKLENDİ
     private readonly ILogService _logger;
+    private readonly IAuditLogService _auditLogService;
 
     public UsersController(UserManager<AppUser> userManager, IEmailService emailService,
-        ILogService logger) // <--- EKLENDİ
+        ILogService logger, IAuditLogService auditLogService) // <--- EKLENDİ
     {
         _userManager = userManager;
         _emailService = emailService; // <--- EKLENDİ
         _logger = logger;
+        _auditLogService = auditLogService;
     }
 
     // GET: api/users
@@ -77,7 +79,14 @@ public class UsersController : ControllerBase
             var role = !string.IsNullOrEmpty(model.Role) ? model.Role : "User";
             await _userManager.AddToRoleAsync(user, role);
 
-            await _logger.LogInfoAsync($"Yeni kullanıcı eklendi: {model.Email} ({role})"); // Loglama eklendi
+            var adminId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (adminId != null)
+            {
+                await _auditLogService.LogAsync(adminId, "Yeni Kullanıcı Oluşturuldu",
+                    new { model.Email, Role = role });
+            }
+
+            await _logger.LogInfoAsync($"Yeni kullanıcı eklendi: {model.Email} ({role})");
 
             // Mail Gönderimi (Arka planda veya await ile)
             try
@@ -113,6 +122,12 @@ public class UsersController : ControllerBase
         var result = await _userManager.DeleteAsync(user);
         if (result.Succeeded)
         {
+            var adminId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (adminId != null)
+            {
+                await _auditLogService.LogAsync(adminId, "Kullanıcı Silindi", new { user.Email });
+            }
+
             await _logger.LogInfoAsync($"Kullanıcı silindi: {user.Email}");
             return Ok(new { message = "Kullanıcı başarıyla silindi." });
         }

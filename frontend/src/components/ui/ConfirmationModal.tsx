@@ -34,7 +34,7 @@ export default function ConfirmationModal({
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onCancel}
-                        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+                        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-100 flex items-center justify-center p-4"
                     >
                         {/* Modal */}
                         <motion.div
@@ -63,8 +63,8 @@ export default function ConfirmationModal({
                                     <button
                                         onClick={onConfirm}
                                         className={`flex-1 px-4 py-3 rounded-xl font-bold text-white transition-colors ${isDangerous
-                                                ? 'bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-900/20'
-                                                : 'bg-primary hover:bg-amber-600 text-slate-900'
+                                            ? 'bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-900/20'
+                                            : 'bg-primary hover:bg-amber-600 text-slate-900'
                                             }`}
                                     >
                                         {confirmText}

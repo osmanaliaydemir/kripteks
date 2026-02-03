@@ -1,20 +1,68 @@
 "use client";
 
 import React from "react";
-import { UserPlus, Eye, EyeOff, Trash, Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { UserPlus, Eye, EyeOff, Trash, Loader2, Info } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface UserManagementProps {
     users: any[];
     isAddingUser: boolean;
     setIsAddingUser: (val: boolean) => void;
+    isSavingUser: boolean;
     newUser: any;
     setNewUser: (val: any) => void;
     handleAddUser: () => void;
     handleDeleteUser: (id: string, role: string) => void;
 }
 
-export function UserManagement({ users, isAddingUser, setIsAddingUser, newUser, setNewUser, handleAddUser, handleDeleteUser }: UserManagementProps) {
+export interface RoleButtonProps {
+    label: string;
+    title: string;
+    description: string;
+    isActive: boolean;
+    onClick: () => void;
+    activeClass: string;
+}
+
+function RoleButton({ label, title, description, isActive, onClick, activeClass }: RoleButtonProps) {
+    const [isHovered, setIsHovered] = React.useState(false);
+
+    return (
+        <div className="relative">
+            <button
+                type="button"
+                onClick={onClick}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                className={`w-full py-3 rounded-xl text-[11px] font-bold border transition-all duration-300 flex flex-col items-center gap-1 ${isActive ? activeClass : 'bg-slate-900 border-white/5 text-slate-500 hover:border-white/20 hover:text-slate-300'}`}
+            >
+                <span className="opacity-60 text-[9px] uppercase tracking-tighter">{label}</span>
+                {title}
+            </button>
+
+            <AnimatePresence>
+                {isHovered && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute bottom-full left-0 w-full mb-3 z-50 pointer-events-none"
+                    >
+                        <div className="bg-slate-900/95 backdrop-blur-md border border-white/10 p-3 rounded-xl shadow-2xl">
+                            <p className="text-[10px] font-bold text-white mb-1 uppercase tracking-wider">{title}</p>
+                            <p className="text-[10px] text-slate-400 leading-relaxed font-medium">
+                                {description}
+                            </p>
+                            <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-900 border-r border-b border-white/10 rotate-45"></div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
+
+export function UserManagement({ users, isAddingUser, setIsAddingUser, isSavingUser, newUser, setNewUser, handleAddUser, handleDeleteUser }: UserManagementProps) {
     const [showPass, setShowPass] = React.useState(false);
 
     return (
@@ -69,27 +117,55 @@ export function UserManagement({ users, isAddingUser, setIsAddingUser, newUser, 
                                 </button>
                             </div>
                         </div>
-                        <div className="col-span-full space-y-2">
-                            <label className="text-xs font-bold text-slate-400 uppercase">Yetki / Rol</label>
-                            <div className="flex gap-4">
-                                <button
+                        <div className="col-span-full space-y-3">
+                            <div className="flex items-center gap-2">
+                                <label className="text-xs font-bold text-slate-400 uppercase">Yetki / Rol</label>
+                                <Info size={12} className="text-slate-500" />
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <RoleButton
+                                    label="User"
+                                    title="Standart Kullanıcı"
+                                    description="Sadece botları ve raporları izleyebilir. İşlem yetkisi yoktur."
+                                    isActive={newUser.role === 'User'}
                                     onClick={() => setNewUser({ ...newUser, role: 'User' })}
-                                    className={`flex-1 py-2.5 rounded-lg text-xs font-bold border transition-all ${newUser.role === 'User' ? 'bg-primary/20 border-primary text-primary' : 'bg-slate-900 border-white/5 text-slate-400'}`}
-                                >
-                                    Standart Kullanıcı (User)
-                                </button>
-                                <button
+                                    activeClass="bg-primary/20 border-primary text-primary"
+                                />
+                                <RoleButton
+                                    label="Trader"
+                                    title="Yatırımcı"
+                                    description="Bot başlatabilir, durdurabilir ve API anahtarlarını yönetebilir."
+                                    isActive={newUser.role === 'Trader'}
+                                    onClick={() => setNewUser({ ...newUser, role: 'Trader' })}
+                                    activeClass="bg-cyan-500/20 border-cyan-500 text-cyan-400"
+                                />
+                                <RoleButton
+                                    label="Admin"
+                                    title="Yönetici"
+                                    description="Tüm yetkilere sahiptir. Kullanıcı yönetimi ve sistem ayarlarını yapabilir."
+                                    isActive={newUser.role === 'Admin'}
                                     onClick={() => setNewUser({ ...newUser, role: 'Admin' })}
-                                    className={`flex-1 py-2.5 rounded-lg text-xs font-bold border transition-all ${newUser.role === 'Admin' ? 'bg-amber-500/20 border-amber-500 text-amber-500' : 'bg-slate-900 border-white/5 text-slate-400'}`}
-                                >
-                                    Yönetici (Admin)
-                                </button>
+                                    activeClass="bg-amber-500/20 border-amber-500 text-amber-500"
+                                />
                             </div>
                         </div>
                     </div>
                     <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
-                        <button onClick={() => setIsAddingUser(false)} className="text-xs font-bold text-slate-400 px-4 py-2 hover:text-white transition-colors">İptal</button>
-                        <button onClick={handleAddUser} className="text-xs font-bold bg-primary text-black px-6 py-2 rounded-lg hover:bg-primary-light transition-all">Kullanıcıyı Kaydet</button>
+                        <button onClick={() => setIsAddingUser(false)} className="text-xs font-bold text-slate-400 px-4 py-2 hover:text-white transition-colors disabled:opacity-50" disabled={isSavingUser}>İptal</button>
+                        <button
+                            onClick={handleAddUser}
+                            disabled={isSavingUser}
+                            className="text-xs font-bold bg-primary text-black px-6 py-2 rounded-lg hover:bg-primary-light transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                            {isSavingUser ? (
+                                <>
+                                    <Loader2 size={14} className="animate-spin" />
+                                    Kaydediliyor...
+                                </>
+                            ) : (
+                                "Kullanıcıyı Kaydet"
+                            )}
+                        </button>
                     </div>
                 </div>
             )}

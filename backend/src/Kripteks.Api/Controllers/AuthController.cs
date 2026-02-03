@@ -2,6 +2,7 @@ using Kripteks.Core.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Kripteks.Core.Interfaces;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -16,13 +17,15 @@ public class AuthController : ControllerBase
     private readonly UserManager<AppUser> _userManager;
     private readonly SignInManager<AppUser> _signInManager;
     private readonly IConfiguration _configuration;
+    private readonly IAuditLogService _auditLogService;
 
     public AuthController(UserManager<AppUser> userManager, SignInManager<AppUser> signInManager,
-        IConfiguration configuration)
+        IConfiguration configuration, IAuditLogService auditLogService)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _configuration = configuration;
+        _auditLogService = auditLogService;
     }
 
     [HttpPost("register")]
@@ -44,14 +47,22 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Login([FromBody] LoginDto model)
     {
         var user = await _userManager.FindByEmailAsync(model.Email);
-        if (user == null) return Unauthorized("Giriş başarısız");
+        if (user == null)
+        {
+            await _auditLogService.LogAnonymousAsync("Giriş Denemesi Başarısız",
+                new { model.Email, Reason = "Kullanıcı bulunamadı" });
+            return Unauthorized("Giriş başarısız");
+        }
 
         var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
 
         if (result.Succeeded)
         {
-            var token = GenerateJwtToken(user);
+            var roles = await _userManager.GetRolesAsync(user);
+            var primaryRole = roles.FirstOrDefault() ?? "User";
+            var token = GenerateJwtToken(user, roles);
 
+            await _auditLogService.LogAsync(user.Id, "Giriş Başarılı", new { user.Email });
             return Ok(new LoginResponseDto
             {
                 Token = token,
@@ -60,15 +71,18 @@ public class AuthController : ControllerBase
                     FirstName = user.FirstName,
                     LastName = user.LastName,
                     Email = user.Email ?? string.Empty,
-                    Role = "Admin"
+                    Role = primaryRole
                 }
             });
         }
 
+        await _auditLogService.LogAnonymousAsync("Giriş Denemesi Başarısız",
+            new { model.Email, Reason = "Hatalı şifre" });
+
         return Unauthorized("Giriş başarısız");
     }
 
-    private string GenerateJwtToken(AppUser user)
+    private string GenerateJwtToken(AppUser user, IList<string> roles)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
         var secretKey =
@@ -81,8 +95,13 @@ public class AuthController : ControllerBase
             new Claim(JwtRegisteredClaimNames.Sub, user.Id),
             new Claim(JwtRegisteredClaimNames.Email, user.Email ?? ""),
             new Claim("name", $"{user.FirstName} {user.LastName}"),
-            new Claim(ClaimTypes.Role, "Admin")
+            new Claim(ClaimTypes.NameIdentifier, user.Id),
         };
+
+        foreach (var role in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
 
         var token = new JwtSecurityToken(
             issuer: jwtSettings["Issuer"],
@@ -108,6 +127,7 @@ public class AuthController : ControllerBase
         var result = await _userManager.ChangePasswordAsync(user, model.CurrentPassword, model.NewPassword);
         if (result.Succeeded)
         {
+            await _auditLogService.LogAsync(user.Id, "Şifre Değiştirildi");
             return Ok(new { message = "Şifre başarıyla değiştirildi." });
         }
 

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
 import { HubConnection, HubConnectionBuilder } from "@microsoft/signalr";
 import { HUB_URL } from "@/lib/api";
+import { usePathname } from 'next/navigation';
 
 interface SignalRContextType {
     connection: HubConnection | null;
@@ -15,12 +16,24 @@ export function SignalRProvider({ children }: { children: ReactNode }) {
     const [connection, setConnection] = useState<HubConnection | null>(null);
     const [isConnected, setIsConnected] = useState(false);
     const connectionRef = useRef<HubConnection | null>(null);
+    const pathname = usePathname();
 
     useEffect(() => {
         const token = localStorage.getItem("token");
-        const isPublicPage = window.location.pathname === "/login" || window.location.pathname === "/register";
+        const isPublicPage = pathname === "/login" || pathname === "/register";
 
-        if (!token || isPublicPage) return;
+        if (!token || isPublicPage) {
+            if (connectionRef.current) {
+                connectionRef.current.stop();
+                connectionRef.current = null;
+                setConnection(null);
+                setIsConnected(false);
+            }
+            return;
+        }
+
+        // Eğer zaten bağlı veya bağlanıyorsa tekrar deneme
+        if (connectionRef.current) return;
 
         const newConnection = new HubConnectionBuilder()
             .withUrl(HUB_URL, {
@@ -40,7 +53,6 @@ export function SignalRProvider({ children }: { children: ReactNode }) {
                     setIsConnected(true);
                 }
             } catch (err: any) {
-                // "stopped during negotiation" hatasını yoksay
                 if (!err.message?.includes("stopped during negotiation")) {
                     console.error("SignalR Global Connection Error: ", err);
                 }
@@ -55,9 +67,12 @@ export function SignalRProvider({ children }: { children: ReactNode }) {
         newConnection.onreconnected(() => setIsConnected(true));
 
         return () => {
-            newConnection.stop();
+            if (newConnection.state !== "Disconnected") {
+                newConnection.stop();
+            }
+            connectionRef.current = null;
         };
-    }, []);
+    }, [pathname]);
 
     return (
         <SignalRContext.Provider value={{ connection, isConnected }}>

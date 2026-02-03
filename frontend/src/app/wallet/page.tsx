@@ -75,7 +75,7 @@ export default function WalletPage() {
                     ) : (
                         <>
                             {/* Total Asset */}
-                            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="glass-card p-6 border border-white/5 relative overflow-hidden group">
+                            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} whileHover={{ scale: 1.02, translateY: -4 }} className="glass-card p-6 border border-white/5 relative overflow-hidden group transition-all hover:shadow-2xl hover:shadow-primary/5">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none group-hover:bg-primary/20 transition-colors"></div>
                                 <div className="flex justify-between items-start mb-4 relative z-10">
                                     <div className="p-3 bg-slate-800/50 rounded-xl text-primary border border-white/5">
@@ -92,7 +92,7 @@ export default function WalletPage() {
                             </motion.div>
 
                             {/* Available Balance */}
-                            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="glass-card p-6 border border-white/5 relative overflow-hidden group">
+                            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} whileHover={{ scale: 1.02, translateY: -4 }} className="glass-card p-6 border border-white/5 relative overflow-hidden group transition-all hover:shadow-2xl hover:shadow-emerald-500/5">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none group-hover:bg-emerald-500/20 transition-colors"></div>
                                 <div className="flex justify-between items-start mb-4 relative z-10">
                                     <div className="p-3 bg-slate-800/50 rounded-xl text-emerald-400 border border-white/5">
@@ -109,7 +109,7 @@ export default function WalletPage() {
                             </motion.div>
 
                             {/* Locked / In Trade */}
-                            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="glass-card p-6 border border-white/5 relative overflow-hidden group">
+                            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} whileHover={{ scale: 1.02, translateY: -4 }} className="glass-card p-6 border border-white/5 relative overflow-hidden group transition-all hover:shadow-2xl hover:shadow-amber-500/5">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none group-hover:bg-amber-500/20 transition-colors"></div>
                                 <div className="flex justify-between items-start mb-4 relative z-10">
                                     <div className="p-3 bg-slate-800/50 rounded-xl text-amber-400 border border-white/5">
@@ -126,7 +126,7 @@ export default function WalletPage() {
                             </motion.div>
 
                             {/* Total PnL */}
-                            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }} className="glass-card p-6 border border-white/5 relative overflow-hidden group">
+                            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }} whileHover={{ scale: 1.02, translateY: -4 }} className="glass-card p-6 border border-white/5 relative overflow-hidden group transition-all hover:shadow-2xl hover:shadow-emerald-500/5">
                                 <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none transition-colors ${wallet && wallet.total_pnl >= 0 ? 'bg-emerald-500/10 group-hover:bg-emerald-500/20' : 'bg-rose-500/10 group-hover:bg-rose-500/20'}`}></div>
                                 <div className="flex justify-between items-start mb-4 relative z-10">
                                     <div className={`p-3 bg-slate-800/50 rounded-xl border border-white/5 ${wallet && wallet.total_pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>

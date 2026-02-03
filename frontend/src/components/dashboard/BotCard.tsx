@@ -32,12 +32,13 @@ export function BotCard({ bot, isActive, activeChartBotId, setActiveChartBotId, 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className={`glass-card overflow-hidden group ${isActive
+            whileHover={{ translateY: -4 }}
+            className={`glass-card overflow-hidden group transition-all hover:shadow-2xl hover:shadow-emerald-500/5 ${isActive
                 ? 'bg-slate-800/40 border-l-4 border-l-emerald-500'
                 : 'bg-slate-900/30 opacity-70 hover:opacity-100 border-l-4 border-l-slate-700'
                 }`}
         >
-            <div className="p-5 flex flex-col sm:flex-row items-center gap-6">
+            <div className="p-6 flex flex-col sm:flex-row items-center gap-6">
 
                 {/* Symbol Icon */}
                 <div className="relative">
@@ -97,7 +98,7 @@ export function BotCard({ bot, isActive, activeChartBotId, setActiveChartBotId, 
                     <span className={`text-2xl font-bold font-mono tracking-tight ${bot.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                         {bot.pnl >= 0 ? '+' : ''}{bot.pnl?.toFixed(2)}$
                     </span>
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${bot.pnl >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                    <span className={`text-xs font-bold font-mono px-2 py-0.5 rounded-full ${bot.pnl >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
                         %{bot.pnlPercent?.toFixed(2)} ROI
                     </span>
                 </div>

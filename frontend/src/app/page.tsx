@@ -212,7 +212,8 @@ export default function Dashboard() {
     // Wizard Handler
     const handleBotCreate = async (payload: any) => {
         try {
-            await BotService.create(payload);
+            const res = await BotService.create(payload);
+            if (res?._unauthorized) return;
             toast.success("Bot Başlatıldı", { description: `${payload.symbol} üzerinde işlem başladı.` });
             await fetchLiveUpdates();
         } catch (error: unknown) {
@@ -257,7 +258,8 @@ export default function Dashboard() {
     const handleClearHistory = async () => {
         setIsClearHistoryConfirmOpen(false);
         try {
-            await BotService.clearHistory();
+            const res = await BotService.clearHistory();
+            if (res?._unauthorized) return;
             toast.success("İşlem geçmişi temizlendi.");
             await fetchLiveUpdates();
         } catch (error) {

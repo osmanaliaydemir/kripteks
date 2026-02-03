@@ -1,4 +1,5 @@
 using Kripteks.Core.Entities;
+using Kripteks.Core.Interfaces;
 using Kripteks.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,12 +14,15 @@ namespace Kripteks.Api.Controllers;
 public class SettingsController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly IAuditLogService _auditLogService;
 
-    public SettingsController(AppDbContext context)
+    public SettingsController(AppDbContext context, IAuditLogService auditLogService)
     {
         _context = context;
+        _auditLogService = auditLogService;
     }
 
+    [Authorize(Roles = "Admin,Trader")]
     [HttpGet("keys")]
     public async Task<IActionResult> GetApiKeys()
     {
@@ -39,6 +43,7 @@ public class SettingsController : ControllerBase
         return Ok(new { hasKeys = true, apiKey = maskedKey });
     }
 
+    [Authorize(Roles = "Admin,Trader")]
     [HttpPost("keys")]
     public async Task<IActionResult> SaveApiKeys([FromBody] ApiKeyDto model)
     {
@@ -74,9 +79,11 @@ public class SettingsController : ControllerBase
         }
 
         await _context.SaveChangesAsync();
+        await _auditLogService.LogAsync(userId, "API Anahtarları Güncellendi", new { Exchange = "Binance" });
         return Ok(new { message = "API anahtarları başarıyla kaydedildi." });
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpGet("general")]
     public async Task<IActionResult> GetGeneralSettings()
     {
@@ -95,6 +102,7 @@ public class SettingsController : ControllerBase
         return Ok(settings);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost("general")]
     public async Task<IActionResult> SaveGeneralSettings([FromBody] SystemSetting model)
     {
@@ -124,7 +132,19 @@ public class SettingsController : ControllerBase
         }
 
         await _context.SaveChangesAsync();
+        await _auditLogService.LogAsync(userId, "Sistem Ayarları Güncellendi");
         return Ok(new { message = "Sistem ayarları başarıyla kaydedildi." });
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpGet("audit-logs")]
+    public async Task<IActionResult> GetAuditLogs()
+    {
+        var logs = await _context.AuditLogs
+            .OrderByDescending(x => x.Timestamp)
+            .Take(200) // Son 200 log
+            .ToListAsync();
+        return Ok(logs);
     }
 }
 

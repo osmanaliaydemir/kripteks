@@ -20,9 +20,10 @@ export function StatCard({ title, value, icon, trend, trendUp, delay, highlight,
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            whileHover={{ scale: 1.02, translateY: -4 }}
             transition={{ delay, duration: 0.5 }}
             onClick={onClick}
-            className={`glass-card p-5 relative overflow-hidden group ${onClick ? 'cursor-pointer' : ''} ${highlight ? 'border-primary/20 bg-primary/5' : ''}`}
+            className={`glass-card p-6 relative overflow-hidden group transition-shadow hover:shadow-2xl hover:shadow-primary/5 ${onClick ? 'cursor-pointer' : ''} ${highlight ? 'border-primary/20 bg-primary/5' : ''}`}
         >
             <div className="flex justify-between items-start mb-4 relative z-10">
                 <div>
