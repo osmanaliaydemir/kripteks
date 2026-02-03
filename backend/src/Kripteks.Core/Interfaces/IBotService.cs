@@ -10,4 +10,5 @@ public interface IBotService
     Task StopBotAsync(Guid id);
     Task StopAllBotsAsync();
     Task ClearLogsAsync(Guid id);
+    Task ArchiveHistoryAsync();
 }

@@ -62,4 +62,11 @@ public class BotsController : ControllerBase
         await _botService.ClearLogsAsync(id);
         return Ok(new { message = "Logs cleared" });
     }
+
+    [HttpPost("clear-history")]
+    public async Task<IActionResult> ClearHistory()
+    {
+        await _botService.ArchiveHistoryAsync();
+        return Ok(new { message = "History cleared" });
+    }
 }

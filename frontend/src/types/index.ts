@@ -1,3 +1,22 @@
+export interface Log {
+    id: number | string;
+    message: string;
+    level: string; // 'Info' | 'Warning' | 'Error'
+    timestamp: string;
+    botId?: string;
+}
+
+export interface Trade {
+    id: string;
+    botId: string;
+    symbol: string;
+    type: 0 | 1; // 0=Buy, 1=Sell (Backend Enum)
+    price: number;
+    quantity: number;
+    total: number;
+    timestamp: string;
+}
+
 export interface Bot {
     id: string;
     symbol: string;
@@ -8,11 +27,16 @@ export interface Bot {
     status: 'Running' | 'Stopped' | 'Paused' | 'Completed' | 'WaitingForEntry';
     pnl: number;
     pnlPercent: number;
+    currentPnl: number;
     entryPrice?: number;
     takeProfit?: number;
     stopLoss?: number;
     createdAt: string;
-    logs?: { id: number; message: string; level: number; timestamp: string }[];
+    isTrailingStop: boolean;
+    trailingStopDistance?: number;
+    maxPriceReached?: number;
+    logs?: Log[];
+    trades?: Trade[];
 }
 
 export interface Coin {
@@ -55,19 +79,4 @@ export interface DashboardStats {
     active_bots: number;
     total_volume: number;
     win_rate: number;
-}
-
-export interface Trade {
-    date: string;
-    type: "BUY" | "SELL";
-    price: number;
-    amount: number;
-    pnl: number;
-}
-
-export interface LogEntry {
-    id: string;
-    level: string;
-    message: string;
-    timestamp: string;
 }

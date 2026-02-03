@@ -25,6 +25,7 @@ public class Bot
     public bool IsTrailingStop { get; set; } = false;
     public decimal? TrailingStopDistance { get; set; } // % cinsinden (Örn: 2)
     public decimal? MaxPriceReached { get; set; } // Takip edilen en yüksek fiyat
+    public bool IsArchived { get; set; } = false;
 }
 
 public enum BotStatus

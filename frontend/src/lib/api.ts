@@ -70,6 +70,18 @@ export const BotService = {
             method: "POST"
         });
         return res.json();
+    },
+    stopAll: async () => {
+        const res = await fetchWithAuth(`${API_URL}/bots/stop-all`, {
+            method: "POST"
+        });
+        return res.json();
+    },
+    clearHistory: async () => {
+        const res = await fetchWithAuth(`${API_URL}/bots/clear-history`, {
+            method: "POST"
+        });
+        return res.json();
     }
 };
 

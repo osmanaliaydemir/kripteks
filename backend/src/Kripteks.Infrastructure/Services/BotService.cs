@@ -20,6 +20,7 @@ public class BotService : IBotService
     public async Task<List<BotDto>> GetAllBotsAsync()
     {
         var bots = await _context.Bots
+            .Where(b => !b.IsArchived)
             .OrderByDescending(b => b.CreatedAt)
             .ToListAsync();
 
@@ -47,7 +48,8 @@ public class BotService : IBotService
                 Logs = logs,
                 IsTrailingStop = b.IsTrailingStop,
                 TrailingStopDistance = b.TrailingStopDistance,
-                MaxPriceReached = b.MaxPriceReached
+                MaxPriceReached = b.MaxPriceReached,
+                IsArchived = b.IsArchived
             });
         }
 
@@ -62,6 +64,11 @@ public class BotService : IBotService
         var logs = await _context.Logs
             .Where(l => l.BotId == id)
             .OrderByDescending(l => l.Timestamp)
+            .ToListAsync();
+
+        var trades = await _context.Trades
+            .Where(t => t.BotId == id)
+            .OrderByDescending(t => t.Timestamp)
             .ToListAsync();
 
         return new BotDto
@@ -79,7 +86,9 @@ public class BotService : IBotService
             Logs = logs,
             IsTrailingStop = bot.IsTrailingStop,
             TrailingStopDistance = bot.TrailingStopDistance,
-            MaxPriceReached = bot.MaxPriceReached
+            MaxPriceReached = bot.MaxPriceReached,
+            IsArchived = bot.IsArchived,
+            Trades = trades
         };
     }
 
@@ -222,6 +231,7 @@ public class BotService : IBotService
                 CreatedAt = bot.CreatedAt,
                 Pnl = bot.CurrentPnl,
                 PnlPercent = bot.CurrentPnlPercent,
+                IsArchived = bot.IsArchived,
                 Logs = bot.Logs
             });
             await _notificationService.NotifyLog(bot.Id.ToString(), log);
@@ -244,6 +254,22 @@ public class BotService : IBotService
     {
         var logs = await _context.Logs.Where(l => l.BotId == id).ToListAsync();
         _context.Logs.RemoveRange(logs);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task ArchiveHistoryAsync()
+    {
+        var historyBots = await _context.Bots
+            .Where(b => (b.Status == BotStatus.Stopped || b.Status == BotStatus.Completed) && !b.IsArchived)
+            .ToListAsync();
+
+        if (!historyBots.Any()) return;
+
+        foreach (var bot in historyBots)
+        {
+            bot.IsArchived = true;
+        }
+
         await _context.SaveChangesAsync();
     }
 }

@@ -4,9 +4,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Terminal, Clock } from "lucide-react";
 
 interface Log {
-    id: number;
+    id: number | string;
     message: string;
-    level: number;
+    level: number | string;
     timestamp: string;
 }
 

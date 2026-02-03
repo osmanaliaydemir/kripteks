@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { User } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity, LayoutDashboard, FlaskConical, BarChart2, LogOut, Settings, Key, User as UserIcon, Database, Lock, Bell, HelpCircle } from "lucide-react";
+import { Activity, LayoutDashboard, FlaskConical, BarChart2, LogOut, Settings, Key, User as UserIcon, Database, Lock, Bell, HelpCircle, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUI } from "@/context/UIContext";
@@ -77,6 +77,7 @@ export default function Navbar({ user }: NavbarProps) {
 
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', href: '/', icon: <LayoutDashboard size={16} /> },
+        { id: 'wallet', label: 'Cüzdanım', href: '/wallet', icon: <Wallet size={16} /> },
         { id: 'backtest', label: 'Simülasyon', href: '/backtest', icon: <FlaskConical size={16} /> },
         { id: 'reports', label: 'Raporlar', href: '/reports', icon: <BarChart2 size={16} /> },
         { id: 'settings', label: 'Ayarlar', href: '/settings', icon: <Settings size={16} /> },

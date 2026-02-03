@@ -4,10 +4,40 @@ import { useEffect, useState, useRef } from "react";
 import { Bot, Strategy, Coin, Wallet, User, DashboardStats } from "@/types";
 import { BotService, MarketService, WalletService, HUB_URL } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity, TrendingUp, BarChart2, DollarSign, Wallet as WalletIcon, ChevronDown, Loader2, FlaskConical, History, Database, Settings, LogOut, User as UserIcon, Key, Zap, Cpu, Square, AlertTriangle, Info, Clock, X, Bot as BotIcon } from "lucide-react";
+import {
+    LayoutDashboard,
+    Plus,
+    Activity,
+    History,
+    Settings,
+    LogOut,
+    TrendingUp,
+    Play,
+    Square,
+    ChevronDown,
+    Zap,
+    ExternalLink,
+    AlertTriangle,
+    Wallet as WalletIcon,
+    FlaskConical,
+    Cpu,
+    BarChart2,
+    Info,
+    OctagonX,
+    DollarSign,
+    Loader2,
+    Database,
+    User as UserIcon,
+    Key,
+    Clock,
+    X,
+    Bot as BotIcon
+} from "lucide-react";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import SearchableSelect from "@/components/ui/SearchableSelect";
 import TradingViewWidget from "@/components/ui/TradingViewWidget";
 import BotLogs from "@/components/ui/BotLogs";
+import LoadingSkeleton from "@/components/ui/LoadingSkeleton";
 import WalletModal from "@/components/ui/WalletModal";
 import confetti from "canvas-confetti";
 import { toast } from "sonner";
@@ -140,7 +170,9 @@ function BotCard({ bot, isActive, activeChartBotId, setActiveChartBotId, handleS
                 {/* Info */}
                 <div className="flex-1 w-full text-center sm:text-left">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
-                        <h3 className="text-white font-display font-bold text-xl tracking-wide">{bot.symbol}</h3>
+                        <Link href={`/bots/${bot.id}`} className="hover:underline hover:text-primary transition-colors">
+                            <h3 className="text-white font-display font-bold text-xl tracking-wide">{bot.symbol}</h3>
+                        </Link>
                         <div className="flex items-center justify-center sm:justify-start gap-2">
                             {/* Status Badge */}
                             {bot.status === 'WaitingForEntry' && (
@@ -198,12 +230,19 @@ function BotCard({ bot, isActive, activeChartBotId, setActiveChartBotId, handleS
                     {isActive && (
                         <button
                             onClick={() => handleStopBot(bot.id)}
-                            className="flex-1 sm:flex-none p-3 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all active:scale-95"
+                            className="flex-1 sm:flex-none p-3 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-600 hover:text-white transition-all active:scale-95 group/stop"
                             title="Acil Durdur"
                         >
-                            <Square size={18} className="fill-current" />
+                            <Square size={18} className="fill-current group-hover/stop:fill-white" />
                         </button>
                     )}
+                    <Link
+                        href={`/bots/${bot.id}`}
+                        className="flex-1 sm:flex-none p-3 rounded-xl bg-slate-800 text-slate-400 border border-white/5 hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all flex items-center justify-center"
+                        title="Detaylar"
+                    >
+                        <ExternalLink size={18} />
+                    </Link>
                 </div>
             </div>
 
@@ -411,6 +450,8 @@ export default function Dashboard() {
 
     // Wizard State
     const [isWizardOpen, setIsWizardOpen] = useState(false);
+    const [isStopAllConfirmOpen, setIsStopAllConfirmOpen] = useState(false);
+    const [isClearHistoryConfirmOpen, setIsClearHistoryConfirmOpen] = useState(false);
 
 
 
@@ -567,6 +608,30 @@ export default function Dashboard() {
             setConfirmStopId(null);
         }
     };
+
+    const handleStopAllBots = async () => {
+        setIsStopAllConfirmOpen(false);
+        try {
+            await BotService.stopAll();
+            toast.success("Tüm botlar durduruldu ve pozisyonlar kapatıldı.");
+            await fetchLiveUpdates();
+        } catch (error) {
+            console.error(error);
+            toast.error("İşlem başarısız oldu.");
+        }
+    };
+
+    const handleClearHistory = async () => {
+        setIsClearHistoryConfirmOpen(false);
+        try {
+            await BotService.clearHistory();
+            toast.success("İşlem geçmişi temizlendi.");
+            await fetchLiveUpdates();
+        } catch (error) {
+            console.error(error);
+            toast.error("Geçmiş temizlenemedi.");
+        }
+    };
     const handleLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
@@ -660,10 +725,32 @@ export default function Dashboard() {
                             </div>
                         </div>
                     )}
-                    {/* TAB NAVIGATION */}
-                    <div className="glass-card p-1.5 flex gap-1 mb-6 w-fit bg-slate-900/60">
-                        <TabButton id="active" label="Aktif Botlar" count={activeBots.length} activeTab={activeTab} setActiveTab={setActiveTab} icon={<Activity size={16} />} />
-                        <TabButton id="history" label="Geçmiş" activeTab={activeTab} setActiveTab={setActiveTab} icon={<History size={16} />} />
+                    {/* TAB NAVIGATION & ACTIONS */}
+                    <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                        <div className="glass-card p-1.5 flex gap-1 w-fit bg-slate-900/60">
+                            <TabButton id="active" label="Aktif Botlar" count={activeBots.length} activeTab={activeTab} setActiveTab={setActiveTab} icon={<Activity size={16} />} />
+                            <TabButton id="history" label="Geçmiş" activeTab={activeTab} setActiveTab={setActiveTab} icon={<History size={16} />} />
+                        </div>
+
+                        {activeTab === 'active' && activeBots.length > 0 && (
+                            <button
+                                onClick={() => setIsStopAllConfirmOpen(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-xl hover:bg-rose-600 hover:text-white transition-all text-xs font-bold uppercase tracking-wider group"
+                            >
+                                <OctagonX size={16} className="group-hover:animate-pulse" />
+                                Tüm İşlemleri Durdur
+                            </button>
+                        )}
+
+                        {activeTab === 'history' && historyBots.length > 0 && (
+                            <button
+                                onClick={() => setIsClearHistoryConfirmOpen(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-slate-400 border border-white/5 rounded-xl hover:bg-slate-700 hover:text-white transition-all text-xs font-bold uppercase tracking-wider group"
+                            >
+                                <History size={16} />
+                                Geçmişi Temizle
+                            </button>
+                        )}
                     </div>
 
                     {/* CONTENT AREA */}
@@ -747,7 +834,6 @@ export default function Dashboard() {
                     </AnimatePresence >
 
                     {/* Strategy Details Modal */}
-                    {/* Strategy Details Modal */}
                     <StrategyModal
                         isOpen={!!selectedStrategyId}
                         onClose={() => setSelectedStrategyId(null)}
@@ -766,6 +852,27 @@ export default function Dashboard() {
                         refreshCoins={refreshCoins}
                     />
 
+                    {/* Stop All Confirmation Modal */}
+                    <ConfirmationModal
+                        isOpen={isStopAllConfirmOpen}
+                        title="ACİL DURDURMA"
+                        message="DİKKAT! Bu işlem çalışan TÜM botları durduracak ve açık olan tüm pozisyonları piyasa fiyatından kapatacaktır. Bu işlem geri alınamaz. Devam etmek istiyor musunuz?"
+                        onConfirm={handleStopAllBots}
+                        onCancel={() => setIsStopAllConfirmOpen(false)}
+                        confirmText="Evet, Her Şeyi Kapat"
+                        isDangerous={true}
+                    />
+
+                    {/* Clear History Confirmation Modal */}
+                    <ConfirmationModal
+                        isOpen={isClearHistoryConfirmOpen}
+                        title="GEÇMİŞİ TEMİZLE"
+                        message="İşlem geçmişinizi temizlemek istediğinize emin misiniz? Bu işlem sadece bu listeden kaldırır, veritabanında kayıtlı kalmaya devam eder."
+                        onConfirm={handleClearHistory}
+                        onCancel={() => setIsClearHistoryConfirmOpen(false)}
+                        confirmText="Evet, Temizle"
+                        isDangerous={false}
+                    />
                 </div>
             </div>
         </main>
