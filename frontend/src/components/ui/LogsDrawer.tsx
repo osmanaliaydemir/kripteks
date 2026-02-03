@@ -44,15 +44,15 @@ export default function LogsDrawer({ isOpen, onClose }: LogsDrawerProps) {
     }, [isOpen, loadLogs]);
 
     const handleClearLogs = async () => {
-        toast.info("Log temizleme özelliği henüz aktif değil.");
-        // if (!confirm("Tüm sistem kayıtlarını temizlemek istediğinize emin misiniz?")) return;
-        // try {
-        //     await LogService.clear();
-        //     toast.success("Kayıtlar başarıyla temizlendi.");
-        //     loadLogs();
-        // } catch (error) {
-        //     toast.error("Kayıtlar temizlenemedi.");
-        // }
+        if (!confirm("Tüm sistem kayıtlarını temizlemek istediğinize emin misiniz?")) return;
+
+        try {
+            await LogService.clear();
+            toast.success("Kayıtlar başarıyla temizlendi.");
+            loadLogs();
+        } catch (error) {
+            toast.error("Kayıtlar temizlenemedi.");
+        }
     };
 
     // Client-side filtering

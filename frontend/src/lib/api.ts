@@ -130,6 +130,12 @@ export const LogService = {
     getLogs: async (limit: number = 50) => {
         const res = await fetchWithAuth(`${API_URL}/logs?limit=${limit}`);
         return res.json();
+    },
+    clear: async () => {
+        const res = await fetchWithAuth(`${API_URL}/logs`, {
+            method: "DELETE"
+        });
+        return res.json();
     }
 };
 
