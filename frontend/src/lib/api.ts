@@ -220,3 +220,20 @@ export const UserService = {
         return res.json();
     }
 };
+
+export const NotificationService = {
+    getUnread: async () => {
+        const res = await fetchWithAuth(`${API_URL}/notifications`);
+        return res.json();
+    },
+    markAsRead: async (id: string) => {
+        await fetchWithAuth(`${API_URL}/notifications/${id}/read`, {
+            method: "PUT"
+        });
+    },
+    markAllAsRead: async () => {
+        await fetchWithAuth(`${API_URL}/notifications/read-all`, {
+            method: "PUT"
+        });
+    }
+};

@@ -4,12 +4,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Kripteks.Infrastructure.Data;
 
-public class AppDbContext : IdentityDbContext<AppUser>
+public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<AppUser>(options)
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
-    {
-    }
-
     public DbSet<Bot> Bots { get; set; }
     public DbSet<Trade> Trades { get; set; }
     public DbSet<Wallet> Wallets { get; set; }
@@ -17,6 +13,7 @@ public class AppDbContext : IdentityDbContext<AppUser>
     public DbSet<Log> Logs { get; set; }
     public DbSet<ExchangeCredential> ExchangeCredentials { get; set; }
     public DbSet<SystemSetting> SystemSettings { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

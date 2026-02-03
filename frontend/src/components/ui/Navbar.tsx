@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { User } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { Activity, LayoutDashboard, FlaskConical, BarChart2, LogOut, Settings, Key, User as UserIcon, Database, Lock, Bell, HelpCircle } from "lucide-react";
@@ -8,6 +8,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUI } from "@/context/UIContext";
 import { useSignalR } from "@/context/SignalRContext";
+import { toast } from "sonner";
+import { NotificationService } from "@/lib/api";
 
 interface NavbarProps {
     user: User | null;
@@ -16,11 +18,56 @@ interface NavbarProps {
 export default function Navbar({ user }: NavbarProps) {
     const pathname = usePathname();
     const { openLogs } = useUI();
-    const { isConnected: isSignalRConnected } = useSignalR();
+    const { connection, isConnected: isSignalRConnected } = useSignalR();
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const [isStatusVisible, setIsStatusVisible] = useState(false);
     const [statusTimeout, setStatusTimeout] = useState<NodeJS.Timeout | null>(null);
+    const [notifications, setNotifications] = useState<any[]>([]);
+    const unreadCount = notifications.filter(n => !n.isRead).length;
+
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            if (user) {
+                try {
+                    const data = await NotificationService.getUnread();
+                    setNotifications(data);
+                } catch (error) {
+                    console.error("Failed to fetch notifications", error);
+                }
+            }
+        };
+
+        fetchNotifications();
+
+        if (connection) {
+            connection.on("ReceiveNotification", (notification) => {
+                setNotifications(prev => [notification, ...prev]);
+                // Show toast
+                toast(notification.title, {
+                    description: notification.message,
+                    duration: 5000,
+                    icon: <Bell size={16} className="text-secondary" />
+                });
+            });
+        }
+
+        return () => {
+            if (connection) {
+                connection.off("ReceiveNotification");
+            }
+        };
+    }, [connection, user]);
+
+    const markAllAsRead = async () => {
+        try {
+            await NotificationService.markAllAsRead();
+            setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        } catch (error) {
+            console.error("Failed to mark all as read", error);
+            toast.error("Bildirimler işaretlenemedi");
+        }
+    };
 
     const handleLogout = () => {
         localStorage.removeItem("token");
@@ -114,7 +161,7 @@ export default function Navbar({ user }: NavbarProps) {
                         className="relative p-2.5 rounded-full bg-slate-800/50 hover:bg-slate-700/80 text-slate-400 hover:text-white transition-all ring-1 ring-white/5"
                     >
                         <Bell size={18} />
-                        <span className="absolute top-2 right-2.5 w-2 h-2 bg-rose-500 rounded-full border border-slate-900"></span>
+                        {unreadCount > 0 && <span className="absolute top-2 right-2.5 w-2 h-2 bg-rose-500 rounded-full border border-slate-900 animate-pulse"></span>}
                     </button>
 
                     <AnimatePresence>
@@ -128,15 +175,34 @@ export default function Navbar({ user }: NavbarProps) {
                                     className="absolute right-0 mt-3 w-80 glass-card p-2 z-20 flex flex-col"
                                 >
                                     <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-                                        <h3 className="text-sm font-bold text-white">Bildirimler</h3>
-                                        <span className="text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded cursor-pointer hover:text-white transition-colors">Tümünü Okundu İşaretle</span>
+                                        <h3 className="text-sm font-bold text-white">Bildirimler {unreadCount > 0 && `(${unreadCount})`}</h3>
+                                        <span onClick={markAllAsRead} className="text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded cursor-pointer hover:text-white transition-colors">Tümünü Okundu İşaretle</span>
                                     </div>
 
-                                    <div className="flex flex-col items-center justify-center py-8 text-center">
-                                        <div className="w-12 h-12 bg-slate-800/50 rounded-full flex items-center justify-center mb-3 text-slate-600">
-                                            <Bell size={20} />
-                                        </div>
-                                        <p className="text-slate-500 text-xs font-medium">Yeni bildiriminiz yok.</p>
+                                    <div className="max-h-64 overflow-y-auto">
+                                        {notifications.length === 0 ? (
+                                            <div className="flex flex-col items-center justify-center py-8 text-center">
+                                                <div className="w-12 h-12 bg-slate-800/50 rounded-full flex items-center justify-center mb-3 text-slate-600">
+                                                    <Bell size={20} />
+                                                </div>
+                                                <p className="text-slate-500 text-xs font-medium">Yeni bildiriminiz yok.</p>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col">
+                                                {notifications.map((notification, index) => (
+                                                    <div key={index} className={`p-3 border-b border-white/5 hover:bg-white/5 transition-colors ${!notification.isRead ? 'bg-slate-800/30' : ''}`}>
+                                                        <div className="flex items-start gap-3">
+                                                            <div className={`w-2 h-2 mt-1.5 rounded-full shrink-0 ${notification.type === 1 ? 'bg-emerald-500' : notification.type === 3 ? 'bg-rose-500' : 'bg-primary'}`}></div>
+                                                            <div>
+                                                                <h4 className="text-xs font-bold text-white mb-0.5">{notification.title}</h4>
+                                                                <p className="text-[10px] text-slate-400 leading-relaxed">{notification.message}</p>
+                                                                <p className="text-[8px] text-slate-600 mt-1 font-mono">{new Date(notification.createdAt).toLocaleTimeString()}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </motion.div>
                             </>

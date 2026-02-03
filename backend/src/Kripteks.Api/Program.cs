@@ -6,6 +6,8 @@ using Scalar.AspNetCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Binance.Net.Interfaces.Clients;
+using Binance.Net.Clients;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,7 +20,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         b => b.MigrationsAssembly("Kripteks.Infrastructure")));
 
 // Identity & JWT Setup
-builder.Services.AddIdentity<Kripteks.Core.Entities.AppUser, Microsoft.AspNetCore.Identity.IdentityRole>()
+builder.Services.AddIdentity<Kripteks.Core.Entities.AppUser, IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
@@ -28,13 +30,13 @@ var secretKey = System.Text.Encoding.UTF8.GetBytes(jwtSettings["Secret"] ?? "def
 builder.Services.AddAuthentication(options =>
     {
         options.DefaultAuthenticateScheme =
-            Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
+            JwtBearerDefaults.AuthenticationScheme;
         options.DefaultChallengeScheme =
-            Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
+            JwtBearerDefaults.AuthenticationScheme;
     })
     .AddJwtBearer(options =>
     {
-        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidateAudience = true,
@@ -42,7 +44,7 @@ builder.Services.AddAuthentication(options =>
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtSettings["Issuer"],
             ValidAudience = jwtSettings["Audience"],
-            IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(secretKey)
+            IssuerSigningKey = new SymmetricSecurityKey(secretKey)
         };
 
         // SignalR için Token Okuma Ayarı (WebSocket Header desteklemez, QueryString kullanır)
@@ -65,25 +67,19 @@ builder.Services.AddAuthentication(options =>
         };
     });
 // Servislerin Kaydı (Dependency Injection)
-builder.Services.AddScoped<Kripteks.Core.Interfaces.IBotService, Kripteks.Infrastructure.Services.BotService>();
-builder.Services
-    .AddSingleton<Kripteks.Core.Interfaces.IMarketDataService, Kripteks.Infrastructure.Services.BinanceMarketService>();
-builder.Services.AddScoped<Kripteks.Infrastructure.Services.BacktestService>();
-builder.Services
-    .AddSingleton<Binance.Net.Interfaces.Clients.IBinanceRestClient, Binance.Net.Clients.BinanceRestClient>();
-builder.Services
-    .AddTransient<Kripteks.Core.Interfaces.IMailService, Kripteks.Infrastructure.Services.GmailMailService>();
-builder.Services
-    .AddTransient<Kripteks.Core.Interfaces.INotificationService, Kripteks.Api.Services.SignalRNotificationService>();
-builder.Services
-    .AddScoped<Kripteks.Core.Interfaces.IAnalyticsService, Kripteks.Infrastructure.Services.AnalyticsService>();
+builder.Services.AddScoped<IBotService, BotService>();
+builder.Services.AddSingleton<IMarketDataService, BinanceMarketService>();
+builder.Services.AddScoped<BacktestService>();
+builder.Services.AddSingleton<IBinanceRestClient, BinanceRestClient>();
+
+builder.Services.AddTransient<IMailService, GmailMailService>(); // Eski referans ama Engine kullaniyor
+builder.Services.AddScoped<INotificationService, Kripteks.Api.Services.NotificationService>();
+builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services
-    .AddSingleton<ILogService,
-        LogService>(); // Singleton olabilir çünkü scope factory kullanıyor // <--- EKLENDİ (Mail Servisi)
+builder.Services.AddSingleton<ILogService, LogService>(); // Singleton olabilir çünkü scope factory kullanıyor
 
 // Arka Plan Servisleri (Bot Engine)
-builder.Services.AddHostedService<Kripteks.Infrastructure.Services.BotEngineService>();
+builder.Services.AddHostedService<BotEngineService>();
 
 builder.Services.AddControllers();
 
@@ -94,9 +90,9 @@ builder.Services.AddOpenApi();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
-        builder =>
+        corsBuilder =>
         {
-            builder.SetIsOriginAllowed(origin => true) // SignalR İçin Önemli
+            corsBuilder.SetIsOriginAllowed(_ => true) // SignalR İçin Önemli
                 .AllowAnyMethod()
                 .AllowAnyHeader()
                 .AllowCredentials(); // SignalR İçin Önemli
@@ -128,7 +124,7 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     try
     {
-        await Kripteks.Infrastructure.Data.SeedData.Initialize(services);
+        await SeedData.Initialize(services);
     }
     catch (Exception ex)
     {

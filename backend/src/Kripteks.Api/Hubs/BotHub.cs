@@ -1,18 +1,23 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using System.Threading.Tasks;
+using Kripteks.Core.Entities;
 
 namespace Kripteks.Api.Hubs;
 
-[Authorize]
-public class BotHub : Hub
+public interface IBotHubClient
 {
-    // İstemciler (Frontend) canlı veri almak için bu Hub'a bağlanacak.
-    // Şimdilik buraya özel bir metod yazmamıza gerek yok, 
-    // Backend (Engine) burayı kullanarak istemcilere veri itecek (Push).
-    
+    Task ReceiveMessage(string user, string message);
+    Task ReceiveNotification(Notification notification);
+    Task ReceiveBotUpdate(object bot);
+    Task ReceiveLog(string botId, object log);
+    Task ReceiveWalletUpdate(object wallet);
+}
+
+[Authorize]
+public class BotHub : Hub<IBotHubClient>
+{
     public async Task SendMessage(string user, string message)
     {
-        await Clients.All.SendAsync("ReceiveMessage", user, message);
+        await Clients.All.ReceiveMessage(user, message);
     }
 }
