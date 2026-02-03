@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: 'export',
+  trailingSlash: true, // /backtest -> /backtest/index.html olarak üretir (IIS için ideal)
   async headers() {
     return [
       {
