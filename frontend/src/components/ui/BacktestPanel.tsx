@@ -157,7 +157,7 @@ export default function BacktestPanel({ coins, strategies, onRefreshCoins, isCoi
         setResult(null);
         setOptimizationResult(null);
         try {
-            const data = await BacktestService.runBacktest({
+            const data = await BacktestService.run({
                 symbol,
                 interval,
                 strategyId: strategy,
@@ -189,14 +189,16 @@ export default function BacktestPanel({ coins, strategies, onRefreshCoins, isCoi
         setResult(null);
         setOptimizationResult(null);
         try {
-            const data = await BacktestService.optimizeBacktest({
+            // TODO: Backend optimizasyon endpoint'i eklendiğinde burayı güncelleyin. Şimdilik standart run kullanılıyor.
+            const data = await BacktestService.run({
                 symbol,
                 interval,
                 strategyId: strategy,
                 startDate,
                 endDate,
                 initialBalance: balance,
-                strategyParameters: strategyParams
+                strategyParameters: strategyParams,
+                isOptimization: true // Backend destekliyorsa diye flag ekledik
             });
 
             if (data && data.result) {

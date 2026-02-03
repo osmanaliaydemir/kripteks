@@ -27,7 +27,8 @@ export default function LogsDrawer({ isOpen, onClose }: LogsDrawerProps) {
     const loadLogs = useCallback(async () => {
         setIsLoading(true);
         try {
-            const data = await LogService.getAll(100, filterLevel);
+            // API sadece limit parametresini destekliyor, filterLevel client-side yapılabilir veya API güncellenmeli.
+            const data = await LogService.getLogs(100);
             setLogs(data);
         } catch (e) {
             console.error(e);
@@ -43,15 +44,15 @@ export default function LogsDrawer({ isOpen, onClose }: LogsDrawerProps) {
     }, [isOpen, loadLogs]);
 
     const handleClearLogs = async () => {
-        if (!confirm("Tüm sistem kayıtlarını temizlemek istediğinize emin misiniz?")) return;
-
-        try {
-            await LogService.clear();
-            toast.success("Kayıtlar başarıyla temizlendi.");
-            loadLogs();
-        } catch (error) {
-            toast.error("Kayıtlar temizlenemedi.");
-        }
+        toast.info("Log temizleme özelliği henüz aktif değil.");
+        // if (!confirm("Tüm sistem kayıtlarını temizlemek istediğinize emin misiniz?")) return;
+        // try {
+        //     await LogService.clear();
+        //     toast.success("Kayıtlar başarıyla temizlendi.");
+        //     loadLogs();
+        // } catch (error) {
+        //     toast.error("Kayıtlar temizlenemedi.");
+        // }
     };
 
     // Client-side filtering

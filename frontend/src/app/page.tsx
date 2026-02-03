@@ -15,6 +15,7 @@ import Link from "next/link";
 import Navbar from "@/components/ui/Navbar";
 import { useUI } from "@/context/UIContext";
 import { useSignalR } from "@/context/SignalRContext";
+import BotWizardModal from "@/components/wizard/BotWizardModal";
 
 
 interface StatCardProps {
@@ -408,16 +409,8 @@ export default function Dashboard() {
     // Bot Status Tracking for Notifications
     const prevBotsRef = useRef<Bot[]>([]);
 
-    // Form States
-    const [selectedCoin, setSelectedCoin] = useState("BTC/USDT");
-    const [selectedStrategy, setSelectedStrategy] = useState("");
-    const [amount, setAmount] = useState(100);
-    const [takeProfit, setTakeProfit] = useState("");
-    const [stopLoss, setStopLoss] = useState("");
-    const [selectedInterval, setSelectedInterval] = useState("1h");
-    const [isTrailingEnabled, setIsTrailingEnabled] = useState(false);
-    const [trailingDistance, setTrailingDistance] = useState("2");
-    const [isStarting, setIsStarting] = useState(false);
+    // Wizard State
+    const [isWizardOpen, setIsWizardOpen] = useState(false);
 
 
 
@@ -434,7 +427,7 @@ export default function Dashboard() {
             setStrategies(strategiesData);
             setWallet(walletData);
             setStats(statsData);
-            if (strategiesData.length > 0) setSelectedStrategy(strategiesData[0].id);
+
         } catch (error) { console.error("Veri hatası", error); } finally { setIsLoading(false); }
     };
 
@@ -542,45 +535,16 @@ export default function Dashboard() {
         prevBotsRef.current = bots;
     }, [bots]);
 
-    // Strateji değiştikçe varsayılan interval'i ayarla
-    useEffect(() => {
-        if (selectedStrategy === "strategy-market-buy") setSelectedInterval("1m");
-        else if (selectedStrategy === "strategy-golden-rose") setSelectedInterval("1h");
-        else if (selectedStrategy === "strategy-sma-crossover") setSelectedInterval("15m");
-    }, [selectedStrategy]);
-
-
-    const handleStartBot = async () => {
-        if (!selectedCoin || !selectedStrategy || amount <= 0) {
-            toast.warning("Hatalı Giriş", { description: "Lütfen coin, strateji ve tutar alanlarını kontrol ediniz." });
-            return;
-        }
-
-        setIsStarting(true);
+    // Wizard Handler
+    const handleBotCreate = async (payload: any) => {
         try {
-            const payload = {
-                symbol: selectedCoin,
-                strategyId: selectedStrategy,
-                amount: amount,
-                interval: selectedInterval,
-                takeProfit: takeProfit ? Number(takeProfit) : null,
-                stopLoss: stopLoss ? Number(stopLoss) : null,
-                isTrailingStop: isTrailingEnabled,
-                trailingStopDistance: isTrailingEnabled ? Number(trailingDistance) : null
-            };
-
             await BotService.create(payload);
-            toast.success("Bot Başlatıldı", { description: `${selectedCoin} üzerinde işlem başladı.` });
+            toast.success("Bot Başlatıldı", { description: `${payload.symbol} üzerinde işlem başladı.` });
             await fetchLiveUpdates();
-
-            // Formu Sıfırla
-            setAmount(100);
-            setTakeProfit("");
-            setStopLoss("");
         } catch (error: unknown) {
             const msg = error instanceof Error ? error.message : "Bot başlatılamadı!";
             toast.error("Hata", { description: msg });
-        } finally { setIsStarting(false); }
+        }
     };
 
     // Stop Confirmation Logic
@@ -603,14 +567,6 @@ export default function Dashboard() {
             setConfirmStopId(null);
         }
     };
-
-    const setAmountByPercent = (percent: number) => { if (wallet?.available_balance) { setAmount(Math.floor(wallet.available_balance * (percent / 100))); } };
-
-    // Bakiye Kontrolü
-    const isImmediate = selectedStrategy === "strategy-market-buy";
-    const isInsufficientBalance = wallet && amount > wallet.available_balance;
-    const shouldDisableButton = isStarting || (isImmediate && isInsufficientBalance);
-
     const handleLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
@@ -635,168 +591,23 @@ export default function Dashboard() {
                     <div className="glass-card p-1 relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none group-hover:bg-primary/30 transition-all duration-700"></div>
 
-                        <div className="bg-slate-900/50 rounded-xl p-5 relative z-10">
-                            <h2 className="text-lg font-display font-bold text-white mb-4 flex items-center gap-3">
-                                <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                                    <Zap size={18} />
-                                </div>
-                                Yeni Bot Başlat
-                            </h2>
-
-                            <div className="space-y-3">
-                                <div className="space-y-1">
-                                    <div className="flex items-center gap-1 pl-1">
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Kripto Varlık</label>
-                                        <InfoTooltip text="İşlem yapılacak kripto para çiftini seçin (Örn: BTC/USDT)." />
-                                    </div>
-                                    <SearchableSelect options={coins.map(c => ({ id: c.symbol, label: c.symbol, ...c }))} value={selectedCoin} onChange={setSelectedCoin} placeholder="Coin Seçiniz..." onOpen={refreshCoins} isLoading={isCoinsLoading} />
-                                </div>
-
-                                <div className="grid grid-cols-3 gap-3">
-                                    <div className="col-span-2 space-y-1">
-                                        <div className="flex items-center gap-1 pl-1">
-                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Strateji</label>
-                                            <InfoTooltip text="Botun alım-satım kararlarını vereceği teknik analiz algoritması." />
-                                        </div>
-                                        <div className="relative">
-                                            <select
-                                                className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2 text-slate-200 outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-all appearance-none text-sm"
-                                                value={selectedStrategy}
-                                                onChange={(e) => setSelectedStrategy(e.target.value)}
-                                            >
-                                                {strategies.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                            </select>
-                                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none w-4 h-4" />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <div className="flex items-center gap-1 pl-1">
-                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Zaman</label>
-                                            <InfoTooltip text="Grafik verilerinin analiz edileceği zaman dilimi (1m: 1 dakika, 1h: 1 saat)." />
-                                        </div>
-                                        <div className="relative">
-                                            <select
-                                                className="w-full bg-slate-950/50 border border-white/10 rounded-xl pl-3 pr-8 py-2 text-slate-200 outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all appearance-none text-sm font-mono"
-                                                value={selectedInterval}
-                                                onChange={(e) => setSelectedInterval(e.target.value)}
-                                            >
-                                                {['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '1d'].map(t => <option key={t} value={t}>{t}</option>)}
-                                            </select>
-                                            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none w-4 h-4" />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <div className="flex justify-between items-center px-1">
-                                        <div className="flex items-center gap-1">
-                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tutar (USDT)</label>
-                                            <InfoTooltip text="Bota ayrılacak sermaye tutarı. Bakiyenizin bir kısmını veya tamamını kullanabilirsiniz." />
-                                        </div>
-                                        {wallet && (
-                                            <span className={`text-[10px] font-mono flex items-center ${isInsufficientBalance ? 'text-rose-400' : 'text-slate-500'}`}>
-                                                Kullanılabilir
-                                                <InfoTooltip text="Cüzdanınızdaki harcanabilir spot USDT bakiyesidir." />
-                                                : <span className="text-slate-300 font-bold ml-1">${wallet.available_balance?.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="relative group/input">
-                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold group-focus-within/input:text-primary transition-colors">$</span>
-                                        <input type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} className={`w-full bg-slate-950/50 border rounded-xl pl-8 pr-4 py-2 text-white font-mono focus:ring-1 transition-all outline-none ${isInsufficientBalance ? 'border-rose-500/50 focus:border-rose-500 focus:ring-rose-500' : 'border-white/10 focus:border-primary focus:ring-primary'}`} />
-                                    </div>
-                                    <div className="flex gap-2"> {[25, 50, 75, 100].map(p => (<button key={p} onClick={() => setAmountByPercent(p)} className="flex-1 bg-slate-800/50 hover:bg-slate-700 text-[10px] font-bold py-1.5 rounded-lg text-slate-400 hover:text-white transition-colors border border-white/5">% {p}</button>))} </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-3 pt-1">
-                                    <div className="space-y-1">
-                                        <div className="flex items-center gap-1 pl-1">
-                                            <label className="block text-[10px] font-bold text-emerald-500/80 uppercase tracking-widest">Kar Al %</label>
-                                            <InfoTooltip text="Belirlenen kâr oranına ulaşıldığında botun işlemi otomatik kapatmasını sağlar." />
-                                        </div>
-                                        <input type="number" placeholder="İsteğe Bağlı" className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2 text-slate-200 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 transition-all font-mono" value={takeProfit} onChange={(e) => setTakeProfit(e.target.value)} />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <div className="flex items-center gap-1 pl-1">
-                                            <label className="block text-[10px] font-bold text-rose-500/80 uppercase tracking-widest">Zarar Durdur %</label>
-                                            <InfoTooltip text="Fiyat düşüşlerinde zararınızı sınırlandırmak için işlemin otomatik kapatılacağı oran." />
-                                        </div>
-                                        <input type="number" placeholder="İsteğe Bağlı" className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2 text-slate-200 text-sm outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500/50 transition-all font-mono" value={stopLoss} onChange={(e) => setStopLoss(e.target.value)} />
-                                    </div>
-                                </div>
-
-                                <div className="p-3 bg-slate-950/40 rounded-xl border border-white/5 space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <div className={`p-1.5 rounded-lg ${isTrailingEnabled ? 'bg-amber-500/10 text-amber-500' : 'bg-slate-800 text-slate-500'}`}>
-                                                <TrendingUp size={14} />
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center">
-                                                    <p className="text-[11px] font-bold text-slate-200">İz Süren Stop (Trailing)</p>
-                                                    <InfoTooltip text="Fiyat yükseldikçe stop seviyesini yukarı taşıyan akıllı bir mekanizmadır. Kazancınızı maksimize ederken ani düşüşlerde kârı korur." />
-                                                </div>
-                                                <p className="text-[9px] text-slate-500">Kârı takip ederek stop yükseltir</p>
-                                            </div>
-                                        </div>
-                                        <button
-                                            onClick={() => setIsTrailingEnabled(!isTrailingEnabled)}
-                                            className={`w-10 h-5 rounded-full transition-all relative ${isTrailingEnabled ? 'bg-amber-500' : 'bg-slate-700'}`}
-                                        >
-                                            <motion.div
-                                                animate={{ x: isTrailingEnabled ? 20 : 2 }}
-                                                className="absolute top-1 w-3 h-3 bg-white rounded-full shadow-sm"
-                                            />
-                                        </button>
-                                    </div>
-
-                                    <AnimatePresence>
-                                        {isTrailingEnabled && (
-                                            <motion.div
-                                                initial={{ height: 0, opacity: 0 }}
-                                                animate={{ height: 'auto', opacity: 1 }}
-                                                exit={{ height: 0, opacity: 0 }}
-                                                className=""
-                                            >
-                                                <div className="pt-2 border-t border-white/5 space-y-2">
-                                                    <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase">
-                                                        <div className="flex items-center">
-                                                            <span>Takip Mesafesi</span>
-                                                            <InfoTooltip text="Fiyatın zirve noktasından ne kadar geriye düştüğünde çıkış yapılacağını belirler. %2 seçerseniz, fiyat tepeden %2 düştüğü an satılır." />
-                                                        </div>
-                                                        <span className="text-amber-500 font-mono">%{trailingDistance}</span>
-                                                    </div>
-                                                    <input
-                                                        type="range"
-                                                        min="0.5"
-                                                        max="10"
-                                                        step="0.1"
-                                                        value={trailingDistance}
-                                                        onChange={(e) => setTrailingDistance(e.target.value)}
-                                                        className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
-                                                    />
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
-
-                                <div className="pt-3">
-                                    <button
-                                        onClick={handleStartBot}
-                                        disabled={!!shouldDisableButton}
-                                        className={`w-full font-bold font-display py-3 rounded-xl shadow-lg active:scale-[0.98] transition-all flex justify-center items-center gap-2 group/btn ${shouldDisableButton
-                                            ? 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'
-                                            : 'bg-linear-to-r from-primary to-primary-light hover:to-amber-300 text-black shadow-primary/20'
-                                            }`}
-                                    >
-                                        {isStarting ? (<Loader2 className="animate-spin w-5 h-5" />) : (<>Botu Başlat <TrendingUp className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" /></>)}
-                                    </button>
-
-                                    {isInsufficientBalance && !isImmediate && (<p className="text-center text-[10px] text-amber-500 mt-3 font-medium bg-amber-500/10 py-1 rounded-lg"> ⚠️ Yetersiz bakiye, sinyal geldiğinde tekrar kontrol edilecek. </p>)}
-                                    {isImmediate && isInsufficientBalance && (<p className="text-center text-xs text-rose-500 mt-2 font-medium"> BAKİYE YETERSİZ ⚠️ </p>)}
-                                </div>
+                        <div className="bg-slate-900/50 rounded-xl p-8 relative z-10 text-center">
+                            <div className="w-20 h-20 bg-gradient-to-br from-primary to-amber-500 rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-primary/20 mb-6 group-hover:scale-110 transition-transform duration-500">
+                                <Zap size={40} className="text-white fill-white" />
                             </div>
+
+                            <h2 className="text-2xl font-display font-bold text-white mb-2">Yeni Bot Başlat</h2>
+                            <p className="text-sm text-slate-400 mb-8 leading-relaxed max-w-[250px] mx-auto">
+                                Yapay zeka destekli otonom alım-satım botunu saniyeler içinde kurun ve kazanmaya başlayın.
+                            </p>
+
+                            <button
+                                onClick={() => setIsWizardOpen(true)}
+                                className="w-full bg-linear-to-r from-primary to-amber-500 hover:to-amber-400 text-slate-900 font-display font-bold py-4 rounded-xl shadow-lg shadow-primary/20 active:scale-[0.98] transition-all flex justify-center items-center gap-2 group/btn"
+                            >
+                                <Zap className="fill-current w-5 h-5 group-hover/btn:scale-110 transition-transform" />
+                                Bot Sihirbazını Aç
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -888,56 +699,75 @@ export default function Dashboard() {
 
                         </AnimatePresence>
                     </div>
+
+
+                    {/* Confirmation Modal */}
+                    <AnimatePresence>
+                        {
+                            confirmStopId && (
+                                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.95 }}
+                                        className="bg-slate-900 border border-white/10 rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+                                    >
+                                        <div className="flex flex-col items-center text-center gap-4">
+                                            <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center text-amber-500 mb-2">
+                                                <AlertTriangle size={32} />
+                                            </div>
+
+                                            <div>
+                                                <h3 className="text-white font-bold text-xl mb-2">Bot Durdurma Onayı</h3>
+                                                <p className="text-slate-400 text-sm">
+                                                    Bu botu ve açık olan pozisyonu kapatmak istediğinize emin misiniz? <br />
+                                                    <span className="text-rose-400 font-bold">Bu işlem geri alınamaz.</span>
+                                                </p>
+                                            </div>
+
+                                            <div className="flex gap-3 w-full mt-2">
+                                                <button
+                                                    onClick={() => setConfirmStopId(null)}
+                                                    className="flex-1 py-3 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold transition-colors"
+                                                >
+                                                    Vazgeç
+                                                </button>
+                                                <button
+                                                    onClick={executeStopBot}
+                                                    className="flex-1 py-3 rounded-xl bg-rose-600 text-white hover:bg-rose-500 font-bold transition-colors shadow-lg shadow-rose-600/20"
+                                                >
+                                                    Evet, Durdur
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                </div>
+                            )
+                        }
+                    </AnimatePresence >
+
+                    {/* Strategy Details Modal */}
+                    {/* Strategy Details Modal */}
+                    <StrategyModal
+                        isOpen={!!selectedStrategyId}
+                        onClose={() => setSelectedStrategyId(null)}
+                        strategyId={selectedStrategyId}
+                    />
+
+                    {/* Bot Wizard Modal */}
+                    <BotWizardModal
+                        isOpen={isWizardOpen}
+                        onClose={() => setIsWizardOpen(false)}
+                        coins={coins}
+                        strategies={strategies}
+                        wallet={wallet}
+                        onBotCreate={handleBotCreate}
+                        isCoinsLoading={isCoinsLoading}
+                        refreshCoins={refreshCoins}
+                    />
+
                 </div>
             </div>
-
-
-            {/* Confirmation Modal */}
-            <AnimatePresence>
-                {confirmStopId && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="bg-slate-900 border border-white/10 rounded-2xl p-6 max-w-sm w-full shadow-2xl"
-                        >
-                            <div className="flex flex-col items-center text-center gap-4">
-                                <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center text-amber-500 mb-2">
-                                    <AlertTriangle size={32} />
-                                </div>
-
-                                <div>
-                                    <h3 className="text-white font-bold text-xl mb-2">Bot Durdurma Onayı</h3>
-                                    <p className="text-slate-400 text-sm">
-                                        Bu botu ve açık olan pozisyonu kapatmak istediğinize emin misiniz? <br />
-                                        <span className="text-rose-400 font-bold">Bu işlem geri alınamaz.</span>
-                                    </p>
-                                </div>
-
-                                <div className="flex gap-3 w-full mt-2">
-                                    <button
-                                        onClick={() => setConfirmStopId(null)}
-                                        className="flex-1 py-3 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold transition-colors"
-                                    >
-                                        Vazgeç
-                                    </button>
-                                    <button
-                                        onClick={executeStopBot}
-                                        className="flex-1 py-3 rounded-xl bg-rose-600 text-white hover:bg-rose-500 font-bold transition-colors shadow-lg shadow-rose-600/20"
-                                    >
-                                        Evet, Durdur
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-
-            {/* Strategy Details Modal */}
-            <StrategyModal isOpen={!!selectedStrategyId} onClose={() => setSelectedStrategyId(null)} strategyId={selectedStrategyId} />
-
         </main>
     );
 }
