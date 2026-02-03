@@ -142,7 +142,14 @@ export const StrategyService = {
 
 export const BacktestService = {
     run: async (data: any) => {
-        const res = await fetchWithAuth(`${API_URL}/backtest`, {
+        const res = await fetchWithAuth(`${API_URL}/backtest/run`, {
+            method: "POST",
+            body: JSON.stringify(data)
+        });
+        return res.json();
+    },
+    optimizeBacktest: async (data: any) => {
+        const res = await fetchWithAuth(`${API_URL}/backtest/optimize`, {
             method: "POST",
             body: JSON.stringify(data)
         });
