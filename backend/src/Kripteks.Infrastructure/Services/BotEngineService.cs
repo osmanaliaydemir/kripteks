@@ -18,7 +18,7 @@ public class BotEngineService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<BotEngineService> _logger;
-    private readonly TimeSpan _checkInterval = TimeSpan.FromSeconds(30);
+    private readonly TimeSpan _checkInterval = TimeSpan.FromSeconds(5); // Socket sayesinde 5sn'ye düşürdük
 
     public BotEngineService(IServiceProvider serviceProvider, ILogger<BotEngineService> logger)
     {
@@ -29,6 +29,24 @@ public class BotEngineService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("Bot Engine Başlatıldı (Otomatik Al-Sat Modu) 🚀");
+
+        // WebSocket Başlatma
+        using (var scope = _serviceProvider.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var marketService = scope.ServiceProvider.GetRequiredService<IMarketDataService>();
+
+            var activeSymbols = await dbContext.Bots
+                .Where(b => b.Status == BotStatus.Running || b.Status == BotStatus.WaitingForEntry)
+                .Select(b => b.Symbol)
+                .Distinct()
+                .ToListAsync(stoppingToken);
+
+            if (activeSymbols.Any())
+            {
+                await marketService.StartSocketConnection(activeSymbols);
+            }
+        }
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -54,7 +72,12 @@ public class BotEngineService : BackgroundService
             var marketService = scope.ServiceProvider.GetRequiredService<IMarketDataService>();
             var mailService = scope.ServiceProvider.GetRequiredService<IMailService>();
             var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
-            var logService = scope.ServiceProvider.GetRequiredService<ILogService>(); // <--- EKLENDİ
+            var logService = scope.ServiceProvider.GetRequiredService<ILogService>();
+            var strategyFactory = scope.ServiceProvider.GetRequiredService<IStrategyFactory>();
+            var sentimentState = scope.ServiceProvider.GetRequiredService<IMarketSentimentState>(); // <--- EKLENDİ
+
+            var marketSentiment = sentimentState.CurrentSentiment;
+            bool isPanicMode = marketSentiment.RecommendedAction == "PANIC SELL";
 
             // 1. Bekleyen Botları Kontrol Et (GİRİŞ ARA)
             var waitingBots = await dbContext.Bots
@@ -71,7 +94,19 @@ public class BotEngineService : BackgroundService
 
             foreach (var bot in waitingBots)
             {
-                await CheckEntrySignal(bot, binanceClient, dbContext, mailService, notificationService, logService);
+                if (isPanicMode)
+                {
+                    if (DateTime.UtcNow.Second % 30 == 0) // Log pollution prevention
+                    {
+                        await logService.LogWarningAsync(
+                            $"AI PANIC MODU: {bot.Symbol} için alım sinyalleri geçici olarak durduruldu.", bot.Id);
+                    }
+
+                    continue;
+                }
+
+                await CheckEntrySignal(bot, binanceClient, dbContext, mailService, notificationService, logService,
+                    strategyFactory);
             }
 
             // 2. Çalışan Botları Kontrol Et (ÇIKIŞ ARA & PNL GÜNCELLE)
@@ -82,8 +117,17 @@ public class BotEngineService : BackgroundService
 
             foreach (var bot in runningBots)
             {
+                // Panic durumunda tüm botları kapat (Opsiyonel: Sadece News botları için olabilir ama şimdilik global risk filter)
+                if (isPanicMode)
+                {
+                    await ClosePosition(bot, BotStatus.Stopped,
+                        "🚨 AI GLOBAL PANIC: Piyasa riski nedeniyle pozisyon otomatik kapatıldı.", bot.CurrentPnl,
+                        dbContext, notificationService, logService);
+                    continue;
+                }
+
                 await CheckExitSignalAndPnl(bot, binanceClient, marketService, dbContext, notificationService,
-                    logService);
+                    logService, strategyFactory);
             }
 
             await dbContext.SaveChangesAsync(stoppingToken);
@@ -91,11 +135,25 @@ public class BotEngineService : BackgroundService
     }
 
     private async Task CheckEntrySignal(Bot bot, IBinanceRestClient client, AppDbContext context,
-        IMailService mailService, INotificationService notificationService, ILogService logService)
+        IMailService mailService, INotificationService notificationService, ILogService logService,
+        IStrategyFactory strategyFactory)
     {
         try
         {
-            IStrategy strategy = GetStrategy(bot.StrategyName);
+            IStrategy strategy = strategyFactory.GetStrategy(bot.StrategyName);
+            if (!string.IsNullOrEmpty(bot.StrategyParams))
+            {
+                try
+                {
+                    var parameters =
+                        System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(bot.StrategyParams);
+                    if (parameters != null) strategy.SetParameters(parameters);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Strateji parametreleri yüklenirken hata: {Id}", bot.Id);
+                }
+            }
 
             var interval = GetKlineInterval(bot.Interval);
             var klines =
@@ -113,6 +171,8 @@ public class BotEngineService : BackgroundService
                 Volume = k.Volume
             }).ToList();
 
+            // NOTE: We pass bot.Amount as currentPositionAmount for initial check (it's 0 if waiting, but bot.Amount is the intended investment)
+            // But wait, CheckEntrySignal called for 'WaitingForEntry', so position is 0.
             var signal = strategy.Analyze(candles, bot.Amount, 0);
 
             if (signal.Action == TradeAction.Buy)
@@ -196,7 +256,8 @@ public class BotEngineService : BackgroundService
     }
 
     private async Task CheckExitSignalAndPnl(Bot bot, IBinanceRestClient client, IMarketDataService marketService,
-        AppDbContext context, INotificationService notificationService, ILogService logService)
+        AppDbContext context, INotificationService notificationService, ILogService logService,
+        IStrategyFactory strategyFactory)
     {
         try
         {
@@ -218,7 +279,21 @@ public class BotEngineService : BackgroundService
             bool strategyExitSignal = false;
             string exitReason = "";
 
-            IStrategy strategy = GetStrategy(bot.StrategyName);
+            IStrategy strategy = strategyFactory.GetStrategy(bot.StrategyName);
+            if (!string.IsNullOrEmpty(bot.StrategyParams))
+            {
+                try
+                {
+                    var parameters =
+                        System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(bot.StrategyParams);
+                    if (parameters != null) strategy.SetParameters(parameters);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Strateji parametreleri yüklenirken hata: {Id}", bot.Id);
+                }
+            }
+
             {
                 var interval = GetKlineInterval(bot.Interval);
                 var klines =
@@ -231,12 +306,19 @@ public class BotEngineService : BackgroundService
                         Close = k.ClosePrice, Volume = k.Volume
                     }).ToList();
 
-                    var signal = strategy.Analyze(candles, 0, bot.Amount / bot.EntryPrice);
+                    // Pass Bot.Amount (Total Invested USD) instead of Quantity
+                    var signal = strategy.Analyze(candles, 0, bot.Amount, bot.EntryPrice, bot.CurrentDcaStep);
 
                     if (signal.Action == TradeAction.Sell)
                     {
                         strategyExitSignal = true;
                         exitReason = signal.Description;
+                    }
+                    else if (signal.Action == TradeAction.Buy && bot.StrategyName == "strategy-dca")
+                    {
+                        // DCA RE-ENTRY LOGIC
+                        await HandleDcaBuy(bot, signal, currentPrice, context, notificationService, logService);
+                        // We continue execution, do not return. PnL might update.
                     }
                 }
             }
@@ -316,6 +398,13 @@ public class BotEngineService : BackgroundService
     private async Task ClosePosition(Bot bot, BotStatus finalStatus, string reason, decimal pnlAmount,
         AppDbContext context, INotificationService notificationService, ILogService logService)
     {
+        // Grid Botlar veya Sürekli Stratejiler İçin Logik
+        if (bot.StrategyName == "strategy-grid")
+        {
+            await HandleGridClose(bot, reason, pnlAmount, context, notificationService, logService);
+            return;
+        }
+
         bot.Status = finalStatus;
 
         var wallet = await context.Wallets.FirstOrDefaultAsync();
@@ -351,20 +440,64 @@ public class BotEngineService : BackgroundService
 
         // SİSTEM LOGU
         await logService.LogInfoAsync($"Bot Kapandı: {bot.Symbol}. Sonuç: ${pnlAmount:F2}. Sebep: {reason}",
-            bot.Id); // <--- LOG
+            bot.Id);
 
         await notificationService.NotifyLog(bot.Id.ToString(), log1);
         await notificationService.NotifyLog(bot.Id.ToString(), log2);
         await notificationService.NotifyBotUpdate(ToDto(bot));
     }
 
-    private IStrategy GetStrategy(string id)
+    private async Task HandleGridClose(Bot bot, string reason, decimal pnlAmount,
+        AppDbContext context, INotificationService notificationService, ILogService logService)
     {
-        if (id == "strategy-market-buy") return new MarketBuyStrategy();
-        if (id == "strategy-golden-rose") return new GoldenRoseStrategy();
-        if (id == "strategy-alpha-trend") return new AlphaTrendStrategy();
-        return new GoldenRoseStrategy(); // Fallback
+        // Grid botlarda işlem kapandığında bot DURMAZ. 
+        // Sadece kar realize edilir ve yeni giriş için "Running" veya "WaitingForEntry" moduna döner.
+        // Mevcut yapıda "Running" modunda "Alım Yapılmış" varsayımı var.
+        // Grid botu aslında sürekli "Running" ama pozisyonsuz da olabilir.
+        // Şimdilik basitçe karı kasaya ekleyip, botu "WaitingForEntry" moduna çekerek tekrar alım yapmasını sağlayalım.
+
+        bot.EntryPrice = 0; // Reset
+        bot.CurrentPnl = 0;
+        bot.CurrentPnlPercent = 0;
+        bot.Status = BotStatus.WaitingForEntry; // Tekrar sına
+
+        var wallet = await context.Wallets.FirstOrDefaultAsync();
+        if (wallet != null)
+        {
+            // Sadece karı serbest bırak, ana para kilitli kalmasın çünkü tekrar işleme girecek (waitingforentry'de tekrar kontrol ediliyor bakiye)
+            // Ancak WaitingForEntry logic'i bakiyeyi tekrar düşüyor. O yüzden burada TAMAMINI iade etmeliyiz ki
+            // CheckEntrySignal tekrar bakiye kilitleyebilsin.
+
+            wallet.LockedBalance -= bot.Amount;
+            decimal returnAmount = bot.Amount + pnlAmount;
+            wallet.Balance += returnAmount;
+            wallet.LastUpdated = DateTime.UtcNow;
+
+            context.WalletTransactions.Add(new WalletTransaction
+            {
+                WalletId = wallet.Id,
+                Amount = returnAmount,
+                Type = BotTransactionType.BotReturn,
+                Description = $"Grid/Döngü Kar: {bot.Symbol} | {reason}",
+                CreatedAt = DateTime.UtcNow
+            });
+
+            await notificationService.NotifyWalletUpdate(wallet);
+        }
+
+        var log = new Log
+        {
+            Message = $"🔄 Grid/Döngü Tamamlandı. Kar: ${pnlAmount:F2}. Bot tekrar giriş arıyor.",
+            Level = BotLogLevel.Info,
+            Timestamp = DateTime.UtcNow
+        };
+        bot.Logs.Add(log);
+
+        await logService.LogInfoAsync($"Grid Kur Döngüsü: {bot.Symbol}. Kar: ${pnlAmount:F2}", bot.Id);
+        await notificationService.NotifyLog(bot.Id.ToString(), log);
+        await notificationService.NotifyBotUpdate(ToDto(bot));
     }
+
 
     private KlineInterval GetKlineInterval(string interval)
     {
@@ -384,6 +517,72 @@ public class BotEngineService : BackgroundService
             "1d" => KlineInterval.OneDay,
             _ => KlineInterval.OneHour
         };
+    }
+
+    private async Task HandleDcaBuy(Bot bot, StrategyResult signal, decimal currentPrice, AppDbContext context,
+        INotificationService notificationService, ILogService logService)
+    {
+        // 1. Önerilen Miktarı Belirle
+        decimal amountToBuy = signal.Amount;
+        if (amountToBuy <= 0) amountToBuy = bot.Amount; // Default 1x (Double down)
+
+        // 2. Bakiye Kontrol
+        var wallet = await context.Wallets.FirstOrDefaultAsync();
+        if (wallet == null || wallet.Balance < amountToBuy)
+        {
+            _logger.LogWarning("DCA için yetersiz bakiye! Gerekli: {Amount}, Mevcut: {Balance}", amountToBuy,
+                wallet?.Balance);
+            await logService.LogWarningAsync($"DCA Step {bot.CurrentDcaStep + 1} Başarısız: Yetersiz Bakiye.", bot.Id);
+            return;
+        }
+
+        // 3. Maliyet Hesaplama (Weighted Average)
+        decimal totalCostOld = bot.Amount; // Şu ana kadar harcanan (USD)
+        decimal quantityOld = totalCostOld / bot.EntryPrice; // Yaklaşık adet
+
+        decimal costNew = amountToBuy;
+        decimal quantityNew = costNew / currentPrice;
+
+        decimal totalCostNew = totalCostOld + costNew;
+        decimal totalQuantityNew = quantityOld + quantityNew;
+        decimal newEntryPrice = totalCostNew / totalQuantityNew;
+
+        // 4. Update Wallet
+        wallet.Balance -= costNew;
+        wallet.LockedBalance += costNew;
+        wallet.LastUpdated = DateTime.UtcNow;
+
+        context.WalletTransactions.Add(new WalletTransaction
+        {
+            WalletId = wallet.Id,
+            Amount = -costNew,
+            Type = BotTransactionType.BotInvestment,
+            Description = $"DCA Step {bot.CurrentDcaStep + 1} Alımı: {bot.Symbol}",
+            CreatedAt = DateTime.UtcNow
+        });
+
+        // 5. Update Bot
+        bot.Amount = totalCostNew; // Toplam yatırım arttı
+        bot.EntryPrice = newEntryPrice; // Maliyet düştü
+        bot.CurrentDcaStep++;
+        bot.Status = BotStatus.Running; // Zaten running ama olsun
+
+        // Log
+        var log = new Log
+        {
+            Message =
+                $"➕ DCA EKLEME ({bot.CurrentDcaStep}. Adım): ${costNew:F2} alındı. Yeni Ort: ${newEntryPrice:F8}. Sebep: {signal.Description}",
+            Level = BotLogLevel.Info,
+            Timestamp = DateTime.UtcNow
+        };
+        bot.Logs.Add(log);
+
+        // Notify
+        await notificationService.NotifyWalletUpdate(wallet);
+        await notificationService.NotifyLog(bot.Id.ToString(), log);
+        await notificationService.NotifyBotUpdate(ToDto(bot));
+        await logService.LogInfoAsync(
+            $"DCA Yatırımı: {bot.Symbol} | Tutar: ${costNew} | Yeni Ort: {newEntryPrice}", bot.Id);
     }
 
     private BotDto ToDto(Bot bot)

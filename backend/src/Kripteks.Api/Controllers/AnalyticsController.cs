@@ -11,10 +11,15 @@ namespace Kripteks.Api.Controllers;
 public class AnalyticsController : ControllerBase
 {
     private readonly IAnalyticsService _analyticsService;
+    private readonly INewsService _newsService;
+    private readonly IMarketSentimentState _sentimentState;
 
-    public AnalyticsController(IAnalyticsService analyticsService)
+    public AnalyticsController(IAnalyticsService analyticsService, INewsService newsService,
+        IMarketSentimentState sentimentState)
     {
         _analyticsService = analyticsService;
+        _newsService = newsService;
+        _sentimentState = sentimentState;
     }
 
     [HttpGet("stats")]
@@ -36,5 +41,18 @@ public class AnalyticsController : ControllerBase
     {
         var data = await _analyticsService.GetStrategyPerformanceAsync();
         return Ok(data);
+    }
+
+    [HttpGet("news")]
+    public async Task<IActionResult> GetNews([FromQuery] string symbol = "BTC")
+    {
+        var news = await _newsService.GetLatestNewsAsync(symbol);
+        return Ok(news);
+    }
+
+    [HttpGet("sentiment")]
+    public IActionResult GetSentiment()
+    {
+        return Ok(_sentimentState.CurrentSentiment);
     }
 }

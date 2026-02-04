@@ -26,6 +26,11 @@ public class Bot
     public decimal? TrailingStopDistance { get; set; } // % cinsinden (Örn: 2)
     public decimal? MaxPriceReached { get; set; } // Takip edilen en yüksek fiyat
     public bool IsArchived { get; set; } = false;
+    public string? StrategyParams { get; set; } // JSON formatlı strateji parametreleri
+    public int CurrentDcaStep { get; set; } = 0; // Mevcut DCA kademesi
+
+    // Emir Tipi
+    public OrderType OrderType { get; set; } = OrderType.Market;
 }
 
 public enum BotStatus
@@ -35,4 +40,10 @@ public enum BotStatus
     Paused,
     Completed,
     WaitingForEntry // Sinyal Bekliyor (Henüz Alım Yapılmadı)
+}
+
+public enum OrderType
+{
+    Market,
+    Limit
 }

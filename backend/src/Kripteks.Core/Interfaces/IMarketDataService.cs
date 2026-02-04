@@ -6,4 +6,5 @@ public interface IMarketDataService
 {
     Task<List<CoinDto>> GetAvailablePairsAsync();
     Task<decimal> GetPriceAsync(string symbol);
+    Task StartSocketConnection(IEnumerable<string> symbols);
 }

@@ -41,6 +41,16 @@ export default function BotWizardModal({
     const [trailingDistance, setTrailingDistance] = useState("2.5");
     const [isStarting, setIsStarting] = useState(false);
 
+    // Grid Strategy Params
+    const [gridLowerPrice, setGridLowerPrice] = useState("");
+    const [gridUpperPrice, setGridUpperPrice] = useState("");
+    const [gridCount, setGridCount] = useState("10");
+
+    // DCA Strategy Params
+    const [dcaCount, setDcaCount] = useState("5");
+    const [dcaDeviation, setDcaDeviation] = useState("2");
+    const [dcaScale, setDcaScale] = useState("2");
+
     // Reset on open
     useEffect(() => {
         if (isOpen) {
@@ -74,7 +84,16 @@ export default function BotWizardModal({
             takeProfit: takeProfit ? Number(takeProfit) : null,
             stopLoss: stopLoss ? Number(stopLoss) : null,
             isTrailingStop: isTrailingEnabled,
-            trailingStopDistance: isTrailingEnabled ? Number(trailingDistance) : null
+            trailingStopDistance: isTrailingEnabled ? Number(trailingDistance) : null,
+            strategyParameters: selectedStrategy === 'strategy-grid' ? {
+                lowerPrice: gridLowerPrice,
+                upperPrice: gridUpperPrice,
+                gridCount: gridCount
+            } : selectedStrategy === 'strategy-dca' ? {
+                dcaCount: dcaCount,
+                priceDeviation: dcaDeviation,
+                amountScale: dcaScale
+            } : null
         };
 
         await onBotCreate(payload);
@@ -86,7 +105,9 @@ export default function BotWizardModal({
     const isStep1Valid = !!selectedCoin && !!selectedStrategy;
     const isImmediate = selectedStrategy === "strategy-market-buy";
     const isInsufficientBalance = wallet && amount > wallet.available_balance;
-    const isStep2Valid = amount > 0 && (!isImmediate || !isInsufficientBalance);
+    const isGridValid = selectedStrategy !== "strategy-grid" || (!!gridLowerPrice && !!gridUpperPrice && !!gridCount);
+    const isDcaValid = selectedStrategy !== "strategy-dca" || (!!dcaCount && !!dcaDeviation && !!dcaScale);
+    const isStep2Valid = amount > 0 && (!isImmediate || !isInsufficientBalance) && isGridValid && isDcaValid;
 
     return (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
@@ -135,6 +156,19 @@ export default function BotWizardModal({
                             setSelectedInterval={setSelectedInterval}
                             wallet={wallet}
                             isImmediate={isImmediate}
+                            selectedStrategy={selectedStrategy}
+                            gridLowerPrice={gridLowerPrice}
+                            setGridLowerPrice={setGridLowerPrice}
+                            gridUpperPrice={gridUpperPrice}
+                            setGridUpperPrice={setGridUpperPrice}
+                            gridCount={gridCount}
+                            setGridCount={setGridCount}
+                            dcaCount={dcaCount}
+                            setDcaCount={setDcaCount}
+                            dcaDeviation={dcaDeviation}
+                            setDcaDeviation={setDcaDeviation}
+                            dcaScale={dcaScale}
+                            setDcaScale={setDcaScale}
                         />
                     )}
                     {step === 3 && (

@@ -4,6 +4,7 @@ namespace Kripteks.Infrastructure.Strategies;
 
 public class MarketBuyStrategy : IStrategy
 {
+    public string Id => "strategy-market-buy";
     public string Name => "Hemen Al (Market Buy)";
 
     public void SetParameters(Dictionary<string, string> parameters)
@@ -11,7 +12,8 @@ public class MarketBuyStrategy : IStrategy
         // No parameters for market buy for now
     }
 
-    public StrategyResult Analyze(List<Candle> candles, decimal currentBalance, decimal currentPositionAmount)
+    public StrategyResult Analyze(List<Candle> candles, decimal currentBalance, decimal currentPositionAmount,
+        decimal entryPrice = 0, int currentStep = 0)
     {
         var result = new StrategyResult();
 

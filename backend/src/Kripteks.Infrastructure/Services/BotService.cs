@@ -132,12 +132,15 @@ public class BotService : IBotService
             EntryPrice = 0, // Henüz almadık
             CurrentPnl = 0,
             CurrentPnlPercent = 0,
+            StrategyParams = request.StrategyParameters != null
+                ? System.Text.Json.JsonSerializer.Serialize(request.StrategyParameters)
+                : null,
             CreatedAt = DateTime.UtcNow,
             Logs = new List<Log>
             {
                 new Log
                 {
-                    Message = $"👀 Bot Pusuya Yattı! {request.Symbol} için Golden Rose sinyali bekleniyor...",
+                    Message = $"👀 Bot Pusuya Yattı! {request.Symbol} için {request.StrategyId} sinyali bekleniyor...",
                     Level = LogLevel.Info,
                     Timestamp = DateTime.UtcNow
                 }

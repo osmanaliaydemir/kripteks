@@ -55,6 +55,7 @@ import { BotCard } from "@/components/dashboard/BotCard";
 import { StrategyModal } from "@/components/dashboard/StrategyModal";
 import { InfoTooltip } from "@/components/dashboard/InfoTooltip";
 import { StatCardSkeleton, BotCardSkeleton } from "@/components/ui/Skeletons";
+import AiSentimentWidget from "@/components/dashboard/AiSentimentWidget";
 
 
 
@@ -310,6 +311,9 @@ export default function Dashboard() {
                             </button>
                         </div>
                     </div>
+
+                    {/* AI Sentiment Widget */}
+                    <AiSentimentWidget />
                 </div>
 
                 {/* RIGHT COLUMN - TABS & CONTENT */}

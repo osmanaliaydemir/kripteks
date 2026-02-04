@@ -1,4 +1,4 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5292";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
 export const API_URL = `${BASE_URL}/api`;
 export const HUB_URL = `${BASE_URL}/bot-hub`;
 
@@ -164,6 +164,14 @@ export const AnalyticsService = {
     },
     getStrategyPerformance: async () => {
         const res = await fetchWithAuth(`${API_URL}/analytics/performance`);
+        return handleResponse(res);
+    },
+    getNews: async (symbol: string = "BTC") => {
+        const res = await fetchWithAuth(`${API_URL}/analytics/news?symbol=${symbol}`);
+        return handleResponse(res);
+    },
+    getSentiment: async (symbol: string = "BTC") => {
+        const res = await fetchWithAuth(`${API_URL}/analytics/sentiment?symbol=${symbol}`);
         return handleResponse(res);
     }
 };

@@ -1,4 +1,5 @@
 using Binance.Net.Clients;
+using Binance.Net.Interfaces.Clients;
 using Kripteks.Core.DTOs;
 using Kripteks.Core.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -9,10 +10,13 @@ public class BinanceMarketService : IMarketDataService
 {
     private readonly ILogger<BinanceMarketService> _logger;
     private readonly BinanceRestClient _client;
+    private readonly IBinanceSocketClient _socketClient;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, decimal> _priceCache = new();
 
-    public BinanceMarketService(ILogger<BinanceMarketService> logger)
+    public BinanceMarketService(ILogger<BinanceMarketService> logger, IBinanceSocketClient socketClient)
     {
         _logger = logger;
+        _socketClient = socketClient;
         _client = new BinanceRestClient(); // Public veri için API Key gerekmez
     }
 
@@ -25,7 +29,7 @@ public class BinanceMarketService : IMarketDataService
         {
             var exchangeInfoTask = _client.SpotApi.ExchangeData.GetExchangeInfoAsync();
             var pricesTask = _client.SpotApi.ExchangeData.GetPricesAsync();
-            
+
             await Task.WhenAll(exchangeInfoTask, pricesTask);
 
             var exchangeInfo = exchangeInfoTask.Result;
@@ -41,11 +45,12 @@ public class BinanceMarketService : IMarketDataService
             var priceDict = new Dictionary<string, decimal>();
             if (prices.Success)
             {
-               priceDict = prices.Data.ToDictionary(p => p.Symbol, p => p.Price);
+                priceDict = prices.Data.ToDictionary(p => p.Symbol, p => p.Price);
             }
 
             var pairs = exchangeInfo.Data.Symbols
-                .Where(s => s.Status == Binance.Net.Enums.SymbolStatus.Trading && s.QuoteAsset == "USDT") // Sadece USDT pariteleri ve aktif olanlar
+                .Where(s => s.Status == Binance.Net.Enums.SymbolStatus.Trading &&
+                            s.QuoteAsset == "USDT") // Sadece USDT pariteleri ve aktif olanlar
                 .Select(s => new CoinDto
                 {
                     Id = s.Name,
@@ -72,13 +77,40 @@ public class BinanceMarketService : IMarketDataService
     {
         // Symbol format temizliği (örn: BTC/USDT -> BTCUSDT)
         var cleanSymbol = symbol.Replace("/", "").ToUpper();
-        
+
+        // Cache kontrolü
+        if (_priceCache.TryGetValue(cleanSymbol, out var cachedPrice))
+        {
+            return cachedPrice;
+        }
+
         var priceResult = await _client.SpotApi.ExchangeData.GetPriceAsync(cleanSymbol);
         if (priceResult.Success)
         {
+            _priceCache[cleanSymbol] = priceResult.Data.Price; // Cache'i güncelle
             return priceResult.Data.Price;
         }
-        
+
         return 0;
+    }
+
+    public async Task StartSocketConnection(IEnumerable<string> symbols)
+    {
+        var cleanSymbols = symbols.Select(s => s.Replace("/", "").ToUpper()).Distinct().ToList();
+        if (!cleanSymbols.Any()) return;
+
+        _logger.LogInformation("WebSocket Aboneliği Başlatılıyor: {Count} Sembol", cleanSymbols.Count);
+
+        var subscription = await _socketClient.SpotApi.ExchangeData.SubscribeToMiniTickerUpdatesAsync(cleanSymbols,
+            data => { _priceCache[data.Data.Symbol] = data.Data.LastPrice; });
+
+        if (!subscription.Success)
+        {
+            _logger.LogError("WebSocket Abonelik Hatası: {Error}", subscription.Error);
+        }
+        else
+        {
+            _logger.LogInformation("WebSocket Bağlantısı Başarılı! ⚡");
+        }
     }
 }

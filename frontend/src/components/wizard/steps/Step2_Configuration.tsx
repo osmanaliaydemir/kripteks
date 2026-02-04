@@ -8,6 +8,23 @@ interface Step2Props {
     setSelectedInterval: (val: string) => void;
     wallet: Wallet | null;
     isImmediate: boolean; // For market buy strategy, immediate execution flag
+
+    // Grid Strategy Params (Optional)
+    selectedStrategy?: string;
+    gridLowerPrice?: string;
+    setGridLowerPrice?: (val: string) => void;
+    gridUpperPrice?: string;
+    setGridUpperPrice?: (val: string) => void;
+    gridCount?: string;
+    setGridCount?: (val: string) => void;
+
+    // DCA Strategy Params (Optional)
+    dcaCount?: string;
+    setDcaCount?: (val: string) => void;
+    dcaDeviation?: string;
+    setDcaDeviation?: (val: string) => void;
+    dcaScale?: string;
+    setDcaScale?: (val: string) => void;
 }
 
 export default function Step2_Configuration({
@@ -16,7 +33,20 @@ export default function Step2_Configuration({
     selectedInterval,
     setSelectedInterval,
     wallet,
-    isImmediate
+    isImmediate,
+    selectedStrategy,
+    gridLowerPrice,
+    setGridLowerPrice,
+    gridUpperPrice,
+    setGridUpperPrice,
+    gridCount,
+    setGridCount,
+    dcaCount,
+    setDcaCount,
+    dcaDeviation,
+    setDcaDeviation,
+    dcaScale,
+    setDcaScale
 }: Step2Props) {
 
     const isInsufficientBalance = wallet && amount > wallet.available_balance;
@@ -109,6 +139,93 @@ export default function Step2_Configuration({
                     </div>
                 )}
             </div>
+
+            {/* Grid Strategy Specific Configuration */}
+            {selectedStrategy === "strategy-grid" && (
+                <div className="space-y-4 pt-4 border-t border-white/10">
+                    <h4 className="text-sm font-display font-bold text-amber-500">Grid Strateji Ayarları</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Alt Limit</label>
+                            <input
+                                type="number"
+                                value={gridLowerPrice}
+                                onChange={(e) => setGridLowerPrice?.(e.target.value)}
+                                className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-white font-mono focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                                placeholder="Örn: 25000"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Üst Limit</label>
+                            <input
+                                type="number"
+                                value={gridUpperPrice}
+                                onChange={(e) => setGridUpperPrice?.(e.target.value)}
+                                className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-white font-mono focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                                placeholder="Örn: 35000"
+                            />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Grid Sayısı (Kademe)</label>
+                        <input
+                            type="number"
+                            value={gridCount}
+                            onChange={(e) => setGridCount?.(e.target.value)}
+                            className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-white font-mono focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                            placeholder="Örn: 10"
+                        />
+                        <p className="text-[10px] text-slate-500 pl-1">
+                            Belirtilen aralık {gridCount} parçaya bölünecek ve her seviyede alım-satım emri oluşturulacak.
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* DCA Strategy Specific Configuration */}
+            {selectedStrategy === "strategy-dca" && (
+                <div className="space-y-4 pt-4 border-t border-white/10">
+                    <h4 className="text-sm font-display font-bold text-amber-500">DCA Bot Ayarları</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Düşüş Sapması (%)</label>
+                            <input
+                                type="number"
+                                value={dcaDeviation}
+                                onChange={(e) => setDcaDeviation?.(e.target.value)}
+                                className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-white font-mono focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                                placeholder="Örn: 2"
+                            />
+                            <p className="text-[10px] text-slate-500 pl-1">
+                                Maliyet ortalamasının her %{dcaDeviation} altına düştüğünde alım yapar.
+                            </p>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Miktar Çarpanı (X)</label>
+                            <input
+                                type="number"
+                                value={dcaScale}
+                                onChange={(e) => setDcaScale?.(e.target.value)}
+                                className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-white font-mono focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                                placeholder="Örn: 2"
+                            />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Maksimum Ek Alım (Step)</label>
+                        <input
+                            type="number"
+                            value={dcaCount}
+                            onChange={(e) => setDcaCount?.(e.target.value)}
+                            className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-white font-mono focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                            placeholder="Örn: 5"
+                        />
+                        <p className="text-[10px] text-slate-500 pl-1">
+                            En fazla {dcaCount} kere maliyet düşürme alımı yapacak (Martingale).
+                        </p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

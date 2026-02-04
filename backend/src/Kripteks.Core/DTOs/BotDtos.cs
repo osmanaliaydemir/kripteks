@@ -36,4 +36,5 @@ public class CreateBotRequest
     public decimal? StopLoss { get; set; }
     public bool IsTrailingStop { get; set; } = false;
     public decimal? TrailingStopDistance { get; set; }
+    public Dictionary<string, string>? StrategyParameters { get; set; }
 }

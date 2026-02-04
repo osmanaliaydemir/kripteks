@@ -4,6 +4,7 @@ using Kripteks.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Kripteks.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260204111357_AddOrderType")]
+    partial class AddOrderType
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -139,9 +142,6 @@ namespace Kripteks.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("CurrentDcaStep")
-                        .HasColumnType("int");
-
                     b.Property<decimal>("CurrentPnl")
                         .HasPrecision(18, 8)
                         .HasColumnType("decimal(18,8)");
@@ -181,9 +181,6 @@ namespace Kripteks.Infrastructure.Migrations
 
                     b.Property<string>("StrategyName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("StrategyParams")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Symbol")

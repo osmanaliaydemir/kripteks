@@ -5,6 +5,7 @@ namespace Kripteks.Infrastructure.Strategies;
 
 public class GoldenRoseStrategy : IStrategy
 {
+    public string Id => "strategy-golden-rose";
     public string Name => "Golden Rose Trend Strategy";
 
     private int _sma1 = 111;
@@ -21,7 +22,8 @@ public class GoldenRoseStrategy : IStrategy
             _cycleTopMultiplier = ct;
     }
 
-    public StrategyResult Analyze(List<Candle> candles, decimal currentBalance, decimal currentPositionAmount)
+    public StrategyResult Analyze(List<Candle> candles, decimal currentBalance, decimal currentPositionAmount,
+        decimal entryPrice = 0, int currentStep = 0)
     {
         var result = new StrategyResult();
 

@@ -10,10 +10,12 @@ public class BacktestService
 {
     private readonly BinanceRestClient _client;
     private readonly ILogger<BacktestService> _logger;
+    private readonly IStrategyFactory _strategyFactory;
 
-    public BacktestService(ILogger<BacktestService> logger)
+    public BacktestService(ILogger<BacktestService> logger, IStrategyFactory strategyFactory)
     {
         _logger = logger;
+        _strategyFactory = strategyFactory;
         _client = new BinanceRestClient();
     }
 
@@ -147,11 +149,7 @@ public class BacktestService
         Dictionary<string, string>? parameters)
     {
         var result = new BacktestResultDto { Trades = new List<BacktestTradeDto>() };
-        IStrategy strategy = request.StrategyId switch
-        {
-            "strategy-alpha-trend" => new AlphaTrendStrategy(),
-            _ => new GoldenRoseStrategy()
-        };
+        IStrategy strategy = _strategyFactory.GetStrategy(request.StrategyId);
 
         if (parameters != null) strategy.SetParameters(parameters);
 

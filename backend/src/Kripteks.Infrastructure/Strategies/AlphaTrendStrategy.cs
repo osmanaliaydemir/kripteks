@@ -5,6 +5,7 @@ namespace Kripteks.Infrastructure.Strategies;
 
 public class AlphaTrendStrategy : IStrategy
 {
+    public string Id => "strategy-alpha-trend";
     public string Name => "Alpha Trend (EMA + RSI)";
 
     private int _fastEma = 20;
@@ -22,7 +23,8 @@ public class AlphaTrendStrategy : IStrategy
         if (parameters.TryGetValue("rsiSell", out var v5) && decimal.TryParse(v5, out var rs)) _rsiSellThreshold = rs;
     }
 
-    public StrategyResult Analyze(List<Candle> candles, decimal currentBalance, decimal currentPositionAmount)
+    public StrategyResult Analyze(List<Candle> candles, decimal currentBalance, decimal currentPositionAmount,
+        decimal entryPrice = 0, int currentStep = 0)
     {
         var result = new StrategyResult();
         int maxPeriod = Math.Max(_slowEma, _rsiPeriod) + 1;
@@ -42,7 +44,8 @@ public class AlphaTrendStrategy : IStrategy
         var prevFast = fastEmaList[fastEmaList.Count - 2];
         var prevSlow = slowEmaList[slowEmaList.Count - 2];
 
-        if (!currentFast.HasValue || !currentSlow.HasValue || !currentRsi.HasValue || !prevFast.HasValue || !prevSlow.HasValue)
+        if (!currentFast.HasValue || !currentSlow.HasValue || !currentRsi.HasValue || !prevFast.HasValue ||
+            !prevSlow.HasValue)
             return result;
 
         decimal currentPrice = prices.Last();
@@ -52,7 +55,7 @@ public class AlphaTrendStrategy : IStrategy
         {
             // Golden Cross: Fast EMA, Slow EMA'yı yukarı keserse
             bool isGoldenCross = prevFast <= prevSlow && currentFast > currentSlow;
-            
+
             // RSI kontrolü: Aşırı alımda değilsek gir
             bool isRsiOk = currentRsi < _rsiBuyThreshold;
 
@@ -60,7 +63,7 @@ public class AlphaTrendStrategy : IStrategy
             {
                 result.Action = TradeAction.Buy;
                 result.TargetPrice = currentPrice * 1.05m; // %5 Kar Al (Minimalist)
-                result.StopPrice = currentPrice * 0.97m;   // %3 Zarar Durdur
+                result.StopPrice = currentPrice * 0.97m; // %3 Zarar Durdur
                 result.Description = $"ALIM: EMA Kesişimi & RSI OK ({currentRsi:F1})";
             }
         }
@@ -69,14 +72,15 @@ public class AlphaTrendStrategy : IStrategy
             // SATIŞ MANTIĞI
             // 1. Death Cross: Fast EMA, Slow EMA'yı aşağı keserse
             bool isDeathCross = prevFast >= prevSlow && currentFast < currentSlow;
-            
+
             // 2. RSI Overbought: RSI çok yükselirse
             bool isOverbought = currentRsi > _rsiSellThreshold;
 
             if (isDeathCross || isOverbought)
             {
                 result.Action = TradeAction.Sell;
-                result.Description = isDeathCross ? "SATIŞ: EMA Negatif Kesişim" : $"SATIŞ: RSI Aşırı Alım ({currentRsi:F1})";
+                result.Description =
+                    isDeathCross ? "SATIŞ: EMA Negatif Kesişim" : $"SATIŞ: RSI Aşırı Alım ({currentRsi:F1})";
             }
         }
 

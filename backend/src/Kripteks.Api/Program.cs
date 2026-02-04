@@ -71,7 +71,8 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped<IBotService, BotService>();
 builder.Services.AddSingleton<IMarketDataService, BinanceMarketService>();
 builder.Services.AddScoped<BacktestService>();
-builder.Services.AddSingleton<IBinanceRestClient, BinanceRestClient>();
+builder.Services.AddSingleton<IBinanceRestClient>(sp => new BinanceRestClient());
+builder.Services.AddSingleton<IBinanceSocketClient>(sp => new BinanceSocketClient());
 
 builder.Services.AddTransient<IMailService, GmailMailService>(); // Eski referans ama Engine kullaniyor
 builder.Services.AddScoped<INotificationService, Kripteks.Api.Services.NotificationService>();
@@ -79,6 +80,26 @@ builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddSingleton<ILogService, LogService>(); // Singleton olabilir çünkü scope factory kullanıyor
 builder.Services.AddSingleton<IAuditLogService, AuditLogService>();
+
+// AI & Haber Servisleri
+builder.Services.AddSingleton<IMarketSentimentState, MarketSentimentState>();
+builder.Services.AddHttpClient<DeepSeekAiService>();
+builder.Services.AddHttpClient<GeminiAiService>();
+
+builder.Services.AddScoped<IAiProvider, DeepSeekAiService>(sp => sp.GetRequiredService<DeepSeekAiService>());
+builder.Services.AddScoped<IAiProvider, GeminiAiService>(sp => sp.GetRequiredService<GeminiAiService>());
+
+builder.Services.AddScoped<IAiService, AiOrchestratorService>();
+builder.Services.AddScoped<INewsService, CryptoPanicNewsService>();
+builder.Services.AddHostedService<SentimentAnalysisJob>();
+
+// Stratejiler
+builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.GoldenRoseStrategy>();
+builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.AlphaTrendStrategy>();
+builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.MarketBuyStrategy>();
+builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.GridStrategy>();
+builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.DcaStrategy>();
+builder.Services.AddScoped<IStrategyFactory, Kripteks.Infrastructure.Strategies.StrategyFactory>();
 
 // Arka Plan Servisleri (Bot Engine)
 builder.Services.AddHostedService<BotEngineService>();
