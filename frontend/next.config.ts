@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: 'standalone', // Sunucu için gereken herşeyi bir araya toplar
   trailingSlash: true,
   async headers() {
     return [
