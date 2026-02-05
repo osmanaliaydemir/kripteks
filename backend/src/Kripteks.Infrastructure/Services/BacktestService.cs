@@ -1,4 +1,5 @@
 using Kripteks.Core.Interfaces;
+using Kripteks.Core.DTOs;
 using Binance.Net.Clients;
 using Binance.Net.Enums;
 using Microsoft.Extensions.Logging;
@@ -11,11 +12,14 @@ public class BacktestService
     private readonly BinanceRestClient _client;
     private readonly ILogger<BacktestService> _logger;
     private readonly IStrategyFactory _strategyFactory;
+    private readonly IBacktestRepository _backtestRepository;
 
-    public BacktestService(ILogger<BacktestService> logger, IStrategyFactory strategyFactory)
+    public BacktestService(ILogger<BacktestService> logger, IStrategyFactory strategyFactory,
+        IBacktestRepository backtestRepository)
     {
         _logger = logger;
         _strategyFactory = strategyFactory;
+        _backtestRepository = backtestRepository;
         _client = new BinanceRestClient();
     }
 
@@ -23,6 +27,43 @@ public class BacktestService
     {
         var allCandles = await FetchCandlesAsync(request);
         return SimulateBacktest(request, allCandles, request.StrategyParameters);
+    }
+
+    public async Task<Guid> SaveResultAsync(BacktestRequestDto request, BacktestResultDto result, string userId)
+    {
+        var entity = new Kripteks.Core.Entities.BacktestResult
+        {
+            UserId = userId,
+            Symbol = request.Symbol,
+            StrategyId = request.StrategyId,
+            Interval = request.Interval,
+            StartDate = DateTime.Parse(request.StartDate ?? DateTime.UtcNow.AddDays(-7).ToString("yyyy-MM-dd")),
+            EndDate = DateTime.Parse(request.EndDate ?? DateTime.UtcNow.ToString("yyyy-MM-dd")),
+            InitialBalance = request.InitialBalance,
+            CommissionRate = request.CommissionRate,
+            SlippageRate = request.SlippageRate,
+            StrategyParameters = request.StrategyParameters != null
+                ? System.Text.Json.JsonSerializer.Serialize(request.StrategyParameters)
+                : null,
+            TotalTrades = result.TotalTrades,
+            WinningTrades = result.WinningTrades,
+            LosingTrades = result.LosingTrades,
+            TotalPnl = result.TotalPnl,
+            TotalPnlPercent = result.TotalPnlPercent,
+            WinRate = result.WinRate,
+            MaxDrawdown = result.MaxDrawdown,
+            TotalCommissionPaid = result.TotalCommissionPaid,
+            SharpeRatio = result.SharpeRatio,
+            SortinoRatio = result.SortinoRatio,
+            ProfitFactor = result.ProfitFactor,
+            AverageWin = result.AverageWin,
+            AverageLoss = result.AverageLoss,
+            MaxConsecutiveWins = result.MaxConsecutiveWins,
+            MaxConsecutiveLosses = result.MaxConsecutiveLosses
+        };
+
+        var saved = await _backtestRepository.CreateAsync(entity);
+        return saved.Id;
     }
 
     public async Task<OptimizationResultDto> OptimizeBacktestAsync(BacktestRequestDto request)
@@ -42,6 +83,42 @@ public class BacktestService
                 bestResult.BestPnlPercent = currentResult.TotalPnlPercent;
                 bestResult.BestParameters = parameters;
                 bestResult.Result = currentResult;
+            }
+        }
+
+        return bestResult;
+    }
+
+    public async Task<OptimizationResultDto> OptimizeBacktestWithProgressAsync(
+        BacktestRequestDto request,
+        Func<int, int, decimal?, decimal?, Dictionary<string, string>, Task>? progressCallback = null)
+    {
+        var allCandles = await FetchCandlesAsync(request);
+        var bestResult = new OptimizationResultDto();
+        var searchSpace = GetOptimizationSpace(request.StrategyId);
+        int totalSteps = searchSpace.Count;
+        int currentStep = 0;
+
+        _logger.LogInformation("Optimizing {StrategyId} in {SpaceCount} combinations with progress tracking...",
+            request.StrategyId, totalSteps);
+
+        foreach (var parameters in searchSpace)
+        {
+            currentStep++;
+            var currentResult = SimulateBacktest(request, allCandles, parameters);
+
+            if (currentResult.TotalPnlPercent > bestResult.BestPnlPercent)
+            {
+                bestResult.BestPnlPercent = currentResult.TotalPnlPercent;
+                bestResult.BestParameters = parameters;
+                bestResult.Result = currentResult;
+            }
+
+            // Report progress every 5 steps or on first/last step
+            if (progressCallback != null && (currentStep % 5 == 0 || currentStep == 1 || currentStep == totalSteps))
+            {
+                await progressCallback(currentStep, totalSteps, currentResult.TotalPnlPercent,
+                    bestResult.BestPnlPercent, parameters);
             }
         }
 
@@ -160,6 +237,12 @@ public class BacktestService
         decimal targetPrice = 0;
         decimal stopPrice = 0;
         bool inPosition = false;
+        decimal totalCommission = 0;
+        decimal entryCommission = 0; // Track commission paid on entry
+
+        // MaxDrawdown tracking
+        decimal peak = request.InitialBalance;
+        decimal maxDrawdown = 0;
 
         for (int i = 350; i < candles.Count; i++)
         {
@@ -167,14 +250,30 @@ public class BacktestService
             var currentCandle = candles[i];
             var signal = strategy.Analyze(history, currentBalance, positionAmount);
 
+            // Calculate current equity for drawdown tracking
+            decimal currentEquity = currentBalance + (positionAmount * currentCandle.Close);
+            if (currentEquity > peak) peak = currentEquity;
+            decimal drawdown = peak > 0 ? ((peak - currentEquity) / peak) * 100 : 0;
+            if (drawdown > maxDrawdown) maxDrawdown = drawdown;
+
             if (!inPosition)
             {
                 if (signal.Action == TradeAction.Buy)
                 {
                     decimal amountToInvest = currentBalance;
-                    positionAmount = amountToInvest / currentCandle.Close;
+
+                    // Apply slippage to entry price (worse price for buyer)
+                    decimal entryPriceWithSlippage = currentCandle.Close * (1 + request.SlippageRate);
+
+                    positionAmount = amountToInvest / entryPriceWithSlippage;
                     currentBalance -= amountToInvest;
-                    entryPrice = currentCandle.Close;
+
+                    // Apply commission on buy
+                    entryCommission = amountToInvest * request.CommissionRate;
+                    currentBalance -= entryCommission;
+                    totalCommission += entryCommission;
+
+                    entryPrice = entryPriceWithSlippage;
                     entryDate = currentCandle.OpenTime;
                     targetPrice = signal.TargetPrice;
                     stopPrice = signal.StopPrice;
@@ -208,19 +307,35 @@ public class BacktestService
                     if (exitReason == "Take Profit") exitPrice = targetPrice;
                     else if (exitReason == "Stop Loss") exitPrice = stopPrice;
 
-                    decimal exitTotal = positionAmount * exitPrice;
+                    // Apply slippage to exit price (worse price for seller)
+                    decimal exitPriceWithSlippage = exitPrice * (1 - request.SlippageRate);
+
+                    decimal exitTotal = positionAmount * exitPriceWithSlippage;
+
+                    // Apply commission on sell
+                    decimal exitCommission = exitTotal * request.CommissionRate;
+                    exitTotal -= exitCommission;
+                    totalCommission += exitCommission;
+
                     decimal pnl = exitTotal - (positionAmount * entryPrice);
                     currentBalance += exitTotal;
+
+                    decimal tradeCommission = entryCommission + exitCommission;
 
                     result.Trades.Add(new BacktestTradeDto
                     {
                         Type = pnl > 0 ? $"Take Profit ({exitReason})" : $"Stop Loss ({exitReason})",
-                        EntryDate = entryDate, ExitDate = currentCandle.OpenTime,
-                        EntryPrice = entryPrice, ExitPrice = exitPrice, Pnl = pnl
+                        EntryDate = entryDate,
+                        ExitDate = currentCandle.OpenTime,
+                        EntryPrice = entryPrice,
+                        ExitPrice = exitPriceWithSlippage,
+                        Pnl = pnl,
+                        Commission = tradeCommission
                     });
 
                     inPosition = false;
                     positionAmount = 0;
+                    entryCommission = 0; // Reset for next trade
                 }
             }
         }
@@ -231,10 +346,91 @@ public class BacktestService
         result.TotalPnl = result.Trades.Sum(t => t.Pnl);
         result.TotalPnlPercent = (result.TotalPnl / request.InitialBalance) * 100;
         result.WinRate = result.TotalTrades > 0 ? ((decimal)result.WinningTrades / result.TotalTrades) * 100 : 0;
+        result.MaxDrawdown = maxDrawdown;
+        result.InitialBalance = request.InitialBalance;
+        result.TotalCommissionPaid = totalCommission;
+
+        // Advanced Metrics (Phase 2)
+        CalculateAdvancedMetrics(result, request.InitialBalance);
+
         result.Candles = candles.Select(c => new BacktestCandleDto
             { Time = c.OpenTime, Open = c.Open, High = c.High, Low = c.Low, Close = c.Close }).ToList();
 
         return result;
+    }
+
+    private void CalculateAdvancedMetrics(BacktestResultDto result, decimal initialBalance)
+    {
+        if (result.Trades.Count == 0)
+        {
+            result.SharpeRatio = 0;
+            result.SortinoRatio = 0;
+            result.ProfitFactor = 0;
+            result.AverageWin = 0;
+            result.AverageLoss = 0;
+            result.MaxConsecutiveWins = 0;
+            result.MaxConsecutiveLosses = 0;
+            return;
+        }
+
+        // Average Win and Average Loss
+        var winningTrades = result.Trades.Where(t => t.Pnl > 0).ToList();
+        var losingTrades = result.Trades.Where(t => t.Pnl <= 0).ToList();
+
+        result.AverageWin = winningTrades.Any() ? winningTrades.Average(t => t.Pnl) : 0;
+        result.AverageLoss = losingTrades.Any() ? losingTrades.Average(t => t.Pnl) : 0;
+
+        // Profit Factor = Gross Profit / Gross Loss
+        decimal grossProfit = winningTrades.Sum(t => t.Pnl);
+        decimal grossLoss = Math.Abs(losingTrades.Sum(t => t.Pnl));
+        result.ProfitFactor = grossLoss > 0 ? grossProfit / grossLoss : (grossProfit > 0 ? 999 : 0);
+
+        // Sharpe Ratio = (Average Return - Risk Free Rate) / Standard Deviation of Returns
+        // Risk-free rate assumed to be 0 for simplicity
+        var returns = result.Trades.Select(t => t.Pnl / initialBalance).ToList();
+        decimal avgReturn = returns.Average();
+        decimal stdDev = CalculateStandardDeviation(returns);
+        result.SharpeRatio = stdDev > 0 ? (avgReturn / stdDev) * (decimal)Math.Sqrt(252) : 0; // Annualized
+
+        // Sortino Ratio = (Average Return - Risk Free Rate) / Downside Deviation
+        var negativeReturns = returns.Where(r => r < 0).ToList();
+        decimal downsideDev = negativeReturns.Any() ? CalculateStandardDeviation(negativeReturns) : 0.0001m;
+        result.SortinoRatio = downsideDev > 0 ? (avgReturn / downsideDev) * (decimal)Math.Sqrt(252) : 0; // Annualized
+
+        // Max Consecutive Wins and Losses
+        int currentWinStreak = 0;
+        int currentLossStreak = 0;
+        int maxWinStreak = 0;
+        int maxLossStreak = 0;
+
+        foreach (var trade in result.Trades)
+        {
+            if (trade.Pnl > 0)
+            {
+                currentWinStreak++;
+                currentLossStreak = 0;
+                if (currentWinStreak > maxWinStreak) maxWinStreak = currentWinStreak;
+            }
+            else
+            {
+                currentLossStreak++;
+                currentWinStreak = 0;
+                if (currentLossStreak > maxLossStreak) maxLossStreak = currentLossStreak;
+            }
+        }
+
+        result.MaxConsecutiveWins = maxWinStreak;
+        result.MaxConsecutiveLosses = maxLossStreak;
+    }
+
+    private decimal CalculateStandardDeviation(List<decimal> values)
+    {
+        if (values.Count == 0) return 0;
+
+        decimal avg = values.Average();
+        decimal sumOfSquares = values.Sum(v => (v - avg) * (v - avg));
+        decimal variance = sumOfSquares / values.Count;
+        return (decimal)Math.Sqrt((double)variance);
     }
 
     private KlineInterval GetKlineInterval(string interval) => interval switch
@@ -265,56 +461,4 @@ public class BacktestService
             _ => TimeSpan.FromMinutes(15)
         };
     }
-}
-
-// DTOs (Dosya içinde pratik olsun diye)
-public class BacktestRequestDto
-{
-    public string Symbol { get; set; } = "BTC/USDT";
-    public string StrategyId { get; set; } = string.Empty;
-    public string Period { get; set; } = "7d";
-    public string? StartDate { get; set; } // YYYY-MM-DD
-    public string? EndDate { get; set; } // YYYY-MM-DD
-    public string Interval { get; set; } = "15m"; // Yeni alan: 3m, 5m, 15m, 1h...
-    public decimal InitialBalance { get; set; } = 1000;
-    public Dictionary<string, string>? StrategyParameters { get; set; }
-}
-
-public class BacktestResultDto
-{
-    public int TotalTrades { get; set; }
-    public int WinningTrades { get; set; }
-    public int LosingTrades { get; set; }
-    public decimal TotalPnl { get; set; }
-    public decimal TotalPnlPercent { get; set; }
-    public decimal WinRate { get; set; }
-    public decimal MaxDrawdown { get; set; }
-    public List<BacktestTradeDto> Trades { get; set; } = new();
-    public List<BacktestCandleDto> Candles { get; set; } = new();
-}
-
-public class BacktestCandleDto
-{
-    public DateTime Time { get; set; }
-    public decimal Open { get; set; }
-    public decimal High { get; set; }
-    public decimal Low { get; set; }
-    public decimal Close { get; set; }
-}
-
-public class BacktestTradeDto
-{
-    public string Type { get; set; } = string.Empty;
-    public DateTime EntryDate { get; set; }
-    public DateTime ExitDate { get; set; }
-    public decimal EntryPrice { get; set; }
-    public decimal ExitPrice { get; set; }
-    public decimal Pnl { get; set; }
-}
-
-public class OptimizationResultDto
-{
-    public Dictionary<string, string> BestParameters { get; set; } = new();
-    public decimal BestPnlPercent { get; set; } = -999;
-    public BacktestResultDto? Result { get; set; }
 }

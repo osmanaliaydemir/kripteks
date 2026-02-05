@@ -58,7 +58,7 @@ builder.Services.AddAuthentication(options =>
                 // Bot Hub'ına gelen isteklerde token varsa al
                 var path = context.HttpContext.Request.Path;
                 if (!string.IsNullOrEmpty(accessToken) &&
-                    (path.StartsWithSegments("/bot-hub")))
+                    (path.StartsWithSegments("/bot-hub") || path.StartsWithSegments("/backtest-hub")))
                 {
                     context.Token = accessToken;
                 }
@@ -71,6 +71,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped<IBotService, BotService>();
 builder.Services.AddSingleton<IMarketDataService, BinanceMarketService>();
 builder.Services.AddScoped<BacktestService>();
+builder.Services.AddScoped<IBacktestRepository, Kripteks.Infrastructure.Repositories.BacktestRepository>();
 builder.Services.AddSingleton<IBinanceRestClient>(sp => new BinanceRestClient());
 builder.Services.AddSingleton<IBinanceSocketClient>(sp => new BinanceSocketClient());
 
@@ -157,6 +158,7 @@ using (var scope = app.Services.CreateScope())
 
 app.MapControllers();
 app.MapHub<Kripteks.Api.Hubs.BotHub>("/bot-hub");
+app.MapHub<Kripteks.Api.Hubs.BacktestHub>("/backtest-hub");
 
 // Ana sayfaya gelenleri dökümantasyona yönlendir
 app.MapGet("/", () => Results.Redirect("/scalar/v1"));

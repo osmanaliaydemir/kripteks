@@ -19,58 +19,67 @@ export function SignalRProvider({ children }: { children: ReactNode }) {
     const pathname = usePathname();
 
     useEffect(() => {
-        const token = localStorage.getItem("token");
-        const isPublicPage = pathname === "/login" || pathname === "/register";
+        let isMounted = true;
 
-        if (!token || isPublicPage) {
-            if (connectionRef.current) {
-                connectionRef.current.stop();
-                connectionRef.current = null;
-                setConnection(null);
-                setIsConnected(false);
+        const checkConnection = async () => {
+            const token = localStorage.getItem("token");
+            const isPublicPage = pathname === "/login" || pathname === "/register";
+
+            if (!token || isPublicPage) {
+                if (connectionRef.current) {
+                    console.log("Stopping SignalR connection due to public page or missing token");
+                    const conn = connectionRef.current;
+                    connectionRef.current = null;
+                    setConnection(null);
+                    setIsConnected(false);
+                    try {
+                        await conn.stop();
+                    } catch (e) {
+                        // Ignore stop errors
+                    }
+                }
+                return;
             }
-            return;
-        }
 
-        // Eğer zaten bağlı veya bağlanıyorsa tekrar deneme
-        if (connectionRef.current) return;
+            // If already connected or connecting, don't start a new one
+            if (connectionRef.current && connectionRef.current.state !== "Disconnected") {
+                return;
+            }
 
-        const newConnection = new HubConnectionBuilder()
-            .withUrl(HUB_URL, {
-                accessTokenFactory: () => localStorage.getItem("token") || ""
-            })
-            .withAutomaticReconnect()
-            .build();
+            console.log("Initializing SignalR globally...");
+            const newConnection = new HubConnectionBuilder()
+                .withUrl(HUB_URL, {
+                    accessTokenFactory: () => localStorage.getItem("token") || ""
+                })
+                .withAutomaticReconnect()
+                .build();
 
-        connectionRef.current = newConnection;
-        setConnection(newConnection);
+            connectionRef.current = newConnection;
+            setConnection(newConnection);
 
-        const startConnection = async () => {
+            newConnection.onclose(() => isMounted && setIsConnected(false));
+            newConnection.onreconnecting(() => isMounted && setIsConnected(false));
+            newConnection.onreconnected(() => isMounted && setIsConnected(true));
+
             try {
-                if (newConnection.state === "Disconnected") {
-                    await newConnection.start();
+                await newConnection.start();
+                if (isMounted) {
                     console.log("SignalR Connected Globally!");
                     setIsConnected(true);
                 }
             } catch (err: any) {
-                if (!err.message?.includes("stopped during negotiation")) {
+                if (isMounted && !err.message?.includes("stopped during negotiation")) {
                     console.error("SignalR Global Connection Error: ", err);
+                    // Re-check after a delay
+                    setTimeout(checkConnection, 5000);
                 }
-                setTimeout(startConnection, 5000);
             }
         };
 
-        startConnection();
-
-        newConnection.onclose(() => setIsConnected(false));
-        newConnection.onreconnecting(() => setIsConnected(false));
-        newConnection.onreconnected(() => setIsConnected(true));
+        checkConnection();
 
         return () => {
-            if (newConnection.state !== "Disconnected") {
-                newConnection.stop();
-            }
-            connectionRef.current = null;
+            isMounted = false;
         };
     }, [pathname]);
 

@@ -210,6 +210,47 @@ export const BacktestService = {
             body: JSON.stringify(data)
         });
         return handleResponse(res);
+    },
+    optimizeBacktestWithProgress: async (sessionId: string, data: any) => {
+        const res = await fetchWithAuth(`${API_URL}/backtest/optimize-with-progress/${sessionId}`, {
+            method: "POST",
+            body: JSON.stringify(data)
+        });
+        return handleResponse(res);
+    },
+    save: async (data: any) => {
+        const res = await fetchWithAuth(`${API_URL}/backtest/save`, {
+            method: "POST",
+            body: JSON.stringify(data)
+        });
+        return handleResponse(res);
+    },
+    getHistory: async (skip: number = 0, take: number = 50) => {
+        const res = await fetchWithAuth(`${API_URL}/backtest/history?skip=${skip}&take=${take}`);
+        return handleResponse(res);
+    },
+    getById: async (id: string) => {
+        const res = await fetchWithAuth(`${API_URL}/backtest/${id}`);
+        return handleResponse(res);
+    },
+    toggleFavorite: async (id: string) => {
+        const res = await fetchWithAuth(`${API_URL}/backtest/${id}/favorite`, {
+            method: "POST"
+        });
+        return handleResponse(res);
+    },
+    delete: async (id: string) => {
+        const res = await fetchWithAuth(`${API_URL}/backtest/${id}`, {
+            method: "DELETE"
+        });
+        return handleResponse(res);
+    },
+    runMonteCarlo: async (backtestResult: any, options?: any) => {
+        const res = await fetchWithAuth(`${API_URL}/backtest/monte-carlo`, {
+            method: "POST",
+            body: JSON.stringify({ backtestResult, options })
+        });
+        return handleResponse(res);
     }
 };
 

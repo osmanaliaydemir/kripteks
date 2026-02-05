@@ -16,6 +16,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<AuditLog> AuditLogs { get; set; }
     public DbSet<SentimentHistory> SentimentHistories { get; set; }
+    public DbSet<BacktestResult> BacktestResults { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -65,6 +66,59 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
 
         modelBuilder.Entity<SystemSetting>()
             .Property(s => s.DefaultAmount)
+            .HasPrecision(18, 8);
+
+        // BacktestResult precision configurations
+        modelBuilder.Entity<BacktestResult>()
+            .Property(b => b.InitialBalance)
+            .HasPrecision(18, 8);
+
+        modelBuilder.Entity<BacktestResult>()
+            .Property(b => b.CommissionRate)
+            .HasPrecision(18, 6);
+
+        modelBuilder.Entity<BacktestResult>()
+            .Property(b => b.SlippageRate)
+            .HasPrecision(18, 6);
+
+        modelBuilder.Entity<BacktestResult>()
+            .Property(b => b.TotalPnl)
+            .HasPrecision(18, 8);
+
+        modelBuilder.Entity<BacktestResult>()
+            .Property(b => b.TotalPnlPercent)
+            .HasPrecision(18, 4);
+
+        modelBuilder.Entity<BacktestResult>()
+            .Property(b => b.WinRate)
+            .HasPrecision(18, 4);
+
+        modelBuilder.Entity<BacktestResult>()
+            .Property(b => b.MaxDrawdown)
+            .HasPrecision(18, 4);
+
+        modelBuilder.Entity<BacktestResult>()
+            .Property(b => b.TotalCommissionPaid)
+            .HasPrecision(18, 8);
+
+        modelBuilder.Entity<BacktestResult>()
+            .Property(b => b.SharpeRatio)
+            .HasPrecision(18, 4);
+
+        modelBuilder.Entity<BacktestResult>()
+            .Property(b => b.SortinoRatio)
+            .HasPrecision(18, 4);
+
+        modelBuilder.Entity<BacktestResult>()
+            .Property(b => b.ProfitFactor)
+            .HasPrecision(18, 4);
+
+        modelBuilder.Entity<BacktestResult>()
+            .Property(b => b.AverageWin)
+            .HasPrecision(18, 8);
+
+        modelBuilder.Entity<BacktestResult>()
+            .Property(b => b.AverageLoss)
             .HasPrecision(18, 8);
     }
 }

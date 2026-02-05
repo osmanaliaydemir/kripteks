@@ -4,9 +4,11 @@ import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BacktestService } from "@/lib/api";
 import { toast } from "sonner";
-import { PlayCircle, Sliders, TrendingUp, BarChart2, Calendar, Clock, DollarSign, Activity, AlertCircle, Info, ChevronDown, Zap } from "lucide-react";
+import { PlayCircle, Sliders, TrendingUp, BarChart2, Calendar, Clock, DollarSign, Activity, AlertCircle, Info, ChevronDown, Zap, Loader2, Dice6 } from "lucide-react";
 import { ResponsiveContainer, ComposedChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Scatter, Cell } from "recharts";
 import SearchableSelect from "./SearchableSelect";
+import { useBacktestProgress } from "@/hooks/useBacktestProgress";
+import MonteCarloVisualization from "./MonteCarloVisualization";
 
 function InfoTooltip({ text }: { text: string }) {
     const [isVisible, setIsVisible] = useState(false);
@@ -58,6 +60,15 @@ interface BacktestResult {
     winningTrades: number;
     losingTrades: number;
     maxDrawdown: number;
+    totalCommissionPaid: number;
+    // Advanced Metrics (Phase 2)
+    sharpeRatio: number;
+    sortinoRatio: number;
+    profitFactor: number;
+    averageWin: number;
+    averageLoss: number;
+    maxConsecutiveWins: number;
+    maxConsecutiveLosses: number;
     trades: Trade[];
     candles: Candle[];
 }
@@ -124,6 +135,14 @@ export default function BacktestPanel({ coins, strategies, onRefreshCoins, isCoi
     const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
     const [optimizing, setOptimizing] = useState(false);
     const [endDate, setEndDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [commissionRate, setCommissionRate] = useState(0.001); // 0.1% default
+    const [slippageRate, setSlippageRate] = useState(0.0005); // 0.05% default
+
+    // SignalR progress tracking
+    const { progress, isConnected: isProgressConnected, startSession, endSession, resetProgress } = useBacktestProgress();
+
+    // Result views state
+    const [resultTab, setResultTab] = useState<"chart" | "trades">("chart");
 
     const selectedStrategyObj = useMemo(() => {
         return strategies.find(s => s.id === strategy) || strategies[0];
@@ -193,7 +212,9 @@ export default function BacktestPanel({ coins, strategies, onRefreshCoins, isCoi
                 startDate,
                 endDate,
                 initialBalance: balance,
-                strategyParameters: strategyParams
+                strategyParameters: strategyParams,
+                commissionRate,
+                slippageRate
             });
 
             if (data) {
@@ -217,31 +238,64 @@ export default function BacktestPanel({ coins, strategies, onRefreshCoins, isCoi
         setOptimizing(true);
         setResult(null);
         setOptimizationResult(null);
-        try {
-            const data = await BacktestService.optimizeBacktest({
-                symbol,
-                interval,
-                strategyId: strategy,
-                startDate,
-                endDate,
-                initialBalance: balance,
-                strategyParameters: strategyParams
-            });
 
-            if (data && data.result) {
-                setOptimizationResult(data);
-                setResult(data.result);
-                // En iyi parametreleri hemen UI'da da seçili hale getir
-                if (data.bestParameters) {
-                    setStrategyParams(data.bestParameters);
+        // Generate unique session ID and join SignalR group
+        const sessionId = `opt-${Date.now()}`;
+
+        try {
+            // Try to use SignalR progress if connected
+            if (isProgressConnected) {
+                await startSession(sessionId);
+                const data = await BacktestService.optimizeBacktestWithProgress(sessionId, {
+                    symbol,
+                    interval,
+                    strategyId: strategy,
+                    startDate,
+                    endDate,
+                    initialBalance: balance,
+                    strategyParameters: strategyParams,
+                    commissionRate,
+                    slippageRate
+                });
+                await endSession(sessionId);
+
+                if (data && data.result) {
+                    setOptimizationResult(data);
+                    setResult(data.result);
+                    if (data.bestParameters) {
+                        setStrategyParams(data.bestParameters);
+                    }
+                    toast.success("Optimizasyon Tamamlandı ✨", { description: "En kârlı 'Altın Ayarlar' bulundu ve uygulandı." });
                 }
-                toast.success("Optimizasyon Tamamlandı ✨", { description: "En kârlı 'Altın Ayarlar' bulundu ve uygulandı." });
+            } else {
+                // Fallback to regular optimization
+                const data = await BacktestService.optimizeBacktest({
+                    symbol,
+                    interval,
+                    strategyId: strategy,
+                    startDate,
+                    endDate,
+                    initialBalance: balance,
+                    strategyParameters: strategyParams,
+                    commissionRate,
+                    slippageRate
+                });
+
+                if (data && data.result) {
+                    setOptimizationResult(data);
+                    setResult(data.result);
+                    if (data.bestParameters) {
+                        setStrategyParams(data.bestParameters);
+                    }
+                    toast.success("Optimizasyon Tamamlandı ✨", { description: "En kârlı 'Altın Ayarlar' bulundu ve uygulandı." });
+                }
             }
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : "Optimizasyon hatası oluştu.";
             toast.error("Hata", { description: errorMessage });
         } finally {
             setOptimizing(false);
+            resetProgress();
         }
     };
 
@@ -543,180 +597,260 @@ export default function BacktestPanel({ coins, strategies, onRefreshCoins, isCoi
                             </span>
                         </div>
 
-                        {/* --- CHART AREA --- */}
-                        <div className="col-span-1 md:col-span-2 lg:col-span-4 glass-card p-8 rounded-3xl border border-white/10 mt-2 min-h-[500px] relative overflow-hidden group/chart shadow-xl">
-                            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover/chart:opacity-10 transition-opacity">
-                                <TrendingUp size={200} />
-                            </div>
+                        <div className="glass-card p-6 rounded-2xl border border-white/10 flex flex-col items-center justify-center text-center gap-2 relative hover:brightness-110 transition-all shadow-lg">
+                            <span className="text-xs uppercase font-bold text-slate-500 flex items-center gap-1.5 opacity-80">
+                                Toplam Komisyon
+                                <InfoTooltip text="Tüm alım-satım işlemlerinde ödenen toplam komisyon tutarı." />
+                            </span>
+                            <span className="text-3xl font-bold text-amber-400 font-mono tracking-tighter">
+                                ${Number(result.totalCommissionPaid || 0).toFixed(2)}
+                            </span>
+                        </div>
 
-                            <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-10 relative z-10">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-inner">
-                                        <Activity className="text-primary" size={24} />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold text-white tracking-tight">Performans Simülasyonu</h3>
-                                        <p className="text-xs text-slate-500 font-medium tracking-wide font-mono">FIYAT HAREKETLERI & SINYAL ANALIZI</p>
-                                    </div>
+                        {/* Advanced Metrics Row */}
+                        <div className="glass-card p-6 rounded-2xl border border-white/10 flex flex-col items-center justify-center text-center gap-2 relative hover:brightness-110 transition-all shadow-lg">
+                            <span className="text-xs uppercase font-bold text-slate-500 flex items-center gap-1.5 opacity-80">
+                                Sharpe Ratio
+                                <InfoTooltip text="Risk-adjusted return metriği. >1 iyi, >2 çok iyi, >3 mükemmel kabul edilir." />
+                            </span>
+                            <span className={`text-3xl font-bold font-mono tracking-tighter ${(result.sharpeRatio || 0) > 1 ? "text-emerald-400" : "text-slate-400"}`}>
+                                {Number(result.sharpeRatio || 0).toFixed(2)}
+                            </span>
+                        </div>
+
+                        <div className="glass-card p-6 rounded-2xl border border-white/10 flex flex-col items-center justify-center text-center gap-2 relative hover:brightness-110 transition-all shadow-lg">
+                            <span className="text-xs uppercase font-bold text-slate-500 flex items-center gap-1.5 opacity-80">
+                                Profit Factor
+                                <InfoTooltip text="Toplam kazanç / Toplam kayıp oranı. >1.5 iyi, >2 çok iyi kabul edilir." />
+                            </span>
+                            <span className={`text-3xl font-bold font-mono tracking-tighter ${(result.profitFactor || 0) > 1.5 ? "text-emerald-400" : "text-slate-400"}`}>
+                                {Number(result.profitFactor || 0).toFixed(2)}
+                            </span>
+                        </div>
+
+                        <div className="glass-card p-6 rounded-2xl border border-white/10 flex flex-col items-center justify-center text-center gap-2 relative hover:brightness-110 transition-all shadow-lg">
+                            <span className="text-xs uppercase font-bold text-slate-500 flex items-center gap-1.5 opacity-80">
+                                Ort. Kazanç
+                                <InfoTooltip text="Kazançlı işlemlerin ortalama kâr miktarı." />
+                            </span>
+                            <span className="text-3xl font-bold text-emerald-400 font-mono tracking-tighter">
+                                ${Number(result.averageWin || 0).toFixed(2)}
+                            </span>
+                        </div>
+
+                        <div className="glass-card p-6 rounded-2xl border border-white/10 flex flex-col items-center justify-center text-center gap-2 relative hover:brightness-110 transition-all shadow-lg">
+                            <span className="text-xs uppercase font-bold text-slate-500 flex items-center gap-1.5 opacity-80">
+                                Maks. Seri Kazanç
+                                <InfoTooltip text="Üst üste gelen en fazla kazançlı işlem sayısı." />
+                            </span>
+                            <span className="text-3xl font-bold text-cyan-400 font-mono tracking-tighter">
+                                {result.maxConsecutiveWins || 0}
+                            </span>
+                        </div>
+
+                    </div>
+                    {/* --- CHART AREA --- */}
+                    <div className="col-span-1 md:col-span-2 lg:col-span-4 glass-card p-8 rounded-3xl border border-white/10 mt-2 min-h-[500px] relative overflow-hidden group/chart shadow-xl">
+                        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover/chart:opacity-10 transition-opacity">
+                            <TrendingUp size={200} />
+                        </div>
+
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-10 relative z-10">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-inner">
+                                    <Activity className="text-primary" size={24} />
                                 </div>
-                                <div className="flex items-center gap-6">
-                                    <div className="flex items-center gap-3 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl shadow-sm">
-                                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.8)] animate-pulse"></div>
-                                        <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Alış Pozisyonu</span>
-                                    </div>
-                                    <div className="flex items-center gap-3 px-4 py-2 bg-rose-500/10 border border-rose-500/20 rounded-xl shadow-sm">
-                                        <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.8)] animate-pulse"></div>
-                                        <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider">Satış Noktası</span>
-                                    </div>
+                                <div className="text-left">
+                                    <h3 className="text-xl font-bold text-white tracking-tight">Performans Analizi</h3>
+                                    <p className="text-xs text-slate-500 font-medium tracking-wide font-mono">STRETEJI SONUÇLARI & RİSK ANALİZİ</p>
                                 </div>
                             </div>
-
-                            <div className="h-[380px] w-full relative z-10">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                                        <defs>
-                                            <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="var(--color-primary, #3b82f6)" stopOpacity={0.3} />
-                                                <stop offset="95%" stopColor="var(--color-primary, #3b82f6)" stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
-                                        <XAxis
-                                            dataKey="time"
-                                            axisLine={false}
-                                            tickLine={false}
-                                            tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }}
-                                            tickFormatter={(val) => new Date(val).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                                            minTickGap={60}
-                                        />
-                                        <YAxis
-                                            domain={['auto', 'auto']}
-                                            axisLine={false}
-                                            tickLine={false}
-                                            tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }}
-                                            orientation="right"
-                                            tickFormatter={(val) => `$${Number(val).toLocaleString('tr-TR', { maximumFractionDigits: 0 })}`}
-                                        />
-                                        <Tooltip
-                                            content={({ active, payload }) => {
-                                                if (active && payload && payload.length) {
-                                                    const data = payload[0].payload;
-                                                    return (
-                                                        <div className="bg-slate-950/95 border border-white/20 p-5 rounded-2xl shadow-[0_25px_50px_rgba(0,0,0,0.5)] ring-1 ring-white/10 backdrop-blur-xl">
-                                                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-2">
-                                                                <Calendar size={10} /> {data.displayDate} <Clock size={10} className="ml-2" /> {data.displayTime}
-                                                            </div>
-                                                            <div className="text-2xl font-mono font-bold text-white mb-2 tracking-tighter">${Number(data.equity).toFixed(2)}</div>
-
-                                                            <div className="flex flex-col gap-1.5 mb-3">
-                                                                <div className="flex justify-between items-center text-[10px] uppercase font-bold text-slate-500 tracking-tighter">
-                                                                    <span>Portföy Değeri</span>
-                                                                    <span className="text-white">${Number(data.equity).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                                </div>
-                                                                <div className="flex justify-between items-center text-[10px] uppercase font-bold text-slate-500 tracking-tighter border-t border-white/5 pt-1.5">
-                                                                    <span>Fiyat ({symbol})</span>
-                                                                    <span className="text-slate-300">${Number(data.close).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 8 })}</span>
-                                                                </div>
-                                                            </div>
-
-                                                            {data.buySignal && (
-                                                                <div className="flex items-center gap-2.5 text-emerald-400 text-[10px] font-bold bg-emerald-400/15 px-3 py-2 rounded-xl border border-emerald-400/20">
-                                                                    <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse"></div> SİNYAL: ALIŞ POSİZYONU
-                                                                </div>
-                                                            )}
-                                                            {data.sellSignal && (
-                                                                <div className="flex items-center gap-2.5 text-rose-400 text-[10px] font-bold bg-rose-400/15 px-3 py-2 rounded-xl border border-rose-400/20">
-                                                                    <div className="w-2 h-2 rounded-full bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.5)] animate-pulse"></div> SİNYAL: SATIŞ / ÇIKIŞ
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                }
-                                                return null;
-                                            }}
-                                        />
-                                        <Area
-                                            type="monotone"
-                                            dataKey="equity"
-                                            stroke="var(--color-primary, #3b82f6)"
-                                            strokeWidth={3}
-                                            fillOpacity={1}
-                                            fill="url(#chartGradient)"
-                                            animationDuration={1500}
-                                            activeDot={{ r: 6, fill: "#fff", stroke: "var(--color-primary, #3b82f6)", strokeWidth: 2 }}
-                                        />
-                                        <Scatter dataKey="buySignal" fill="#10b981">
-                                            {chartData.map((_entry, index) => (
-                                                <Cell key={`cell-buy-${index}`} fill="#10b981" />
-                                            ))}
-                                        </Scatter>
-                                        <Scatter dataKey="sellSignal" fill="#f43f5e">
-                                            {chartData.map((_entry, index) => (
-                                                <Cell key={`cell-sell-${index}`} fill="#f43f5e" />
-                                            ))}
-                                        </Scatter>
-                                    </ComposedChart>
-                                </ResponsiveContainer>
+                            <div className="flex items-center gap-1 p-1 bg-slate-900/50 border border-white/5 rounded-xl backdrop-blur-sm">
+                                <button
+                                    onClick={() => setResultTab("chart")}
+                                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${resultTab === "chart" ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5"}`}
+                                >
+                                    <TrendingUp size={14} /> Grafik
+                                </button>
+                                <button
+                                    onClick={() => setResultTab("trades")}
+                                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${resultTab === "trades" ? "bg-slate-700 text-white shadow-lg" : "text-slate-500 hover:text-slate-300 hover:bg-white/5"}`}
+                                >
+                                    <BarChart2 size={14} /> İşlemler
+                                </button>
                             </div>
                         </div>
 
-                        <div className="col-span-1 md:col-span-2 lg:col-span-4 glass-card p-8 rounded-3xl border border-white/10 mt-2 shadow-xl">
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
-                                    <BarChart2 className="text-primary" size={20} />
-                                </div>
-                                <h3 className="text-lg font-bold text-white tracking-tight">Algoritmik İşlem Günlüğü</h3>
-                            </div>
+                        <AnimatePresence mode="wait">
+                            {resultTab === "chart" && (
+                                <motion.div
+                                    key="chart-view"
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: 20 }}
+                                    className="h-[380px] w-full relative z-10"
+                                >
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                            <defs>
+                                                <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="var(--color-primary, #3b82f6)" stopOpacity={0.3} />
+                                                    <stop offset="95%" stopColor="var(--color-primary, #3b82f6)" stopOpacity={0} />
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                                            <XAxis
+                                                dataKey="time"
+                                                axisLine={false}
+                                                tickLine={false}
+                                                tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }}
+                                                tickFormatter={(val) => new Date(val).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                                                minTickGap={60}
+                                            />
+                                            <YAxis
+                                                domain={['auto', 'auto']}
+                                                axisLine={false}
+                                                tickLine={false}
+                                                tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }}
+                                                orientation="right"
+                                                tickFormatter={(val) => `$${Number(val).toLocaleString('tr-TR', { maximumFractionDigits: 0 })}`}
+                                            />
+                                            <Tooltip
+                                                content={({ active, payload }) => {
+                                                    if (active && payload && payload.length) {
+                                                        const data = payload[0].payload;
+                                                        return (
+                                                            <div className="bg-slate-950/95 border border-white/20 p-5 rounded-2xl shadow-[0_25px_50px_rgba(0,0,0,0.5)] ring-1 ring-white/10 backdrop-blur-xl">
+                                                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                                                                    <Calendar size={10} /> {data.displayDate} <Clock size={10} className="ml-2" /> {data.displayTime}
+                                                                </div>
+                                                                <div className="text-2xl font-mono font-bold text-white mb-2 tracking-tighter">${Number(data.equity).toFixed(2)}</div>
 
-                            {result.trades && result.trades.length > 0 ? (
-                                <div className="overflow-x-auto custom-scrollbar">
-                                    <table className="w-full text-left border-collapse">
-                                        <thead>
-                                            <tr className="text-[10px] uppercase text-slate-500 border-b border-white/5">
-                                                <th className="px-5 py-4 font-bold tracking-widest">Giriş Zamanı</th>
-                                                <th className="px-5 py-4 font-bold tracking-widest">Çıkış Zamanı</th>
-                                                <th className="px-5 py-4 font-bold tracking-widest">Strateji Türü</th>
-                                                <th className="px-5 py-4 font-bold tracking-widest">Giriş ($)</th>
-                                                <th className="px-5 py-4 font-bold tracking-widest">Çıkış ($)</th>
-                                                <th className="px-5 py-4 text-right font-bold tracking-widest">Net PnL</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-white/5 text-sm">
-                                            {result.trades.map((trade: Trade, idx: number) => (
-                                                <tr key={idx} className="hover:bg-white/5 transition-all group/row">
-                                                    <td className="px-5 py-4 text-slate-400 font-mono text-xs group-hover/row:text-slate-200">
-                                                        {new Date(trade.entryDate).toLocaleString('tr-TR')}
-                                                    </td>
-                                                    <td className="px-5 py-4 text-slate-400 font-mono text-xs group-hover/row:text-slate-200">
-                                                        {new Date(trade.exitDate).toLocaleString('tr-TR')}
-                                                    </td>
-                                                    <td className="px-5 py-4">
-                                                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide uppercase ${trade.pnl > 0 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20 shadow-[0_0_10px_rgba(244,63,94,0.1)]'}`}>
-                                                            {trade.type}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-5 py-4 text-white font-mono text-xs">
-                                                        ${Number(trade.entryPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 8 })}
-                                                    </td>
-                                                    <td className="px-5 py-4 text-white font-mono text-xs">
-                                                        ${Number(trade.exitPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 8 })}
-                                                    </td>
-                                                    <td className={`px-5 py-4 text-right font-bold font-mono text-xs ${trade.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                                                        {trade.pnl >= 0 ? "+" : ""}{Number(trade.pnl).toFixed(2)}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ) : (
-                                <div className="text-center py-16 text-slate-600 bg-slate-950/20 rounded-2xl border border-white/5 border-dashed">
-                                    <AlertCircle size={40} className="mx-auto mb-4 opacity-20" />
-                                    <p className="font-medium">Seçilen tarihlerde strateji kriterlerine uygun işlem oluşmadı.</p>
-                                    <p className="text-[10px] mt-1 text-slate-700 uppercase tracking-widest font-bold">Lütfen farklı bir zaman dilimi veya strateji deneyin.</p>
-                                </div>
+                                                                <div className="flex flex-col gap-1.5 mb-3">
+                                                                    <div className="flex justify-between items-center text-[10px] uppercase font-bold text-slate-500 tracking-tighter">
+                                                                        <span>Portföy Değeri</span>
+                                                                        <span className="text-white">${Number(data.equity).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between items-center text-[10px] uppercase font-bold text-slate-500 tracking-tighter border-t border-white/5 pt-1.5">
+                                                                        <span>Fiyat ({symbol})</span>
+                                                                        <span className="text-slate-300">${Number(data.close).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 8 })}</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                {data.buySignal && (
+                                                                    <div className="flex items-center gap-2.5 text-emerald-400 text-[10px] font-bold bg-emerald-400/15 px-3 py-2 rounded-xl border border-emerald-400/20">
+                                                                        <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse"></div> SİNYAL: ALIŞ POSİZYONU
+                                                                    </div>
+                                                                )}
+                                                                {data.sellSignal && (
+                                                                    <div className="flex items-center gap-2.5 text-rose-400 text-[10px] font-bold bg-rose-400/15 px-3 py-2 rounded-xl border border-rose-400/20">
+                                                                        <div className="w-2 h-2 rounded-full bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.5)] animate-pulse"></div> SİNYAL: SATIŞ / ÇIKIŞ
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                }}
+                                            />
+                                            <Area
+                                                type="monotone"
+                                                dataKey="equity"
+                                                stroke="var(--color-primary, #3b82f6)"
+                                                strokeWidth={3}
+                                                fillOpacity={1}
+                                                fill="url(#chartGradient)"
+                                                animationDuration={1500}
+                                                activeDot={{ r: 6, fill: "#fff", stroke: "var(--color-primary, #3b82f6)", strokeWidth: 2 }}
+                                            />
+                                            <Scatter dataKey="buySignal" fill="#10b981">
+                                                {chartData.map((_entry, index) => (
+                                                    <Cell key={`cell-buy-${index}`} fill="#10b981" />
+                                                ))}
+                                            </Scatter>
+                                            <Scatter dataKey="sellSignal" fill="#f43f5e">
+                                                {chartData.map((_entry, index) => (
+                                                    <Cell key={`cell-sell-${index}`} fill="#f43f5e" />
+                                                ))}
+                                            </Scatter>
+                                        </ComposedChart>
+                                    </ResponsiveContainer>
+                                </motion.div>
                             )}
-                        </div>
+
+
+                            {resultTab === "trades" && (
+                                <motion.div
+                                    key="trades-view"
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    className="relative z-10"
+                                >
+                                    <div className="flex items-center gap-3 mb-6 pt-4 border-t border-white/5">
+                                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                                            <BarChart2 className="text-primary" size={20} />
+                                        </div>
+                                        <div className="text-left">
+                                            <h3 className="text-lg font-bold text-white tracking-tight">Algoritmik İşlem Günlüğü</h3>
+                                            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Tüm Geçmiş İşlemler</p>
+                                        </div>
+                                    </div>
+
+                                    {result.trades && result.trades.length > 0 ? (
+                                        <div className="overflow-x-auto custom-scrollbar">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="text-[10px] uppercase text-slate-500 border-b border-white/5">
+                                                        <th className="px-5 py-4 font-bold tracking-widest">Giriş Zamanı</th>
+                                                        <th className="px-5 py-4 font-bold tracking-widest">Çıkış Zamanı</th>
+                                                        <th className="px-5 py-4 font-bold tracking-widest">Strateji Türü</th>
+                                                        <th className="px-5 py-4 font-bold tracking-widest text-center">İşlem ($)</th>
+                                                        <th className="px-5 py-4 text-right font-bold tracking-widest">Net PnL (%)</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-white/5 text-sm">
+                                                    {result.trades.map((trade: Trade, idx: number) => (
+                                                        <tr key={idx} className="hover:bg-white/5 transition-all group/row">
+                                                            <td className="px-5 py-4 text-slate-400 font-mono text-xs group-hover/row:text-slate-200">
+                                                                {new Date(trade.entryDate).toLocaleString('tr-TR')}
+                                                            </td>
+                                                            <td className="px-5 py-4 text-slate-400 font-mono text-xs group-hover/row:text-slate-200">
+                                                                {new Date(trade.exitDate).toLocaleString('tr-TR')}
+                                                            </td>
+                                                            <td className="px-5 py-4">
+                                                                <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide uppercase ${trade.pnl > 0 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20 shadow-[0_0_10px_rgba(244,63,94,0.1)]'}`}>
+                                                                    {trade.type}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-5 py-4 text-white font-mono text-xs text-center">
+                                                                <div className="flex flex-col items-center gap-0.5">
+                                                                    <span className="opacity-40 text-[8px] uppercase">Giriş: {Number(trade.entryPrice).toFixed(2)}</span>
+                                                                    <span className="opacity-40 text-[8px] uppercase">Çıkış: {Number(trade.exitPrice).toFixed(2)}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td className={`px-5 py-4 text-right font-bold font-mono text-xs ${trade.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                                                                {trade.pnl >= 0 ? "+" : ""}{Number(trade.pnl).toFixed(2)}%
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-16 text-slate-600 bg-slate-950/20 rounded-2xl border border-white/5 border-dashed">
+                                            <AlertCircle size={40} className="mx-auto mb-4 opacity-20" />
+                                            <p className="font-medium">Seçilen tarihlerde strateji kriterlerine uygun işlem oluşmadı.</p>
+                                        </div>
+                                    )}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+
+                    {/* --- MONTE CARLO AREA --- */}
+                    <div className="mt-8">
+                        <MonteCarloVisualization backtestResult={result} />
                     </div>
                 </div>
             )}
