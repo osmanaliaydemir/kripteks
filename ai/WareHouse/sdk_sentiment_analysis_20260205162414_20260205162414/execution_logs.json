@@ -1,0 +1,261 @@
+{
+  "workflow_id": "sdk_sentiment_analysis_20260205162414",
+  "start_time": "2026-02-05T16:24:14.753908",
+  "logs": [
+    {
+      "timestamp": "2026-02-05T16:24:14.754471",
+      "level": "INFO",
+      "node_id": null,
+      "event_type": "WORKFLOW_START",
+      "message": "Workflow execution started",
+      "details": {
+        "workflow_id": "sdk_sentiment_analysis_20260205162414",
+        "node_count": 1,
+        "edge_count": 0
+      },
+      "execution_path": [],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:24:14.754617",
+      "level": "DEBUG",
+      "node_id": null,
+      "event_type": null,
+      "message": "Executing Layer 0 with nodes: ['analyzer']",
+      "details": {},
+      "execution_path": [],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:24:14.754628",
+      "level": "DEBUG",
+      "node_id": null,
+      "event_type": null,
+      "message": "Executing 1 items in parallel",
+      "details": {},
+      "execution_path": [],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:24:14.755111",
+      "level": "INFO",
+      "node_id": "analyzer",
+      "event_type": "NODE_START",
+      "message": "Entering node analyzer",
+      "details": {
+        "inputs": [
+          {
+            "role": "user",
+            "content": "Crypto piyasasında genel hava nasıl?",
+            "metadata": {
+              "source": "TASK"
+            }
+          }
+        ],
+        "node_type": "agent",
+        "input_count": 1,
+        "predecessors": [],
+        "successors": []
+      },
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:24:14.755186",
+      "level": "DEBUG",
+      "node_id": null,
+      "event_type": null,
+      "message": "Processing 1 inputs together for node analyzer",
+      "details": {},
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:24:14.787575",
+      "level": "INFO",
+      "node_id": "analyzer",
+      "event_type": "MODEL_CALL",
+      "message": "Model call for node analyzer",
+      "details": {
+        "model_name": "${vars.MODEL}",
+        "input_data": "You are a professional crypto market analyst.\nAnalyze the user's input (market news or query) and provide:\n1. Sentiment Score: A value between -1 (extremely bearish) and 1 (extremely bullish).\n2. Recommended Action: One of BUY, SELL, HOLD, or PANIC.\n3. Brief Summary: A 1-sentence explanation of your reasoning.\nCrypto piyasasında genel hava nasıl?",
+        "output": null,
+        "input_size": 348,
+        "output_size": 0,
+        "stage": "before"
+      },
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:24:14.978485",
+      "level": "WARNING",
+      "node_id": "analyzer",
+      "event_type": null,
+      "message": "[Node: analyzer] Model call attempt 1 failed: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'API key not valid. Please pass a valid API key.', 'status': 'INVALID_ARGUMENT', 'details': [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo', 'reason': 'API_KEY_INVALID', 'domain': 'googleapis.com', 'metadata': {'service': 'generativelanguage.googleapis.com'}}, {'@type': 'type.googleapis.com/google.rpc.LocalizedMessage', 'locale': 'en-US', 'message': 'API key not valid. Please pass a valid API key.'}]}}",
+      "details": {
+        "attempt": 1,
+        "max_attempts": 5,
+        "exception": "ClientError"
+      },
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:24:16.037793",
+      "level": "WARNING",
+      "node_id": "analyzer",
+      "event_type": null,
+      "message": "[Node: analyzer] Model call attempt 2 failed: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'API key not valid. Please pass a valid API key.', 'status': 'INVALID_ARGUMENT', 'details': [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo', 'reason': 'API_KEY_INVALID', 'domain': 'googleapis.com', 'metadata': {'service': 'generativelanguage.googleapis.com'}}, {'@type': 'type.googleapis.com/google.rpc.LocalizedMessage', 'locale': 'en-US', 'message': 'API key not valid. Please pass a valid API key.'}]}}",
+      "details": {
+        "attempt": 2,
+        "max_attempts": 5,
+        "exception": "ClientError"
+      },
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:24:17.404571",
+      "level": "WARNING",
+      "node_id": "analyzer",
+      "event_type": null,
+      "message": "[Node: analyzer] Model call attempt 3 failed: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'API key not valid. Please pass a valid API key.', 'status': 'INVALID_ARGUMENT', 'details': [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo', 'reason': 'API_KEY_INVALID', 'domain': 'googleapis.com', 'metadata': {'service': 'generativelanguage.googleapis.com'}}, {'@type': 'type.googleapis.com/google.rpc.LocalizedMessage', 'locale': 'en-US', 'message': 'API key not valid. Please pass a valid API key.'}]}}",
+      "details": {
+        "attempt": 3,
+        "max_attempts": 5,
+        "exception": "ClientError"
+      },
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:24:19.143556",
+      "level": "WARNING",
+      "node_id": "analyzer",
+      "event_type": null,
+      "message": "[Node: analyzer] Model call attempt 4 failed: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'API key not valid. Please pass a valid API key.', 'status': 'INVALID_ARGUMENT', 'details': [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo', 'reason': 'API_KEY_INVALID', 'domain': 'googleapis.com', 'metadata': {'service': 'generativelanguage.googleapis.com'}}, {'@type': 'type.googleapis.com/google.rpc.LocalizedMessage', 'locale': 'en-US', 'message': 'API key not valid. Please pass a valid API key.'}]}}",
+      "details": {
+        "attempt": 4,
+        "max_attempts": 5,
+        "exception": "ClientError"
+      },
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:24:21.168738",
+      "level": "ERROR",
+      "node_id": null,
+      "event_type": null,
+      "message": "[Node: analyzer] Error calling model: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'API key not valid. Please pass a valid API key.', 'status': 'INVALID_ARGUMENT', 'details': [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo', 'reason': 'API_KEY_INVALID', 'domain': 'googleapis.com', 'metadata': {'service': 'generativelanguage.googleapis.com'}}, {'@type': 'type.googleapis.com/google.rpc.LocalizedMessage', 'locale': 'en-US', 'message': 'API key not valid. Please pass a valid API key.'}]}}",
+      "details": {},
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:24:21.168994",
+      "level": "DEBUG",
+      "node_id": null,
+      "event_type": null,
+      "message": "Node analyzer cleaned up its input context after execution",
+      "details": {},
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:24:21.169021",
+      "level": "DEBUG",
+      "node_id": null,
+      "event_type": null,
+      "message": "Node analyzer processed 1 inputs into 1 output(s)",
+      "details": {},
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:24:21.169057",
+      "level": "INFO",
+      "node_id": "analyzer",
+      "event_type": "NODE_END",
+      "message": "Exiting node analyzer",
+      "details": {
+        "output": "Error calling model ${vars.MODEL}: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'API key not valid. Please pass a valid API key.', 'status': 'INVALID_ARGUMENT', 'details': [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo', 'reason': 'API_KEY_INVALID', 'domain': 'googleapis.com', 'metadata': {'service': 'generativelanguage.googleapis.com'}}, {'@type': 'type.googleapis.com/google.rpc.LocalizedMessage', 'locale': 'en-US', 'message': 'API key not valid. Please pass a valid API key.'}]}}\n\nOriginal input: === INPUT FROM TASK (user) ===\n\nCrypto piyasasında genel hava nasıl?...",
+        "output_size": 592,
+        "output_count": 1,
+        "output_role": "assistant",
+        "output_source": "analyzer"
+      },
+      "execution_path": [],
+      "duration": 6.41376805305481
+    },
+    {
+      "timestamp": "2026-02-05T16:24:21.169248",
+      "level": "DEBUG",
+      "node_id": null,
+      "event_type": null,
+      "message": "node analyzer completed successfully",
+      "details": {},
+      "execution_path": [],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:24:21.169844",
+      "level": "INFO",
+      "node_id": null,
+      "event_type": "WORKFLOW_END",
+      "message": "Workflow execution completed",
+      "details": {
+        "success": true,
+        "total_logs": 15,
+        "token_usage": {
+          "workflow_id": "sdk_sentiment_analysis_20260205162414",
+          "total_usage": {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0
+          },
+          "node_usages": {},
+          "model_usages": {},
+          "node_execution_counts": {},
+          "call_history": []
+        },
+        "final_result": "Error calling model ${vars.MODEL}: 400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': 'API key not valid. Please pass a valid API key.', 'status': 'INVALID_ARGUMENT', 'details': [{'@type': 'type.googleapis.com/google.rpc.ErrorInfo', 'reason': 'API_KEY_INVALID', 'domain': 'googleapis.com', 'metadata': {'service': 'generativelanguage.googleapis.com'}}, {'@type': 'type.googleapis.com/google.rpc.LocalizedMessage', 'locale': 'en-US', 'message': 'API key not valid. Please pass a valid API key.'}]}}\n\nOriginal input: === INPUT FROM TASK (user) ===\n\nCrypto piyasasında genel hava nasıl?..."
+      },
+      "execution_path": [],
+      "duration": 6.415925979614258
+    }
+  ],
+  "summary": {
+    "workflow_id": "sdk_sentiment_analysis_20260205162414",
+    "start_time": "2026-02-05T16:24:14.753908",
+    "total_duration": 6416.119,
+    "total_logs": 16,
+    "error_count": 1,
+    "warning_count": 4,
+    "node_durations": {
+      "analyzer": 6.41376805305481
+    },
+    "execution_path": []
+  }
+}

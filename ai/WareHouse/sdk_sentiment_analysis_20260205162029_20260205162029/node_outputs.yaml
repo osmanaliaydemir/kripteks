@@ -1,0 +1,27 @@
+node_analyzer:
+  node_id: analyzer
+  node_type: agent
+  predecessors_num: 0
+  successors_num: 0
+  results:
+  - type: message
+    payload:
+      role: assistant
+      content: 'Error calling model ${vars.MODEL}: Error code: 400 - {''error'': {''message'':
+        ''invalid model ID'', ''type'': ''invalid_request_error'', ''param'': None,
+        ''code'': None}}
+
+
+        Original input: === INPUT FROM TASK (user) ===
+
+
+        Crypto piyasasında genel hava nasıl?...'
+      metadata:
+        source: analyzer
+graph_summary:
+  total_nodes: 1
+  total_edges: 0
+  total_transmissions: 0
+  layers: 1
+  execution_completed: true
+  is_majority_voting: false

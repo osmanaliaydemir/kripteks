@@ -88,6 +88,9 @@ builder.Services.AddHttpClient<DeepSeekAiService>();
 builder.Services.AddHttpClient<GeminiAiService>();
 builder.Services.AddHttpClient<OpenAiService>();
 builder.Services.AddHttpClient<CryptoPanicNewsService>();
+builder.Services.AddHttpClient<ChatDevService>();
+
+builder.Services.AddScoped<IChatDevService, ChatDevService>(sp => sp.GetRequiredService<ChatDevService>());
 
 builder.Services.AddScoped<IAiProvider, DeepSeekAiService>(sp => sp.GetRequiredService<DeepSeekAiService>());
 builder.Services.AddScoped<IAiProvider, GeminiAiService>(sp => sp.GetRequiredService<GeminiAiService>());

@@ -1,0 +1,31 @@
+node_analyzer:
+  node_id: analyzer
+  node_type: agent
+  predecessors_num: 0
+  successors_num: 0
+  results:
+  - type: message
+    payload:
+      role: assistant
+      content: 'Error calling model ${vars.MODEL}: 400 INVALID_ARGUMENT. {''error'':
+        {''code'': 400, ''message'': ''API key not valid. Please pass a valid API
+        key.'', ''status'': ''INVALID_ARGUMENT'', ''details'': [{''@type'': ''type.googleapis.com/google.rpc.ErrorInfo'',
+        ''reason'': ''API_KEY_INVALID'', ''domain'': ''googleapis.com'', ''metadata'':
+        {''service'': ''generativelanguage.googleapis.com''}}, {''@type'': ''type.googleapis.com/google.rpc.LocalizedMessage'',
+        ''locale'': ''en-US'', ''message'': ''API key not valid. Please pass a valid
+        API key.''}]}}
+
+
+        Original input: === INPUT FROM TASK (user) ===
+
+
+        Crypto piyasasında genel hava nasıl?...'
+      metadata:
+        source: analyzer
+graph_summary:
+  total_nodes: 1
+  total_edges: 0
+  total_transmissions: 0
+  layers: 1
+  execution_completed: true
+  is_majority_voting: false

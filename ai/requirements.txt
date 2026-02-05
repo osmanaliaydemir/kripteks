@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+# chatdev-sdk (Not yet on PyPI, will assume it's installed or mockable for now)
+pydantic
+python-dotenv

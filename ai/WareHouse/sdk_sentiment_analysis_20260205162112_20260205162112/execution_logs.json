@@ -1,0 +1,261 @@
+{
+  "workflow_id": "sdk_sentiment_analysis_20260205162112",
+  "start_time": "2026-02-05T16:21:12.331537",
+  "logs": [
+    {
+      "timestamp": "2026-02-05T16:21:12.332485",
+      "level": "INFO",
+      "node_id": null,
+      "event_type": "WORKFLOW_START",
+      "message": "Workflow execution started",
+      "details": {
+        "workflow_id": "sdk_sentiment_analysis_20260205162112",
+        "node_count": 1,
+        "edge_count": 0
+      },
+      "execution_path": [],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:21:12.332806",
+      "level": "DEBUG",
+      "node_id": null,
+      "event_type": null,
+      "message": "Executing Layer 0 with nodes: ['analyzer']",
+      "details": {},
+      "execution_path": [],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:21:12.332826",
+      "level": "DEBUG",
+      "node_id": null,
+      "event_type": null,
+      "message": "Executing 1 items in parallel",
+      "details": {},
+      "execution_path": [],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:21:12.333832",
+      "level": "INFO",
+      "node_id": "analyzer",
+      "event_type": "NODE_START",
+      "message": "Entering node analyzer",
+      "details": {
+        "inputs": [
+          {
+            "role": "user",
+            "content": "Crypto piyasasında genel hava nasıl?",
+            "metadata": {
+              "source": "TASK"
+            }
+          }
+        ],
+        "node_type": "agent",
+        "input_count": 1,
+        "predecessors": [],
+        "successors": []
+      },
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:21:12.333951",
+      "level": "DEBUG",
+      "node_id": null,
+      "event_type": null,
+      "message": "Processing 1 inputs together for node analyzer",
+      "details": {},
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:21:12.361330",
+      "level": "INFO",
+      "node_id": "analyzer",
+      "event_type": "MODEL_CALL",
+      "message": "Model call for node analyzer",
+      "details": {
+        "model_name": "gpt-4o",
+        "input_data": "You are a professional crypto market analyst.\nAnalyze the user's input (market news or query) and provide:\n1. Sentiment Score: A value between -1 (extremely bearish) and 1 (extremely bullish).\n2. Recommended Action: One of BUY, SELL, HOLD, or PANIC.\n3. Brief Summary: A 1-sentence explanation of your reasoning.\nCrypto piyasasında genel hava nasıl?",
+        "output": null,
+        "input_size": 348,
+        "output_size": 0,
+        "stage": "before"
+      },
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:21:30.815752",
+      "level": "WARNING",
+      "node_id": "analyzer",
+      "event_type": null,
+      "message": "[Node: analyzer] Model call attempt 1 failed: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}",
+      "details": {
+        "attempt": 1,
+        "max_attempts": 5,
+        "exception": "RateLimitError"
+      },
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:21:51.268379",
+      "level": "WARNING",
+      "node_id": "analyzer",
+      "event_type": null,
+      "message": "[Node: analyzer] Model call attempt 2 failed: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}",
+      "details": {
+        "attempt": 2,
+        "max_attempts": 5,
+        "exception": "RateLimitError"
+      },
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:22:11.448977",
+      "level": "WARNING",
+      "node_id": "analyzer",
+      "event_type": null,
+      "message": "[Node: analyzer] Model call attempt 3 failed: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}",
+      "details": {
+        "attempt": 3,
+        "max_attempts": 5,
+        "exception": "RateLimitError"
+      },
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:22:33.320971",
+      "level": "WARNING",
+      "node_id": "analyzer",
+      "event_type": null,
+      "message": "[Node: analyzer] Model call attempt 4 failed: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}",
+      "details": {
+        "attempt": 4,
+        "max_attempts": 5,
+        "exception": "RateLimitError"
+      },
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:22:56.728627",
+      "level": "ERROR",
+      "node_id": null,
+      "event_type": null,
+      "message": "[Node: analyzer] Error calling model: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}",
+      "details": {},
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:22:56.729346",
+      "level": "DEBUG",
+      "node_id": null,
+      "event_type": null,
+      "message": "Node analyzer cleaned up its input context after execution",
+      "details": {},
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:22:56.729371",
+      "level": "DEBUG",
+      "node_id": null,
+      "event_type": null,
+      "message": "Node analyzer processed 1 inputs into 1 output(s)",
+      "details": {},
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:22:56.729436",
+      "level": "INFO",
+      "node_id": "analyzer",
+      "event_type": "NODE_END",
+      "message": "Exiting node analyzer",
+      "details": {
+        "output": "Error calling model gpt-4o: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}\n\nOriginal input: === INPUT FROM TASK (user) ===\n\nCrypto piyasasında genel hava nasıl?...",
+        "output_size": 427,
+        "output_count": 1,
+        "output_role": "assistant",
+        "output_source": "analyzer"
+      },
+      "execution_path": [],
+      "duration": 104.39529800415039
+    },
+    {
+      "timestamp": "2026-02-05T16:22:56.729805",
+      "level": "DEBUG",
+      "node_id": null,
+      "event_type": null,
+      "message": "node analyzer completed successfully",
+      "details": {},
+      "execution_path": [],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:22:56.730991",
+      "level": "INFO",
+      "node_id": null,
+      "event_type": "WORKFLOW_END",
+      "message": "Workflow execution completed",
+      "details": {
+        "success": true,
+        "total_logs": 15,
+        "token_usage": {
+          "workflow_id": "sdk_sentiment_analysis_20260205162112",
+          "total_usage": {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0
+          },
+          "node_usages": {},
+          "model_usages": {},
+          "node_execution_counts": {},
+          "call_history": []
+        },
+        "final_result": "Error calling model gpt-4o: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}\n\nOriginal input: === INPUT FROM TASK (user) ===\n\nCrypto piyasasında genel hava nasıl?..."
+      },
+      "execution_path": [],
+      "duration": 104.39943313598633
+    }
+  ],
+  "summary": {
+    "workflow_id": "sdk_sentiment_analysis_20260205162112",
+    "start_time": "2026-02-05T16:21:12.331537",
+    "total_duration": 104399.755,
+    "total_logs": 16,
+    "error_count": 1,
+    "warning_count": 4,
+    "node_durations": {
+      "analyzer": 104.39529800415039
+    },
+    "execution_path": []
+  }
+}

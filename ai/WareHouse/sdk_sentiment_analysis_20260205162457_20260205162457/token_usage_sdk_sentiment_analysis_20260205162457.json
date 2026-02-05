@@ -1,0 +1,12 @@
+{
+  "workflow_id": "sdk_sentiment_analysis_20260205162457",
+  "total_usage": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_tokens": 0
+  },
+  "node_usages": {},
+  "model_usages": {},
+  "node_execution_counts": {},
+  "call_history": []
+}

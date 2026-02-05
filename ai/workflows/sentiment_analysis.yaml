@@ -1,0 +1,27 @@
+version: 0.4.0
+name: sentiment_analysis
+description: Analyze market news and provide a trading recommendation.
+
+graph:
+  id: sentiment_analysis_graph
+  description: Crypto market sentiment analysis graph.
+  start:
+    - analyzer
+  nodes:
+    - id: analyzer
+      type: agent
+      config:
+        provider: openai
+        base_url: "https://api.deepseek.com"
+        api_key: ${API_KEY}
+        name: "deepseek-chat"
+        role: |
+          You are a professional crypto market analyst.
+          Analyze the user's input (market news or query) and provide:
+          1. Sentiment Score: A value between -1 (extremely bearish) and 1 (extremely bullish).
+          2. Recommended Action: One of BUY, SELL, HOLD, or PANIC.
+          3. Brief Summary: A 1-sentence explanation of your reasoning.
+        params:
+          temperature: 0.3
+          max_tokens: 500
+  edges: []

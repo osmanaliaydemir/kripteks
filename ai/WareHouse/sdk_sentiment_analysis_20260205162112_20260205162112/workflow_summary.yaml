@@ -1,0 +1,36 @@
+project: sdk_sentiment_analysis_20260205162112
+organization: DefaultOrg
+design_path: /Users/osmanaliaydemir/Documents/kripteks/ai/workflows/sentiment_analysis.yaml
+metadata:
+  design_id: sentiment_analysis_graph
+  node_count: 1
+  edge_count: 0
+  start:
+  - analyzer
+  end: null
+  catalog:
+    analyzer:
+      type: agent
+      description: null
+      model_name: gpt-4o
+      role: 'You are a professional crypto market analyst.
+
+        Analyze the user''s input (market news or query) and provide:
+
+        1. Sentiment Score: A value between -1 (extremely bearish) and 1 (extremely
+        bullish).
+
+        2. Recommended Action: One of BUY, SELL, HOLD, or PANIC.
+
+        3. Brief Summary: A 1-sentence explanation of your reasoning.
+
+        '
+      tools: []
+      memories: []
+      params:
+        temperature: 0.3
+        max_tokens: 500
+  topology:
+  - analyzer
+  layers:
+  - - analyzer

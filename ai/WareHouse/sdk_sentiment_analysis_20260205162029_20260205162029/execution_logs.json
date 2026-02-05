@@ -1,0 +1,261 @@
+{
+  "workflow_id": "sdk_sentiment_analysis_20260205162029",
+  "start_time": "2026-02-05T16:20:29.491428",
+  "logs": [
+    {
+      "timestamp": "2026-02-05T16:20:29.492075",
+      "level": "INFO",
+      "node_id": null,
+      "event_type": "WORKFLOW_START",
+      "message": "Workflow execution started",
+      "details": {
+        "workflow_id": "sdk_sentiment_analysis_20260205162029",
+        "node_count": 1,
+        "edge_count": 0
+      },
+      "execution_path": [],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:20:29.492257",
+      "level": "DEBUG",
+      "node_id": null,
+      "event_type": null,
+      "message": "Executing Layer 0 with nodes: ['analyzer']",
+      "details": {},
+      "execution_path": [],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:20:29.492273",
+      "level": "DEBUG",
+      "node_id": null,
+      "event_type": null,
+      "message": "Executing 1 items in parallel",
+      "details": {},
+      "execution_path": [],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:20:29.494134",
+      "level": "INFO",
+      "node_id": "analyzer",
+      "event_type": "NODE_START",
+      "message": "Entering node analyzer",
+      "details": {
+        "inputs": [
+          {
+            "role": "user",
+            "content": "Crypto piyasasında genel hava nasıl?",
+            "metadata": {
+              "source": "TASK"
+            }
+          }
+        ],
+        "node_type": "agent",
+        "input_count": 1,
+        "predecessors": [],
+        "successors": []
+      },
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:20:29.494257",
+      "level": "DEBUG",
+      "node_id": null,
+      "event_type": null,
+      "message": "Processing 1 inputs together for node analyzer",
+      "details": {},
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:20:29.603876",
+      "level": "INFO",
+      "node_id": "analyzer",
+      "event_type": "MODEL_CALL",
+      "message": "Model call for node analyzer",
+      "details": {
+        "model_name": "${vars.MODEL}",
+        "input_data": "You are a professional crypto market analyst.\nAnalyze the user's input (market news or query) and provide:\n1. Sentiment Score: A value between -1 (extremely bearish) and 1 (extremely bullish).\n2. Recommended Action: One of BUY, SELL, HOLD, or PANIC.\n3. Brief Summary: A 1-sentence explanation of your reasoning.\nCrypto piyasasında genel hava nasıl?",
+        "output": null,
+        "input_size": 348,
+        "output_size": 0,
+        "stage": "before"
+      },
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:20:33.837231",
+      "level": "WARNING",
+      "node_id": "analyzer",
+      "event_type": null,
+      "message": "[Node: analyzer] Model call attempt 1 failed: Error code: 400 - {'error': {'message': 'invalid model ID', 'type': 'invalid_request_error', 'param': None, 'code': None}}",
+      "details": {
+        "attempt": 1,
+        "max_attempts": 5,
+        "exception": "BadRequestError"
+      },
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:20:38.815420",
+      "level": "WARNING",
+      "node_id": "analyzer",
+      "event_type": null,
+      "message": "[Node: analyzer] Model call attempt 2 failed: Error code: 400 - {'error': {'message': 'invalid model ID', 'type': 'invalid_request_error', 'param': None, 'code': None}}",
+      "details": {
+        "attempt": 2,
+        "max_attempts": 5,
+        "exception": "BadRequestError"
+      },
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:20:42.377032",
+      "level": "WARNING",
+      "node_id": "analyzer",
+      "event_type": null,
+      "message": "[Node: analyzer] Model call attempt 3 failed: Error code: 400 - {'error': {'message': 'invalid model ID', 'type': 'invalid_request_error', 'param': None, 'code': None}}",
+      "details": {
+        "attempt": 3,
+        "max_attempts": 5,
+        "exception": "BadRequestError"
+      },
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:20:47.875407",
+      "level": "WARNING",
+      "node_id": "analyzer",
+      "event_type": null,
+      "message": "[Node: analyzer] Model call attempt 4 failed: Error code: 400 - {'error': {'message': 'invalid model ID', 'type': 'invalid_request_error', 'param': None, 'code': None}}",
+      "details": {
+        "attempt": 4,
+        "max_attempts": 5,
+        "exception": "BadRequestError"
+      },
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:20:56.482684",
+      "level": "ERROR",
+      "node_id": null,
+      "event_type": null,
+      "message": "[Node: analyzer] Error calling model: Error code: 400 - {'error': {'message': 'invalid model ID', 'type': 'invalid_request_error', 'param': None, 'code': None}}",
+      "details": {},
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:20:56.483142",
+      "level": "DEBUG",
+      "node_id": null,
+      "event_type": null,
+      "message": "Node analyzer cleaned up its input context after execution",
+      "details": {},
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:20:56.483169",
+      "level": "DEBUG",
+      "node_id": null,
+      "event_type": null,
+      "message": "Node analyzer processed 1 inputs into 1 output(s)",
+      "details": {},
+      "execution_path": [
+        "analyzer"
+      ],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:20:56.483220",
+      "level": "INFO",
+      "node_id": "analyzer",
+      "event_type": "NODE_END",
+      "message": "Exiting node analyzer",
+      "details": {
+        "output": "Error calling model ${vars.MODEL}: Error code: 400 - {'error': {'message': 'invalid model ID', 'type': 'invalid_request_error', 'param': None, 'code': None}}\n\nOriginal input: === INPUT FROM TASK (user) ===\n\nCrypto piyasasında genel hava nasıl?...",
+        "output_size": 246,
+        "output_count": 1,
+        "output_role": "assistant",
+        "output_source": "analyzer"
+      },
+      "execution_path": [],
+      "duration": 26.988791704177856
+    },
+    {
+      "timestamp": "2026-02-05T16:20:56.483528",
+      "level": "DEBUG",
+      "node_id": null,
+      "event_type": null,
+      "message": "node analyzer completed successfully",
+      "details": {},
+      "execution_path": [],
+      "duration": null
+    },
+    {
+      "timestamp": "2026-02-05T16:20:56.484593",
+      "level": "INFO",
+      "node_id": null,
+      "event_type": "WORKFLOW_END",
+      "message": "Workflow execution completed",
+      "details": {
+        "success": true,
+        "total_logs": 15,
+        "token_usage": {
+          "workflow_id": "sdk_sentiment_analysis_20260205162029",
+          "total_usage": {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0
+          },
+          "node_usages": {},
+          "model_usages": {},
+          "node_execution_counts": {},
+          "call_history": []
+        },
+        "final_result": "Error calling model ${vars.MODEL}: Error code: 400 - {'error': {'message': 'invalid model ID', 'type': 'invalid_request_error', 'param': None, 'code': None}}\n\nOriginal input: === INPUT FROM TASK (user) ===\n\nCrypto piyasasında genel hava nasıl?..."
+      },
+      "execution_path": [],
+      "duration": 26.993147134780884
+    }
+  ],
+  "summary": {
+    "workflow_id": "sdk_sentiment_analysis_20260205162029",
+    "start_time": "2026-02-05T16:20:29.491428",
+    "total_duration": 26993.405,
+    "total_logs": 16,
+    "error_count": 1,
+    "warning_count": 4,
+    "node_durations": {
+      "analyzer": 26.988791704177856
+    },
+    "execution_path": []
+  }
+}
