@@ -85,13 +85,17 @@ builder.Services.AddSingleton<IAuditLogService, AuditLogService>();
 builder.Services.AddSingleton<IMarketSentimentState, MarketSentimentState>();
 builder.Services.AddHttpClient<DeepSeekAiService>();
 builder.Services.AddHttpClient<GeminiAiService>();
+builder.Services.AddHttpClient<OpenAiService>();
+builder.Services.AddHttpClient<CryptoPanicNewsService>();
 
 builder.Services.AddScoped<IAiProvider, DeepSeekAiService>(sp => sp.GetRequiredService<DeepSeekAiService>());
 builder.Services.AddScoped<IAiProvider, GeminiAiService>(sp => sp.GetRequiredService<GeminiAiService>());
+builder.Services.AddScoped<IAiProvider, OpenAiService>(sp => sp.GetRequiredService<OpenAiService>());
 
 builder.Services.AddScoped<IAiService, AiOrchestratorService>();
-builder.Services.AddScoped<INewsService, CryptoPanicNewsService>();
+builder.Services.AddScoped<INewsService, CryptoPanicNewsService>(sp => sp.GetRequiredService<CryptoPanicNewsService>());
 builder.Services.AddHostedService<SentimentAnalysisJob>();
+
 
 // Stratejiler
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.GoldenRoseStrategy>();

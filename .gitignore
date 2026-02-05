@@ -12,6 +12,12 @@ backend/**/.vscode/
 backend/**/*.dll
 backend/**/*.pdb
 
+# CRITICAL: Prevent committing secrets in appsettings
+backend/**/appsettings.Development.json
+backend/**/appsettings.*.json
+!backend/**/appsettings.json
+secrets.json
+
 # Next.js
 frontend/.next/
 frontend/out/

@@ -1,4 +1,6 @@
+using Kripteks.Core.Entities;
 using Kripteks.Core.Interfaces;
+using Kripteks.Infrastructure.Data;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -12,7 +14,7 @@ public class SentimentAnalysisJob : BackgroundService
     private readonly IMarketSentimentState _sentimentState;
 
     public SentimentAnalysisJob(
-        IServiceProvider serviceProvider, 
+        IServiceProvider serviceProvider,
         ILogger<SentimentAnalysisJob> logger,
         IMarketSentimentState sentimentState)
     {
@@ -33,19 +35,34 @@ public class SentimentAnalysisJob : BackgroundService
                 {
                     var aiService = scope.ServiceProvider.GetRequiredService<IAiService>();
                     var newsService = scope.ServiceProvider.GetRequiredService<INewsService>();
+                    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
                     // Haberleri al
                     var news = await newsService.GetLatestNewsAsync();
-                    
+
                     if (news.Any())
                     {
                         // En taze haberi veya haberlerin birleşimini analiz et
-                        var combinedText = string.Join(". ", news.Take(3).Select(n => n.Title));
+                        var combinedText = string.Join(". ", news.Take(5).Select(n => n.Title));
                         var analysis = await aiService.AnalyzeTextAsync(combinedText);
-                        
+
                         _sentimentState.UpdateSentiment(analysis);
-                        
-                        _logger.LogInformation("Piyasa Duygu Durumu Güncellendi: {Score} ({Action})", 
+
+                        // Sentiment geçmişine kaydet
+                        var historyEntry = new SentimentHistory
+                        {
+                            Score = analysis.SentimentScore,
+                            Action = analysis.RecommendedAction,
+                            Symbol = "BTC",
+                            Summary = analysis.Summary,
+                            RecordedAt = DateTime.UtcNow,
+                            ModelCount = analysis.ProviderDetails?.Count ?? 2
+                        };
+
+                        dbContext.SentimentHistories.Add(historyEntry);
+                        await dbContext.SaveChangesAsync(stoppingToken);
+
+                        _logger.LogInformation("Piyasa Duygu Durumu Güncellendi ve Kaydedildi: {Score} ({Action})",
                             analysis.SentimentScore, analysis.RecommendedAction);
                     }
                 }
@@ -55,7 +72,7 @@ public class SentimentAnalysisJob : BackgroundService
                 _logger.LogError(ex, "Sentiment analizi sırasında hata oluştu.");
             }
 
-            // Her 5 dakikada bir analiz yap (Hızlı test için 1 dk yapabiliriz)
+            // Her 5 dakikada bir analiz yap
             await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
         }
     }

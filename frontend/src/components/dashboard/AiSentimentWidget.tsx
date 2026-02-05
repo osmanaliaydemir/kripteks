@@ -44,16 +44,6 @@ export default function AiSentimentWidget() {
         return () => clearInterval(interval);
     }, []);
 
-    if (loading && !data) {
-        return (
-            <div className="h-full flex items-center justify-center bg-slate-950/50 border border-white/5 rounded-2xl p-6">
-                <RefreshCw className="animate-spin text-slate-500" />
-            </div>
-        );
-    }
-
-    if (!data) return null;
-
     const getScoreColor = (score: number) => {
         if (score > 0.3) return "text-emerald-400";
         if (score < -0.3) return "text-rose-400";
@@ -67,11 +57,19 @@ export default function AiSentimentWidget() {
         return "bg-amber-500/10 text-amber-500 border-amber-500/20";
     };
 
+    const displayData = data || {
+        sentimentScore: 0,
+        summary: "Piyasa verileri analiz ediliyor veya API anahtarı bekleniyor...",
+        recommendedAction: "BEKLEMEDE",
+        analyzedAt: new Date().toISOString()
+    };
+
+
     return (
         <>
             <div className="bg-slate-950/50 border border-white/5 rounded-2xl p-6 relative overflow-hidden group">
                 {/* Background Glow */}
-                <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br ${data.sentimentScore > 0 ? 'from-emerald-500/5' : 'from-rose-500/5'} to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none`} />
+                <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br ${displayData.sentimentScore > 0 ? 'from-emerald-500/5' : 'from-rose-500/5'} to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none`} />
 
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-2">
@@ -87,8 +85,8 @@ export default function AiSentimentWidget() {
                         </div>
                     </div>
 
-                    <div className={`px-3 py-1 rounded-full border text-xs font-bold ${getActionColor(data.recommendedAction)}`}>
-                        {data.recommendedAction}
+                    <div className={`px-3 py-1 rounded-full border text-xs font-bold ${getActionColor(displayData.recommendedAction)}`}>
+                        {displayData.recommendedAction}
                     </div>
                 </div>
 
@@ -101,13 +99,13 @@ export default function AiSentimentWidget() {
                         </div>
                         <div className="h-2 bg-slate-800 rounded-full overflow-hidden relative">
                             <div
-                                className={`absolute top-0 bottom-0 w-2 h-full rounded-full transition-all duration-1000 ${getScoreColor(data.sentimentScore).replace('text-', 'bg-')}`}
-                                style={{ left: `${((data.sentimentScore + 1) / 2) * 100}%`, transform: 'translateX(-50%)' }}
+                                className={`absolute top-0 bottom-0 w-2 h-full rounded-full transition-all duration-1000 ${getScoreColor(displayData.sentimentScore).replace('text-', 'bg-')}`}
+                                style={{ left: `${((displayData.sentimentScore + 1) / 2) * 100}%`, transform: 'translateX(-50%)' }}
                             />
                             <div className="absolute top-0 bottom-0 left-1/2 w-px bg-white/20" />
                         </div>
-                        <div className={`text-center mt-2 font-mono text-xl font-bold ${getScoreColor(data.sentimentScore)}`}>
-                            {data.sentimentScore.toFixed(2)}
+                        <div className={`text-center mt-2 font-mono text-xl font-bold ${getScoreColor(displayData.sentimentScore)}`}>
+                            {displayData.sentimentScore.toFixed(2)}
                         </div>
                     </div>
 
@@ -119,18 +117,18 @@ export default function AiSentimentWidget() {
                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">AI İçgörü</span>
                             </div>
                             <span className="text-[9px] text-indigo-400/80 font-bold bg-indigo-500/5 px-2 py-0.5 rounded-full border border-indigo-500/10">
-                                {data.providerDetails?.length || 0} Model
+                                {displayData.providerDetails?.length || 0} Model
                             </span>
                         </div>
                         <p className="text-[13px] text-slate-200 leading-relaxed font-medium transition-all group-hover:text-white">
-                            {data.summary}
+                            {displayData.summary}
                         </p>
                     </div>
 
                     <div className="flex justify-between items-center text-[10px] text-slate-600 font-mono pt-1">
                         <div className="flex items-center gap-1">
                             <span className="w-1 h-1 rounded-full bg-slate-700" />
-                            <span>Son Güncelleme: {new Date(data.analyzedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span suppressHydrationWarning>Son Güncelleme: {new Date(displayData.analyzedAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <button
@@ -156,10 +154,11 @@ export default function AiSentimentWidget() {
             <AiDetailModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                providerDetails={data.providerDetails || []}
-                consensusScore={data.sentimentScore}
-                analyzedAt={data.analyzedAt}
+                providerDetails={displayData.providerDetails || []}
+                consensusScore={displayData.sentimentScore}
+                analyzedAt={displayData.analyzedAt}
             />
+
         </>
     );
 }

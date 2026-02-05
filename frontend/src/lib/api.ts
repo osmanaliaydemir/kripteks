@@ -1,4 +1,4 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5292";
 export const API_URL = `${BASE_URL}/api`;
 export const HUB_URL = `${BASE_URL}/bot-hub`;
 

@@ -56,8 +56,8 @@ import { StrategyModal } from "@/components/dashboard/StrategyModal";
 import { InfoTooltip } from "@/components/dashboard/InfoTooltip";
 import { StatCardSkeleton, BotCardSkeleton } from "@/components/ui/Skeletons";
 import AiSentimentWidget from "@/components/dashboard/AiSentimentWidget";
-
-
+import SentimentTrendChart from "@/components/dashboard/SentimentTrendChart";
+import AiChatWidget from "@/components/dashboard/AiChatWidget";
 
 
 
@@ -279,236 +279,244 @@ export default function Dashboard() {
     const historyBots = bots.filter(b => b.status !== 'Running' && b.status !== 'WaitingForEntry');
 
     return (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20">
+        <>
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20">
 
-            {/* HEADER BAR */}
-            <Navbar user={user} />
+                {/* HEADER BAR */}
+                <Navbar user={user} />
 
 
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                {/* LEFT COLUMN - CREATE BOT */}
-                <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-8 h-fit">
-                    <div className="glass-card p-1 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none group-hover:bg-primary/30 transition-all duration-700"></div>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    {/* LEFT COLUMN - CREATE BOT */}
+                    <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-8 h-fit">
+                        <div className="glass-card p-1 relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none group-hover:bg-primary/30 transition-all duration-700"></div>
 
-                        <div className="bg-slate-900/50 rounded-xl p-8 relative z-10 text-center">
-                            <div className="w-20 h-20 bg-linear-to-br from-primary to-amber-500 rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-primary/20 mb-6 group-hover:scale-110 transition-transform duration-500">
-                                <Zap size={40} className="text-white fill-white" />
+                            <div className="bg-slate-900/50 rounded-xl p-8 relative z-10 text-center">
+                                <div className="w-20 h-20 bg-linear-to-br from-primary to-amber-500 rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-primary/20 mb-6 group-hover:scale-110 transition-transform duration-500">
+                                    <Zap size={40} className="text-white fill-white" />
+                                </div>
+
+                                <h2 className="text-2xl font-display font-bold text-white mb-2">Yeni Bot Başlat</h2>
+                                <p className="text-sm text-slate-400 mb-8 leading-relaxed max-w-[250px] mx-auto">
+                                    Yapay zeka destekli otonom alım-satım botunu saniyeler içinde kurun ve kazanmaya başlayın.
+                                </p>
+
+                                <button
+                                    onClick={() => setIsWizardOpen(true)}
+                                    className="w-full bg-linear-to-r from-primary to-amber-500 hover:to-amber-400 text-slate-900 font-display font-bold py-4 rounded-xl shadow-lg shadow-primary/20 active:scale-[0.98] transition-all flex justify-center items-center gap-2 group/btn"
+                                >
+                                    <Zap className="fill-current w-5 h-5 group-hover/btn:scale-110 transition-transform" />
+                                    Bot Sihirbazını Aç
+                                </button>
                             </div>
-
-                            <h2 className="text-2xl font-display font-bold text-white mb-2">Yeni Bot Başlat</h2>
-                            <p className="text-sm text-slate-400 mb-8 leading-relaxed max-w-[250px] mx-auto">
-                                Yapay zeka destekli otonom alım-satım botunu saniyeler içinde kurun ve kazanmaya başlayın.
-                            </p>
-
-                            <button
-                                onClick={() => setIsWizardOpen(true)}
-                                className="w-full bg-linear-to-r from-primary to-amber-500 hover:to-amber-400 text-slate-900 font-display font-bold py-4 rounded-xl shadow-lg shadow-primary/20 active:scale-[0.98] transition-all flex justify-center items-center gap-2 group/btn"
-                            >
-                                <Zap className="fill-current w-5 h-5 group-hover/btn:scale-110 transition-transform" />
-                                Bot Sihirbazını Aç
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* AI Sentiment Widget */}
-                    <AiSentimentWidget />
-                </div>
-
-                {/* RIGHT COLUMN - TABS & CONTENT */}
-                <div className="lg:col-span-8">
-                    {/* STATS BAR */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        {isLoading ? (
-                            <>
-                                <StatCardSkeleton />
-                                <StatCardSkeleton />
-                                <StatCardSkeleton />
-                            </>
-                        ) : (
-                            <>
-                                <StatCard
-                                    title="Aktif Botlar"
-                                    value={stats?.active_bots || 0}
-                                    icon={<Activity size={20} />}
-                                    delay={0.1}
-                                />
-                                <StatCard
-                                    title="Toplam Bakiye"
-                                    value={`$${wallet?.current_balance?.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
-                                    icon={<WalletIcon size={20} />}
-                                    delay={0.2}
-                                    highlight
-                                    onClick={() => openWallet()}
-                                />
-                                <StatCard
-                                    title="İşlem Hacmi"
-                                    value={`$${stats?.total_volume?.toLocaleString() || 0}`}
-                                    icon={<BarChart2 size={20} />}
-                                    delay={0.3}
-                                />
-                            </>
-                        )}
-                    </div>
-                    {/* TAB NAVIGATION & ACTIONS */}
-                    <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                        <div className="glass-card p-1.5 flex gap-1 w-fit bg-slate-900/60">
-                            <TabButton id="active" label="Aktif Botlar" count={activeBots.length} activeTab={activeTab} setActiveTab={setActiveTab} icon={<Activity size={16} />} />
-                            <TabButton id="history" label="Geçmiş" activeTab={activeTab} setActiveTab={setActiveTab} icon={<History size={16} />} />
                         </div>
 
-                        {activeTab === 'active' && activeBots.length > 0 && (
-                            <button
-                                onClick={() => setIsStopAllConfirmOpen(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-xl hover:bg-rose-600 hover:text-white transition-all text-xs font-bold uppercase tracking-wider group"
-                            >
-                                <OctagonX size={16} className="group-hover:animate-pulse" />
-                                Tüm İşlemleri Durdur
-                            </button>
-                        )}
+                        {/* AI Sentiment Widget */}
+                        {/* <AiSentimentWidget /> */}
 
-                        {activeTab === 'history' && historyBots.length > 0 && (
-                            <button
-                                onClick={() => setIsClearHistoryConfirmOpen(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-slate-400 border border-white/5 rounded-xl hover:bg-slate-700 hover:text-white transition-all text-xs font-bold uppercase tracking-wider group"
-                            >
-                                <History size={16} />
-                                Geçmişi Temizle
-                            </button>
-                        )}
+                        {/* Sentiment Trend Chart */}
+                        {/* <SentimentTrendChart /> */}
                     </div>
 
-                    {/* CONTENT AREA */}
-                    <div className="min-h-[500px]">
-                        <AnimatePresence mode="wait">
+                    {/* RIGHT COLUMN - TABS & CONTENT */}
+                    <div className="lg:col-span-8">
+                        {/* STATS BAR */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                             {isLoading ? (
-                                <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
-                                    <BotCardSkeleton />
-                                    <BotCardSkeleton />
-                                    <BotCardSkeleton />
-                                </motion.div>
+                                <>
+                                    <StatCardSkeleton />
+                                    <StatCardSkeleton />
+                                    <StatCardSkeleton />
+                                </>
                             ) : (
                                 <>
-                                    {/* ACTIVE BOTS TAB */}
-                                    {activeTab === 'active' && (
-                                        <motion.div key="active" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
-                                            {activeBots.length === 0 ? (
-                                                <EmptyState title="Sistem Boşta" description="İşlem yapmak için sol panelden yeni bir bot başlatın." icon={<Cpu size={48} />} />
-                                            ) : (
-                                                activeBots.map((bot) => (
-                                                    <BotCard key={bot.id} bot={bot} isActive={true} activeChartBotId={activeChartBotId} setActiveChartBotId={setActiveChartBotId} handleStopBot={handleStopBot} onStrategyClick={setSelectedStrategyId} />
-                                                ))
-                                            )}
-                                        </motion.div>
-                                    )}
-
-                                    {/* HISTORY BOTS TAB */}
-                                    {activeTab === 'history' && (
-                                        <motion.div key="history" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
-                                            {historyBots.length === 0 ? (
-                                                <EmptyState title="Geçmiş Yok" description="Tamamlanan işlemler burada görünecektir." icon={<History size={48} />} />
-                                            ) : (
-                                                historyBots.map((bot) => (
-                                                    <BotCard key={bot.id} bot={bot} isActive={false} activeChartBotId={activeChartBotId} setActiveChartBotId={setActiveChartBotId} handleStopBot={handleStopBot} onStrategyClick={setSelectedStrategyId} />
-                                                ))
-                                            )}
-                                        </motion.div>
-                                    )}
+                                    <StatCard
+                                        title="Aktif Botlar"
+                                        value={stats?.active_bots || 0}
+                                        icon={<Activity size={20} />}
+                                        delay={0.1}
+                                    />
+                                    <StatCard
+                                        title="Toplam Bakiye"
+                                        value={`$${wallet?.current_balance?.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+                                        icon={<WalletIcon size={20} />}
+                                        delay={0.2}
+                                        highlight
+                                        onClick={() => openWallet()}
+                                    />
+                                    <StatCard
+                                        title="İşlem Hacmi"
+                                        value={`$${stats?.total_volume?.toLocaleString() || 0}`}
+                                        icon={<BarChart2 size={20} />}
+                                        delay={0.3}
+                                    />
                                 </>
                             )}
-                        </AnimatePresence>
-                    </div>
+                        </div>
+                        {/* TAB NAVIGATION & ACTIONS */}
+                        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                            <div className="glass-card p-1.5 flex gap-1 w-fit bg-slate-900/60">
+                                <TabButton id="active" label="Aktif Botlar" count={activeBots.length} activeTab={activeTab} setActiveTab={setActiveTab} icon={<Activity size={16} />} />
+                                <TabButton id="history" label="Geçmiş" activeTab={activeTab} setActiveTab={setActiveTab} icon={<History size={16} />} />
+                            </div>
 
+                            {activeTab === 'active' && activeBots.length > 0 && (
+                                <button
+                                    onClick={() => setIsStopAllConfirmOpen(true)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-xl hover:bg-rose-600 hover:text-white transition-all text-xs font-bold uppercase tracking-wider group"
+                                >
+                                    <OctagonX size={16} className="group-hover:animate-pulse" />
+                                    Tüm İşlemleri Durdur
+                                </button>
+                            )}
 
-                    {/* Confirmation Modal */}
-                    <AnimatePresence>
-                        {
-                            confirmStopId && (
-                                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.95 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.95 }}
-                                        className="bg-slate-900 border border-white/10 rounded-2xl p-6 max-w-sm w-full shadow-2xl"
-                                    >
-                                        <div className="flex flex-col items-center text-center gap-4">
-                                            <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center text-amber-500 mb-2">
-                                                <AlertTriangle size={32} />
-                                            </div>
+                            {activeTab === 'history' && historyBots.length > 0 && (
+                                <button
+                                    onClick={() => setIsClearHistoryConfirmOpen(true)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-slate-400 border border-white/5 rounded-xl hover:bg-slate-700 hover:text-white transition-all text-xs font-bold uppercase tracking-wider group"
+                                >
+                                    <History size={16} />
+                                    Geçmişi Temizle
+                                </button>
+                            )}
+                        </div>
 
-                                            <div>
-                                                <h3 className="text-white font-bold text-xl mb-2">Bot Durdurma Onayı</h3>
-                                                <p className="text-slate-400 text-sm">
-                                                    Bu botu ve açık olan pozisyonu kapatmak istediğinize emin misiniz? <br />
-                                                    <span className="text-rose-400 font-bold">Bu işlem geri alınamaz.</span>
-                                                </p>
-                                            </div>
-
-                                            <div className="flex gap-3 w-full mt-2">
-                                                <button
-                                                    onClick={() => setConfirmStopId(null)}
-                                                    className="flex-1 py-3 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold transition-colors"
-                                                >
-                                                    Vazgeç
-                                                </button>
-                                                <button
-                                                    onClick={executeStopBot}
-                                                    className="flex-1 py-3 rounded-xl bg-rose-600 text-white hover:bg-rose-500 font-bold transition-colors shadow-lg shadow-rose-600/20"
-                                                >
-                                                    Evet, Durdur
-                                                </button>
-                                            </div>
-                                        </div>
+                        {/* CONTENT AREA */}
+                        <div className="min-h-[500px]">
+                            <AnimatePresence mode="wait">
+                                {isLoading ? (
+                                    <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+                                        <BotCardSkeleton />
+                                        <BotCardSkeleton />
+                                        <BotCardSkeleton />
                                     </motion.div>
-                                </div>
-                            )
-                        }
-                    </AnimatePresence >
+                                ) : (
+                                    <>
+                                        {/* ACTIVE BOTS TAB */}
+                                        {activeTab === 'active' && (
+                                            <motion.div key="active" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
+                                                {activeBots.length === 0 ? (
+                                                    <EmptyState title="Sistem Boşta" description="İşlem yapmak için sol panelden yeni bir bot başlatın." icon={<Cpu size={48} />} />
+                                                ) : (
+                                                    activeBots.map((bot) => (
+                                                        <BotCard key={bot.id} bot={bot} isActive={true} activeChartBotId={activeChartBotId} setActiveChartBotId={setActiveChartBotId} handleStopBot={handleStopBot} onStrategyClick={setSelectedStrategyId} />
+                                                    ))
+                                                )}
+                                            </motion.div>
+                                        )}
 
-                    {/* Strategy Details Modal */}
-                    <StrategyModal
-                        isOpen={!!selectedStrategyId}
-                        onClose={() => setSelectedStrategyId(null)}
-                        strategyId={selectedStrategyId}
-                    />
+                                        {/* HISTORY BOTS TAB */}
+                                        {activeTab === 'history' && (
+                                            <motion.div key="history" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
+                                                {historyBots.length === 0 ? (
+                                                    <EmptyState title="Geçmiş Yok" description="Tamamlanan işlemler burada görünecektir." icon={<History size={48} />} />
+                                                ) : (
+                                                    historyBots.map((bot) => (
+                                                        <BotCard key={bot.id} bot={bot} isActive={false} activeChartBotId={activeChartBotId} setActiveChartBotId={setActiveChartBotId} handleStopBot={handleStopBot} onStrategyClick={setSelectedStrategyId} />
+                                                    ))
+                                                )}
+                                            </motion.div>
+                                        )}
+                                    </>
+                                )}
+                            </AnimatePresence>
+                        </div>
 
-                    {/* Bot Wizard Modal */}
-                    <BotWizardModal
-                        isOpen={isWizardOpen}
-                        onClose={() => setIsWizardOpen(false)}
-                        coins={coins}
-                        strategies={strategies}
-                        wallet={wallet}
-                        onBotCreate={handleBotCreate}
-                        isCoinsLoading={isCoinsLoading}
-                        refreshCoins={refreshCoins}
-                    />
 
-                    {/* Stop All Confirmation Modal */}
-                    <ConfirmationModal
-                        isOpen={isStopAllConfirmOpen}
-                        title="ACİL DURDURMA"
-                        message="DİKKAT! Bu işlem çalışan TÜM botları durduracak ve açık olan tüm pozisyonları piyasa fiyatından kapatacaktır. Bu işlem geri alınamaz. Devam etmek istiyor musunuz?"
-                        onConfirm={handleStopAllBots}
-                        onCancel={() => setIsStopAllConfirmOpen(false)}
-                        confirmText="Evet, Her Şeyi Kapat"
-                        isDangerous={true}
-                    />
+                        {/* Confirmation Modal */}
+                        <AnimatePresence>
+                            {
+                                confirmStopId && (
+                                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.95 }}
+                                            className="bg-slate-900 border border-white/10 rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+                                        >
+                                            <div className="flex flex-col items-center text-center gap-4">
+                                                <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center text-amber-500 mb-2">
+                                                    <AlertTriangle size={32} />
+                                                </div>
 
-                    {/* Clear History Confirmation Modal */}
-                    <ConfirmationModal
-                        isOpen={isClearHistoryConfirmOpen}
-                        title="GEÇMİŞİ TEMİZLE"
-                        message="İşlem geçmişinizi temizlemek istediğinize emin misiniz? Bu işlem sadece bu listeden kaldırır, veritabanında kayıtlı kalmaya devam eder."
-                        onConfirm={handleClearHistory}
-                        onCancel={() => setIsClearHistoryConfirmOpen(false)}
-                        confirmText="Evet, Temizle"
-                        isDangerous={false}
-                    />
+                                                <div>
+                                                    <h3 className="text-white font-bold text-xl mb-2">Bot Durdurma Onayı</h3>
+                                                    <p className="text-slate-400 text-sm">
+                                                        Bu botu ve açık olan pozisyonu kapatmak istediğinize emin misiniz? <br />
+                                                        <span className="text-rose-400 font-bold">Bu işlem geri alınamaz.</span>
+                                                    </p>
+                                                </div>
+
+                                                <div className="flex gap-3 w-full mt-2">
+                                                    <button
+                                                        onClick={() => setConfirmStopId(null)}
+                                                        className="flex-1 py-3 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold transition-colors"
+                                                    >
+                                                        Vazgeç
+                                                    </button>
+                                                    <button
+                                                        onClick={executeStopBot}
+                                                        className="flex-1 py-3 rounded-xl bg-rose-600 text-white hover:bg-rose-500 font-bold transition-colors shadow-lg shadow-rose-600/20"
+                                                    >
+                                                        Evet, Durdur
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    </div>
+                                )
+                            }
+                        </AnimatePresence >
+
+                        {/* Strategy Details Modal */}
+                        <StrategyModal
+                            isOpen={!!selectedStrategyId}
+                            onClose={() => setSelectedStrategyId(null)}
+                            strategyId={selectedStrategyId}
+                        />
+
+                        {/* Bot Wizard Modal */}
+                        <BotWizardModal
+                            isOpen={isWizardOpen}
+                            onClose={() => setIsWizardOpen(false)}
+                            coins={coins}
+                            strategies={strategies}
+                            wallet={wallet}
+                            onBotCreate={handleBotCreate}
+                            isCoinsLoading={isCoinsLoading}
+                            refreshCoins={refreshCoins}
+                        />
+
+                        {/* Stop All Confirmation Modal */}
+                        <ConfirmationModal
+                            isOpen={isStopAllConfirmOpen}
+                            title="ACİL DURDURMA"
+                            message="DİKKAT! Bu işlem çalışan TÜM botları durduracak ve açık olan tüm pozisyonları piyasa fiyatından kapatacaktır. Bu işlem geri alınamaz. Devam etmek istiyor musunuz?"
+                            onConfirm={handleStopAllBots}
+                            onCancel={() => setIsStopAllConfirmOpen(false)}
+                            confirmText="Evet, Her Şeyi Kapat"
+                            isDangerous={true}
+                        />
+
+                        {/* Clear History Confirmation Modal */}
+                        <ConfirmationModal
+                            isOpen={isClearHistoryConfirmOpen}
+                            title="GEÇMİŞİ TEMİZLE"
+                            message="İşlem geçmişinizi temizlemek istediğinize emin misiniz? Bu işlem sadece bu listeden kaldırır, veritabanında kayıtlı kalmaya devam eder."
+                            onConfirm={handleClearHistory}
+                            onCancel={() => setIsClearHistoryConfirmOpen(false)}
+                            confirmText="Evet, Temizle"
+                            isDangerous={false}
+                        />
+                    </div>
                 </div>
-            </div>
-        </main>
+            </main>
+
+            {/* AI Chat Widget - Floating */}
+            {/* <AiChatWidget /> */}
+        </>
     );
 }
 

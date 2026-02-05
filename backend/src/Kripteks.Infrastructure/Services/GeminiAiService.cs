@@ -27,76 +27,96 @@ public class GeminiAiService : IAiProvider
     {
         if (string.IsNullOrEmpty(_apiKey))
         {
-            return MockAnalyze(text);
+            throw new InvalidOperationException("Gemini API anahtarı ayarlanmamış.");
         }
 
         try
         {
+            var prompt =
+                $@"Sen deneyimli bir kripto piyasa analistisin. Verilen haber başlıklarını analiz et ve piyasa duyarlılığını değerlendir. 
+yanıtını SADECE şu JSON formatında ver, markdown kullanma: 
+{{""score"": float (-1.0 çok olumsuz, 0 nötr, 1.0 çok olumlu), ""action"": ""AL|TUT|SAT|PANİK SAT"", ""summary"": ""Türkçe detaylı piyasa yorumu (en az 2 cümle)""}}
+
+Analiz edilecek haberler: {text}";
+
             var requestBody = new
             {
-                model = "gemini-1.5-flash",
-                messages = new[]
+                contents = new[]
                 {
                     new
                     {
-                        role = "system",
-                        content =
-                            "Sen deneyimli bir kripto piyasa analistisin. Verilen haber başlıklarını analiz et ve piyasa duyarlılığını değerlendir. Yanıtını şu JSON formatında ver: {\"score\": float (-1.0 çok olumsuz, 0 nötr, 1.0 çok olumlu), \"action\": \"AL|TUT|SAT|PANİK SAT\", \"summary\": \"Türkçe detaylı piyasa yorumu (en az 2 cümle)\"}"
-                    },
-                    new { role = "user", content = $"Şu haber başlıklarını analiz et ve piyasa yorumu yap: {text}" }
+                        parts = new[]
+                        {
+                            new { text = prompt }
+                        }
+                    }
                 },
-                response_format = new { type = "json_object" },
-                temperature = 0.3
+                generationConfig = new
+                {
+                    response_mime_type = "application/json"
+                }
             };
 
-            // Gemini OpenAI endpoint doesn't use Bearer token if key is in URL, 
-            // but we can also use header if preferred. URL key is easier for Gemini.
-            var url = $"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key={_apiKey}";
+            var url =
+                $"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={_apiKey}";
 
             var response = await _httpClient.PostAsJsonAsync(url, requestBody);
-            response.EnsureSuccessStatusCode();
 
-            var result = await response.Content.ReadFromJsonAsync<GeminiResponse>();
-            var jsonContent = result?.Choices?.FirstOrDefault()?.Message?.Content;
-
-            if (!string.IsNullOrEmpty(jsonContent))
+            if (!response.IsSuccessStatusCode)
             {
-                var analysis = JsonSerializer.Deserialize<GeminiAnalysisResult>(jsonContent,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                if (analysis != null)
-                {
-                    return new AiAnalysisResult
-                    {
-                        SentimentScore = analysis.Score,
-                        RecommendedAction = analysis.Action ?? "HOLD",
-                        Summary = analysis.Summary ?? "Gemini'den yanıt alınamadı.",
-                        AnalyzedAt = DateTime.UtcNow
-                    };
-                }
+                var errorBody = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Gemini API Hatası ({response.StatusCode}): {errorBody}");
             }
 
-            return MockAnalyze(text);
+            var result = await response.Content.ReadFromJsonAsync<GeminiNativeResponse>();
+            var jsonContent = result?.Candidates?.FirstOrDefault()?.Content?.Parts?.FirstOrDefault()?.Text;
+
+            if (string.IsNullOrEmpty(jsonContent))
+            {
+                throw new Exception("Gemini API'den boş yanıt döndü.");
+            }
+
+            // Temizlik (Markdown ```json ... ``` varsa kaldır)
+            jsonContent = jsonContent.Replace("```json", "").Replace("```", "").Trim();
+
+            var analysis = JsonSerializer.Deserialize<GeminiAnalysisResult>(jsonContent,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            if (analysis == null) throw new Exception("Gemini yanıtı parse edilemedi.");
+
+            return new AiAnalysisResult
+            {
+                SentimentScore = analysis.Score,
+                RecommendedAction = analysis.Action ?? "HOLD",
+                Summary = analysis.Summary ?? "Gemini verisi alındı.",
+                AnalyzedAt = DateTime.UtcNow
+            };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Gemini API hatası: {Message}", ex.Message);
-            return MockAnalyze(text);
+            _logger.LogError(ex, "Gemini API hatası");
+            throw;
         }
     }
 
-    private class GeminiResponse
+    private class GeminiNativeResponse
     {
-        [JsonPropertyName("choices")] public List<Choice>? Choices { get; set; }
+        [JsonPropertyName("candidates")] public List<Candidate>? Candidates { get; set; }
     }
 
-    private class Choice
+    private class Candidate
     {
-        [JsonPropertyName("message")] public Message? Message { get; set; }
+        [JsonPropertyName("content")] public Content? Content { get; set; }
     }
 
-    private class Message
+    private class Content
     {
-        [JsonPropertyName("content")] public string? Content { get; set; }
+        [JsonPropertyName("parts")] public List<Part>? Parts { get; set; }
+    }
+
+    private class Part
+    {
+        [JsonPropertyName("text")] public string? Text { get; set; }
     }
 
     private class GeminiAnalysisResult
@@ -105,22 +125,5 @@ public class GeminiAiService : IAiProvider
         public string? Action { get; set; }
         public string? Summary { get; set; }
     }
-
-    private AiAnalysisResult MockAnalyze(string text)
-    {
-        var rng = new Random();
-        float score = (float)(rng.NextDouble() * 2 - 1);
-
-        string action = score > 0.4f ? "AL" : score < -0.4f ? "SAT" : "TUT";
-        string sentiment = score > 0.3f ? "pozitif" : score < -0.3f ? "negatif" : "nötr";
-
-        return new AiAnalysisResult
-        {
-            SentimentScore = score,
-            Summary =
-                $"Kripto piyasasında {sentiment} sinyaller gözlemleniyor. Mevcut haberler {(score > 0 ? "alıcıları destekler" : "satış baskısı oluşturabilir")} nitelikte.",
-            RecommendedAction = action,
-            AnalyzedAt = DateTime.UtcNow
-        };
-    }
 }
+

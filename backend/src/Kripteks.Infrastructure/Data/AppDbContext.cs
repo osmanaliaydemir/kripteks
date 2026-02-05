@@ -15,6 +15,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<SystemSetting> SystemSettings { get; set; }
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<AuditLog> AuditLogs { get; set; }
+    public DbSet<SentimentHistory> SentimentHistories { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

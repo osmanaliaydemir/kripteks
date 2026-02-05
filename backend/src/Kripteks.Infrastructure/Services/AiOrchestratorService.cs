@@ -18,53 +18,64 @@ public class AiOrchestratorService : IAiService
     public async Task<AiAnalysisResult> AnalyzeTextAsync(string text)
     {
         var providerList = _providers.ToList();
-        var tasks = providerList.Select(p => p.AnalyzeTextAsync(text)).ToList();
-        var results = await Task.WhenAll(tasks);
+        var results = new List<(IAiProvider Provider, AiAnalysisResult Result, Exception? Error)>();
 
-        if (!results.Any())
+        foreach (var provider in providerList)
         {
-            return new AiAnalysisResult
-                { Summary = "Hiçbir AI servisinden yanıt alınamadı.", RecommendedAction = "HOLD" };
+            try
+            {
+                var result = await provider.AnalyzeTextAsync(text);
+                results.Add((provider, result, null));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "{Provider} analizi sırasında hata oluştu.", provider.ProviderName);
+                results.Add((provider, null!, ex));
+            }
+        }
+
+        var successfulResults = results.Where(r => r.Result != null).ToList();
+
+        if (!successfulResults.Any())
+        {
+            var errors = string.Join(" | ", results.Select(r => $"{r.Provider.ProviderName}: {r.Error?.Message}"));
+            throw new Exception($"Hiçbir AI servisi başarıyla yanıt vermedi. Hatalar: {errors}");
         }
 
         // Her sağlayıcının bireysel sonucunu kaydet
-        var providerDetails = new List<ProviderAnalysisResult>();
-        for (int i = 0; i < providerList.Count; i++)
+        var providerDetails = results.Select(r => new ProviderAnalysisResult
         {
-            var provider = providerList[i];
-            var result = results[i];
-            providerDetails.Add(new ProviderAnalysisResult
-            {
-                ProviderName = provider.ProviderName,
-                Score = result.SentimentScore,
-                Action = result.RecommendedAction,
-                Summary = result.Summary,
-                Reasoning = text // Analiz edilen metin (haber başlıkları)
-            });
-        }
+            ProviderName = r.Provider.ProviderName,
+            Score = r.Result?.SentimentScore ?? 0,
+            Action = r.Result?.RecommendedAction ?? "ERROR",
+            Summary = r.Result?.Summary ?? $"Hata: {r.Error?.Message}",
+            Reasoning = text
+        }).ToList();
 
-        // Consensus Logic: Weighted Average
-        float totalScore = results.Sum(r => r.SentimentScore);
-        float avgScore = totalScore / results.Length;
+        // Consensus Logic: Weighted Average of successful results
+        float totalScore = successfulResults.Sum(r => r.Result.SentimentScore);
+        float avgScore = totalScore / successfulResults.Count;
 
         // Determine action based on consensus score
         string action = "HOLD";
         if (avgScore > 0.5f) action = "BUY";
-        else if (avgScore < -0.7f) action = "PANIC SELL";
         else if (avgScore < -0.3f) action = "SELL";
+        else if (avgScore < -0.7f) action = "PANIC SELL";
 
-        _logger.LogInformation("Multi-AI Konsensüs Tamamlandı. Sağlayıcı Sayısı: {Count}, Ortalama Skor: {Score}",
-            results.Length, avgScore);
+        _logger.LogInformation(
+            "Multi-AI Konsensüs Tamamlandı. Başarılı Sağlayıcı Sayısı: {SuccessCount}/{TotalCount}, Ortalama Skor: {Score}",
+            successfulResults.Count, providerList.Count, avgScore);
 
         return new AiAnalysisResult
         {
             SentimentScore = avgScore,
             RecommendedAction = action,
-            Summary = results.First().Summary,
+            Summary = successfulResults.First().Result.Summary,
             AnalyzedAt = DateTime.UtcNow,
             ProviderDetails = providerDetails
         };
     }
+
 
     public async Task<AiAnalysisResult> GetMarketSentimentAsync(string symbol = "BTC")
     {

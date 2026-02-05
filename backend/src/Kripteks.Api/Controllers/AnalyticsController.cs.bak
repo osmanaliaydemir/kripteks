@@ -16,39 +16,16 @@ public class AnalyticsController : ControllerBase
     private readonly IMarketSentimentState _sentimentState;
     private readonly AppDbContext _dbContext;
 
-    private readonly IAiService _aiService;
-
     public AnalyticsController(
         IAnalyticsService analyticsService,
         INewsService newsService,
         IMarketSentimentState sentimentState,
-        IAiService aiService,
         AppDbContext dbContext)
     {
         _analyticsService = analyticsService;
         _newsService = newsService;
         _sentimentState = sentimentState;
-        _aiService = aiService;
         _dbContext = dbContext;
-    }
-
-    [HttpGet("test-ai")]
-    public async Task<IActionResult> TestAiIntegration()
-    {
-        try
-        {
-            var news = await _newsService.GetLatestNewsAsync();
-            if (!news.Any()) return Ok(new { success = false, message = "Hiç haber bulunamadı." });
-
-            var text = news.First().Title;
-            var result = await _aiService.AnalyzeTextAsync(text);
-
-            return Ok(new { success = true, result });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { success = false, error = ex.Message, stack = ex.StackTrace });
-        }
     }
 
     [HttpGet("stats")]

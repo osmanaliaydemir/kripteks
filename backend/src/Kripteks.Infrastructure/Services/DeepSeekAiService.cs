@@ -27,7 +27,8 @@ public class DeepSeekAiService : IAiProvider
     {
         if (string.IsNullOrEmpty(_apiKey))
         {
-            return MockAnalyze(text);
+            throw new InvalidOperationException(
+                "DeepSeek API anahtarı ayarlanmamış. Lütfen appsettings.json dosyasını kontrol edin.");
         }
 
         try
@@ -54,33 +55,40 @@ public class DeepSeekAiService : IAiProvider
 
             var response =
                 await _httpClient.PostAsJsonAsync("https://api.deepseek.com/v1/chat/completions", requestBody);
-            response.EnsureSuccessStatusCode();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                throw new Exception($"DeepSeek API Hatası ({response.StatusCode}): {errorBody}");
+            }
 
             var result = await response.Content.ReadFromJsonAsync<DeepSeekResponse>();
             var jsonContent = result?.Choices?.FirstOrDefault()?.Message?.Content;
 
-            if (!string.IsNullOrEmpty(jsonContent))
+            if (string.IsNullOrEmpty(jsonContent))
             {
-                var analysis = JsonSerializer.Deserialize<DeepSeekAnalysisResult>(jsonContent,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                if (analysis != null)
-                {
-                    return new AiAnalysisResult
-                    {
-                        SentimentScore = analysis.Score,
-                        RecommendedAction = analysis.Action ?? "HOLD",
-                        Summary = analysis.Summary ?? "Analiz özeti alınamadı.",
-                        AnalyzedAt = DateTime.UtcNow
-                    };
-                }
+                throw new Exception("DeepSeek API'den boş yanıt döndü.");
             }
 
-            return MockAnalyze(text);
+            var analysis = JsonSerializer.Deserialize<DeepSeekAnalysisResult>(jsonContent,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (analysis == null)
+            {
+                throw new Exception("DeepSeek yanıtı parse edilemedi.");
+            }
+
+            return new AiAnalysisResult
+            {
+                SentimentScore = analysis.Score,
+                RecommendedAction = analysis.Action ?? "HOLD",
+                Summary = analysis.Summary ?? "Analiz özeti alınamadı.",
+                AnalyzedAt = DateTime.UtcNow
+            };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "DeepSeek API hatası: {Message}", ex.Message);
-            return MockAnalyze(text);
+            throw;
         }
     }
 
@@ -108,26 +116,8 @@ public class DeepSeekAiService : IAiProvider
 
     public async Task<AiAnalysisResult> GetMarketSentimentAsync(string symbol = "BTC")
     {
-        // Genelde haberleri analiz edip birleştiririz. 
-        // Şimdilik basitçe random veya sabit bir değer dönelim.
-        return MockAnalyze($"Market analysis for {symbol}");
-    }
-
-    private AiAnalysisResult MockAnalyze(string text)
-    {
-        var rng = new Random();
-        float score = (float)(rng.NextDouble() * 2 - 1); // -1 to 1
-
-        string action = score > 0.5f ? "AL" : score < -0.5f ? "PANİK SAT" : score < -0.2f ? "SAT" : "TUT";
-        string sentiment = score > 0.3f ? "olumlu" : score < -0.3f ? "olumsuz" : "nötr";
-
-        return new AiAnalysisResult
-        {
-            SentimentScore = score,
-            Summary =
-                $"Piyasa genel olarak {sentiment} görünüyor. Analiz edilen haberler doğrultusunda kısa vadeli {(score > 0 ? "yükseliş" : "düşüş")} beklentisi oluşabilir.",
-            RecommendedAction = action,
-            AnalyzedAt = DateTime.UtcNow
-        };
+        throw new NotImplementedException(
+            "Market sentiment direct call is not supported. Use orchestrator with news text.");
     }
 }
+
