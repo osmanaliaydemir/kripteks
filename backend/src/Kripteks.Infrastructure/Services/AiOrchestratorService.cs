@@ -1,6 +1,7 @@
 using Kripteks.Core.Entities;
 using Kripteks.Core.Interfaces;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 
 namespace Kripteks.Infrastructure.Services;
 
@@ -8,15 +9,30 @@ public class AiOrchestratorService : IAiService
 {
     private readonly IEnumerable<IAiProvider> _providers;
     private readonly ILogger<AiOrchestratorService> _logger;
+    private readonly IConfiguration _configuration;
 
-    public AiOrchestratorService(IEnumerable<IAiProvider> providers, ILogger<AiOrchestratorService> logger)
+    public AiOrchestratorService(IEnumerable<IAiProvider> providers, ILogger<AiOrchestratorService> logger,
+        IConfiguration configuration)
     {
         _providers = providers;
         _logger = logger;
+        _configuration = configuration;
     }
 
     public async Task<AiAnalysisResult> AnalyzeTextAsync(string text)
     {
+        if (_configuration.GetValue<bool>("AiSettings:Enabled") == false)
+        {
+            return new AiAnalysisResult
+            {
+                SentimentScore = 0,
+                RecommendedAction = "HOLD",
+                Summary = "AI analizi şu an devre dışı.",
+                AnalyzedAt = DateTime.UtcNow,
+                ProviderDetails = new List<ProviderAnalysisResult>()
+            };
+        }
+
         var providerList = _providers.ToList();
         var results = new List<(IAiProvider Provider, AiAnalysisResult Result, Exception? Error)>();
 

@@ -4,6 +4,7 @@ using Kripteks.Infrastructure.Data;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 
 namespace Kripteks.Infrastructure.Services;
 
@@ -12,15 +13,18 @@ public class SentimentAnalysisJob : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<SentimentAnalysisJob> _logger;
     private readonly IMarketSentimentState _sentimentState;
+    private readonly IConfiguration _configuration;
 
     public SentimentAnalysisJob(
         IServiceProvider serviceProvider,
         ILogger<SentimentAnalysisJob> logger,
-        IMarketSentimentState sentimentState)
+        IMarketSentimentState sentimentState,
+        IConfiguration configuration)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
         _sentimentState = sentimentState;
+        _configuration = configuration;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -29,6 +33,13 @@ public class SentimentAnalysisJob : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
+            if (_configuration.GetValue<bool>("AiSettings:Enabled") == false)
+            {
+                _logger.LogInformation("AI Analizi devre dışı, bekleniyor...");
+                await Task.Delay(TimeSpan.FromMinutes(10), stoppingToken);
+                continue;
+            }
+
             try
             {
                 using (var scope = _serviceProvider.CreateScope())

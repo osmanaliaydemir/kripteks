@@ -10,18 +10,29 @@ public class ChatDevService : IChatDevService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<ChatDevService> _logger;
+    private readonly IConfiguration _configuration;
     private readonly string _baseUrl;
 
     public ChatDevService(HttpClient httpClient, IConfiguration configuration, ILogger<ChatDevService> logger)
     {
         _httpClient = httpClient;
         _logger = logger;
+        _configuration = configuration;
         _baseUrl = configuration["AiBridge:BaseUrl"] ?? "http://localhost:8000";
     }
 
     public async Task<AiAnalysisResult> RunWorkflowAsync(string workflowYaml, string taskPrompt,
         Dictionary<string, string>? variables = null)
     {
+        if (_configuration.GetValue<bool>("AiSettings:Enabled") == false)
+        {
+            return new AiAnalysisResult
+            {
+                Summary = "AI Bridge is disabled by configuration.",
+                RecommendedAction = "HOLD"
+            };
+        }
+
         try
         {
             var request = new
