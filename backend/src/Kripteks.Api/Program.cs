@@ -71,6 +71,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped<IBotService, BotService>();
 builder.Services.AddSingleton<IMarketDataService, BinanceMarketService>();
 builder.Services.AddScoped<BacktestService>();
+builder.Services.AddScoped<ScannerService>();
 builder.Services.AddScoped<IBacktestRepository, Kripteks.Infrastructure.Repositories.BacktestRepository>();
 builder.Services.AddSingleton<IBinanceRestClient>(sp => new BinanceRestClient());
 builder.Services.AddSingleton<IBinanceSocketClient>(sp => new BinanceSocketClient());
@@ -104,6 +105,8 @@ builder.Services.AddHostedService<SentimentAnalysisJob>();
 // Stratejiler
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.GoldenRoseStrategy>();
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.AlphaTrendStrategy>();
+builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.ScoutBreakoutStrategy>();
+builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.PhoenixMomentumStrategy>();
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.MarketBuyStrategy>();
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.GridStrategy>();
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.DcaStrategy>();
@@ -112,7 +115,12 @@ builder.Services.AddScoped<IStrategyFactory, Kripteks.Infrastructure.Strategies.
 // Arka Plan Servisleri (Bot Engine)
 builder.Services.AddHostedService<BotEngineService>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
 
 // .NET 9 Native OpenAPI Support
 builder.Services.AddOpenApi();

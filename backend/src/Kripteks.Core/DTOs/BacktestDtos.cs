@@ -67,3 +67,34 @@ public class OptimizationResultDto
     public decimal BestPnlPercent { get; set; } = -999;
     public BacktestResultDto? Result { get; set; }
 }
+
+public class BatchBacktestRequestDto
+{
+    public List<string> Symbols { get; set; } = new();
+    public string StrategyId { get; set; } = string.Empty;
+    public string? StartDate { get; set; }
+    public string? EndDate { get; set; }
+    public string Interval { get; set; } = "15m";
+    public decimal InitialBalance { get; set; } = 1000;
+    public Dictionary<string, string>? StrategyParameters { get; set; }
+    public decimal CommissionRate { get; set; } = 0.001m;
+    public decimal SlippageRate { get; set; } = 0.0005m;
+}
+
+public class BatchBacktestResultDto
+{
+    public List<BatchBacktestResultItemDto> Results { get; set; } = new();
+}
+
+public class BatchBacktestResultItemDto
+{
+    public string Symbol { get; set; } = string.Empty;
+    public decimal TotalPnlPercent { get; set; }
+    public decimal WinRate { get; set; }
+    public int TotalTrades { get; set; }
+    public decimal MaxDrawdown { get; set; }
+    public decimal ProfitFactor { get; set; }
+    public decimal SharpeRatio { get; set; }
+    public bool Success { get; set; }
+    public string? ErrorMessage { get; set; }
+}

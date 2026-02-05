@@ -36,4 +36,6 @@ public class MarketBuyStrategy : IStrategy
 
         return result;
     }
+
+    public decimal CalculateSignalScore(List<Candle> candles) => 100; // Always strong buy
 }

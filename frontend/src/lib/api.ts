@@ -204,6 +204,13 @@ export const BacktestService = {
         });
         return handleResponse(res);
     },
+    scan: async (data: any) => {
+        const res = await fetchWithAuth(`${API_URL}/backtest/scan`, {
+            method: "POST",
+            body: JSON.stringify(data)
+        });
+        return handleResponse(res);
+    },
     optimizeBacktest: async (data: any) => {
         const res = await fetchWithAuth(`${API_URL}/backtest/optimize`, {
             method: "POST",
@@ -249,6 +256,33 @@ export const BacktestService = {
         const res = await fetchWithAuth(`${API_URL}/backtest/monte-carlo`, {
             method: "POST",
             body: JSON.stringify({ backtestResult, options })
+        });
+        return handleResponse(res);
+    }
+};
+
+export const ScannerService = {
+    scan: async (data: any) => {
+        const res = await fetchWithAuth(`${API_URL}/scanner/scan`, {
+            method: "POST",
+            body: JSON.stringify(data)
+        });
+        return handleResponse(res);
+    },
+    getFavorites: async () => {
+        const res = await fetchWithAuth(`${API_URL}/scanner/favorites`);
+        return handleResponse(res);
+    },
+    saveFavorite: async (data: any) => {
+        const res = await fetchWithAuth(`${API_URL}/scanner/favorites`, {
+            method: "POST",
+            body: JSON.stringify(data)
+        });
+        return handleResponse(res);
+    },
+    deleteFavorite: async (id: string) => {
+        const res = await fetchWithAuth(`${API_URL}/scanner/favorites/${id}`, {
+            method: "DELETE"
         });
         return handleResponse(res);
     }

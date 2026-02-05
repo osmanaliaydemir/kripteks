@@ -118,4 +118,45 @@ public class GoldenRoseStrategy : IStrategy
 
         return result;
     }
+
+    public decimal CalculateSignalScore(List<Candle> candles)
+    {
+        int maxSma = Math.Max(_sma1, _sma2);
+        if (candles.Count < maxSma) return 50; // Neutral if not enough data
+
+        var prices = candles.Select(c => c.Close).ToList();
+        var sma1List = TechnicalIndicators.CalculateSma(prices, _sma1);
+        var sma2List = TechnicalIndicators.CalculateSma(prices, _sma2);
+
+        decimal currentSma1 = sma1List.Last() ?? 0;
+        decimal currentSma2 = sma2List.Last() ?? 0;
+        decimal currentPrice = prices.Last();
+
+        if (currentSma1 == 0 || currentSma2 == 0) return 50;
+
+        // Golden Rose logic for score:
+        // Price above SMA1 and SMA1 above SMA2 is bullish.
+        // Highest score when price just crossed above SMA1.
+
+        decimal score = 50;
+
+        if (currentPrice > currentSma1 && currentSma1 > currentSma2)
+        {
+            // Bullish trend
+            score = 70;
+            // Additional points if close to SMA1 (good entry)
+            decimal distance = (currentPrice - currentSma1) / currentSma1;
+            if (distance < 0.02m) score += 20; // Very close to SMA1
+            else if (distance < 0.05m) score += 10;
+        }
+        else if (currentPrice < currentSma1 && currentSma1 < currentSma2)
+        {
+            // Bearish trend
+            score = 30;
+            decimal distance = (currentSma1 - currentPrice) / currentSma1;
+            if (distance < 0.02m) score -= 20; // Very close to SMA1 (potential resistance)
+        }
+
+        return Math.Clamp(score, 0, 100);
+    }
 }

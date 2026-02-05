@@ -80,3 +80,18 @@ export interface DashboardStats {
     total_volume: number;
     win_rate: number;
 }
+
+export interface ScannerResultItem {
+    symbol: string;
+    signalScore: number;
+    suggestedAction: string | number; // backend may send string (Buy/Sell) or number (1/2)
+    comment: string;
+    lastPrice: number;
+}
+
+export interface ScannerFavoriteList {
+    id: string;
+    name: string;
+    symbols: string[];
+    createdAt: string;
+}

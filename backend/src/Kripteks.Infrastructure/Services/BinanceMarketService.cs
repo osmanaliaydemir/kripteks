@@ -50,7 +50,17 @@ public class BinanceMarketService : IMarketDataService
 
             var pairs = exchangeInfo.Data.Symbols
                 .Where(s => s.Status == Binance.Net.Enums.SymbolStatus.Trading &&
-                            s.QuoteAsset == "USDT") // Sadece USDT pariteleri ve aktif olanlar
+                            s.QuoteAsset == "USDT" &&
+                            !s.Name.EndsWith("UPUSDT") &&
+                            !s.Name.EndsWith("DOWNUSDT") &&
+                            !s.Name.EndsWith("BEARUSDT") &&
+                            !s.Name.EndsWith("BULLUSDT") &&
+                            !s.Name.Contains("TUSD") &&
+                            !s.Name.Contains("USDC") &&
+                            !s.Name.Contains("FDUSD") &&
+                            !s.Name.Contains("EUR") &&
+                            !s.Name.Contains("GBP") &&
+                            !s.Name.Contains("DAI")) // Sadece USDT pariteleri ve aktif olanlar, kaldıraçlı/stable hariç
                 .Select(s => new CoinDto
                 {
                     Id = s.Name,

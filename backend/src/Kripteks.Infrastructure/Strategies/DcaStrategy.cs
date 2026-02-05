@@ -83,4 +83,6 @@ public class DcaStrategy : IStrategy
 
         return result;
     }
+
+    public decimal CalculateSignalScore(List<Candle> candles) => 50; // Neutral for DCA
 }

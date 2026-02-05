@@ -3,7 +3,6 @@ using Kripteks.Core.DTOs;
 using Binance.Net.Clients;
 using Binance.Net.Enums;
 using Microsoft.Extensions.Logging;
-using Kripteks.Infrastructure.Strategies;
 
 namespace Kripteks.Infrastructure.Services;
 
@@ -29,9 +28,58 @@ public class BacktestService
         return SimulateBacktest(request, allCandles, request.StrategyParameters);
     }
 
+    public async Task<BatchBacktestResultDto> RunBatchBacktestAsync(BatchBacktestRequestDto request)
+    {
+        var result = new BatchBacktestResultDto();
+
+        foreach (var symbol in request.Symbols)
+        {
+            try
+            {
+                var singleRequest = new BacktestRequestDto
+                {
+                    Symbol = symbol,
+                    StrategyId = request.StrategyId,
+                    Interval = request.Interval,
+                    StartDate = request.StartDate,
+                    EndDate = request.EndDate,
+                    InitialBalance = request.InitialBalance,
+                    StrategyParameters = request.StrategyParameters,
+                    CommissionRate = request.CommissionRate,
+                    SlippageRate = request.SlippageRate
+                };
+
+                var singleResult = await RunBacktestAsync(singleRequest);
+                result.Results.Add(new BatchBacktestResultItemDto
+                {
+                    Symbol = symbol,
+                    TotalPnlPercent = singleResult.TotalPnlPercent,
+                    WinRate = singleResult.WinRate,
+                    TotalTrades = singleResult.TotalTrades,
+                    MaxDrawdown = singleResult.MaxDrawdown,
+                    ProfitFactor = singleResult.ProfitFactor,
+                    SharpeRatio = singleResult.SharpeRatio,
+                    Success = true
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error running backtest for {Symbol}", symbol);
+                result.Results.Add(new BatchBacktestResultItemDto
+                {
+                    Symbol = symbol,
+                    Success = false,
+                    ErrorMessage = ex.Message
+                });
+            }
+        }
+
+        return result;
+    }
+
     public async Task<Guid> SaveResultAsync(BacktestRequestDto request, BacktestResultDto result, string userId)
     {
-        var entity = new Kripteks.Core.Entities.BacktestResult
+        var entity = new Core.Entities.BacktestResult
         {
             UserId = userId,
             Symbol = request.Symbol,

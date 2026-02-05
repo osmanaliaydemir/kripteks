@@ -86,4 +86,37 @@ public class AlphaTrendStrategy : IStrategy
 
         return result;
     }
+
+    public decimal CalculateSignalScore(List<Candle> candles)
+    {
+        int maxPeriod = Math.Max(_slowEma, _rsiPeriod) + 1;
+        if (candles.Count < maxPeriod) return 50;
+
+        var prices = candles.Select(c => c.Close).ToList();
+        var fastEmaList = TechnicalIndicators.CalculateEma(prices, _fastEma);
+        var slowEmaList = TechnicalIndicators.CalculateEma(prices, _slowEma);
+        var rsiList = TechnicalIndicators.CalculateRsi(prices, _rsiPeriod);
+
+        decimal currentFast = fastEmaList.Last() ?? 0;
+        decimal currentSlow = slowEmaList.Last() ?? 0;
+        decimal currentRsi = rsiList.Last() ?? 50;
+
+        decimal score = 50;
+
+        // EMA Trend
+        if (currentFast > currentSlow) score += 20;
+        else score -= 20;
+
+        // RSI Factor (Inverse: Lower RSI is better for buying)
+        if (currentRsi < _rsiBuyThreshold)
+        {
+            score += (50 - (currentRsi / 2)); // Lower RSI = Higher Score
+        }
+        else if (currentRsi > _rsiSellThreshold)
+        {
+            score -= (currentRsi - 50) / 2;
+        }
+
+        return Math.Clamp(score, 0, 100);
+    }
 }

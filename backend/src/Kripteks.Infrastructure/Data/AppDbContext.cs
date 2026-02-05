@@ -17,6 +17,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<AuditLog> AuditLogs { get; set; }
     public DbSet<SentimentHistory> SentimentHistories { get; set; }
     public DbSet<BacktestResult> BacktestResults { get; set; }
+    public DbSet<UserFavoriteList> UserFavoriteLists { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

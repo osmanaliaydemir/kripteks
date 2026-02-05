@@ -55,4 +55,12 @@ public class GridStrategy : IStrategy
 
         return result;
     }
+
+    public decimal CalculateSignalScore(List<Candle> candles)
+    {
+        var currentPrice = candles.Last().Close;
+        if (_lowerPrice > 0 && _upperPrice > 0 && currentPrice >= _lowerPrice && currentPrice <= _upperPrice)
+            return 70; // Bullish if in range
+        return 40;
+    }
 }

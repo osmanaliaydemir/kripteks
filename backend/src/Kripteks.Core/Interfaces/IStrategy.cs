@@ -26,6 +26,9 @@ public interface IStrategy
     // Mum verilerini alır, analiz eder ve sinyal döner
     StrategyResult Analyze(List<Candle> candles, decimal currentBalance, decimal currentPositionAmount,
         decimal entryPrice = 0, int currentStep = 0);
+
+    // Sinyal gücünü hesaplar (0-100 arası skor)
+    decimal CalculateSignalScore(List<Candle> candles);
 }
 
 // Mum verisi için basit bir model (Eğer yoksa)

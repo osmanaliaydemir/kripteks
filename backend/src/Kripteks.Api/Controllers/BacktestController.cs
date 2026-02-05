@@ -32,6 +32,13 @@ public class BacktestController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("scan")]
+    public async Task<ActionResult<BatchBacktestResultDto>> Scan([FromBody] BatchBacktestRequestDto request)
+    {
+        var result = await _backtestService.RunBatchBacktestAsync(request);
+        return Ok(result);
+    }
+
     [HttpPost("optimize")]
     public async Task<ActionResult<OptimizationResultDto>> Optimize([FromBody] BacktestRequestDto request)
     {
