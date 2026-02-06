@@ -1,4 +1,5 @@
 using Kripteks.Core.Entities;
+using Microsoft.Extensions.DependencyInjection;
 using Kripteks.Core.Interfaces;
 using Kripteks.Infrastructure.Data;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,39 +43,51 @@ public class SentimentAnalysisJob : BackgroundService
 
             try
             {
+                // 1. Haberleri al (Ağ I/O - DB gerekmiyorsa dışarıda yapılabilir)
+                List<NewsItem> news = new();
                 using (var scope = _serviceProvider.CreateScope())
                 {
-                    var aiService = scope.ServiceProvider.GetRequiredService<IAiService>();
                     var newsService = scope.ServiceProvider.GetRequiredService<INewsService>();
-                    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                    news = await newsService.GetLatestNewsAsync();
+                }
 
-                    // Haberleri al
-                    var news = await newsService.GetLatestNewsAsync();
+                if (news.Any())
+                {
+                    // 2. AI Analizi (Yavaş Ağ I/O - DB Bağlantısı YOK)
+                    var combinedText = string.Join(". ", news.Take(5).Select(n => n.Title));
 
-                    if (news.Any())
+                    AiAnalysisResult analysis;
+                    using (var scope = _serviceProvider.CreateScope())
                     {
-                        // En taze haberi veya haberlerin birleşimini analiz et
-                        var combinedText = string.Join(". ", news.Take(5).Select(n => n.Title));
-                        var analysis = await aiService.AnalyzeTextAsync(combinedText);
+                        var aiService = scope.ServiceProvider.GetRequiredService<IAiService>();
+                        analysis = await aiService.AnalyzeTextAsync(combinedText);
+                    }
 
-                        _sentimentState.UpdateSentiment(analysis);
-
-                        // Sentiment geçmişine kaydet
-                        var historyEntry = new SentimentHistory
+                    if (analysis != null)
+                    {
+                        // 3. Kaydetme (Kısa DB Scope)
+                        using (var scope = _serviceProvider.CreateScope())
                         {
-                            Score = analysis.SentimentScore,
-                            Action = analysis.RecommendedAction,
-                            Symbol = "BTC",
-                            Summary = analysis.Summary,
-                            RecordedAt = DateTime.UtcNow,
-                            ModelCount = analysis.ProviderDetails?.Count ?? 2
-                        };
+                            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-                        dbContext.SentimentHistories.Add(historyEntry);
-                        await dbContext.SaveChangesAsync(stoppingToken);
+                            _sentimentState.UpdateSentiment(analysis);
 
-                        _logger.LogInformation("Piyasa Duygu Durumu Güncellendi ve Kaydedildi: {Score} ({Action})",
-                            analysis.SentimentScore, analysis.RecommendedAction);
+                            var historyEntry = new SentimentHistory
+                            {
+                                Score = analysis.SentimentScore,
+                                Action = analysis.RecommendedAction,
+                                Symbol = "BTC",
+                                Summary = analysis.Summary,
+                                RecordedAt = DateTime.UtcNow,
+                                ModelCount = analysis.ProviderDetails?.Count ?? 2
+                            };
+
+                            dbContext.SentimentHistories.Add(historyEntry);
+                            await dbContext.SaveChangesAsync(stoppingToken);
+
+                            _logger.LogInformation("Piyasa Duygu Durumu Güncellendi ve Kaydedildi: {Score} ({Action})",
+                                analysis.SentimentScore, analysis.RecommendedAction);
+                        }
                     }
                 }
             }

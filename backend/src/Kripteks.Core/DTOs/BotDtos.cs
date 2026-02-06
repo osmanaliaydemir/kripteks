@@ -18,7 +18,7 @@ public class BotDto
     public decimal EntryPrice { get; set; }
     public decimal CurrentPnl { get; set; }
     public decimal CurrentPnlPercent { get; set; }
-    public List<Log> Logs { get; set; } = new();
+    public List<LogDto> Logs { get; set; } = new();
     public bool IsTrailingStop { get; set; }
     public decimal? TrailingStopDistance { get; set; }
     public decimal? MaxPriceReached { get; set; }
@@ -37,4 +37,12 @@ public class CreateBotRequest
     public bool IsTrailingStop { get; set; } = false;
     public decimal? TrailingStopDistance { get; set; }
     public Dictionary<string, string>? StrategyParameters { get; set; }
+}
+
+public class LogDto
+{
+    public int Id { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public string Level { get; set; } = string.Empty;
+    public DateTime Timestamp { get; set; }
 }

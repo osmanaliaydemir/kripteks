@@ -601,9 +601,11 @@ export default function ScannerDashboard() {
                                                             setSelectedDetailResult(res as any);
                                                             setIsDetailModalOpen(true);
                                                         }}
-                                                        className="p-5 rounded-2xl bg-white/3 border border-white/5 hover:border-primary/30 transition-all group relative overflow-hidden cursor-pointer"
+                                                        className="p-5 rounded-2xl bg-white/3 border border-white/5 hover:border-primary/30 transition-all group relative cursor-pointer hover:z-20"
                                                     >
-                                                        <div className={`absolute -top-10 -right-10 w-32 h-32 blur-3xl opacity-10 transition-opacity group-hover:opacity-20 ${res.signalScore > 70 ? "bg-emerald-500" : res.signalScore > 40 ? "bg-amber-500" : "bg-rose-500"}`} />
+                                                        <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+                                                            <div className={`absolute -top-10 -right-10 w-32 h-32 blur-3xl opacity-10 transition-opacity group-hover:opacity-20 ${res.signalScore > 70 ? "bg-emerald-500" : res.signalScore > 40 ? "bg-amber-500" : "bg-rose-500"}`} />
+                                                        </div>
 
                                                         <div className="flex justify-between items-start mb-4 relative z-10">
                                                             <div>
@@ -615,12 +617,22 @@ export default function ScannerDashboard() {
                                                                     })}
                                                                 </div>
                                                             </div>
-                                                            <div className={`px-2.5 py-1.5 rounded-xl border flex flex-col items-center justify-center min-w-[48px] ${res.signalScore > 70 ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]" :
+                                                            <div className={`px-3 py-2 rounded-xl border flex items-center gap-2 ${res.signalScore > 70 ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]" :
                                                                 res.signalScore > 40 ? "bg-amber-500/10 border-amber-500/20 text-amber-400" :
                                                                     "bg-rose-500/10 border-rose-500/20 text-rose-400"
                                                                 }`}>
-                                                                <span className="text-xs font-black leading-none">{Math.round(res.signalScore)}</span>
-                                                                <span className="text-[7px] uppercase tracking-tighter font-bold">Skor</span>
+                                                                <span className="text-sm font-black leading-none">{Math.round(res.signalScore)}</span>
+                                                                <div className="flex items-center gap-1 opacity-80 border-l border-white/10 pl-2">
+                                                                    <span className="text-[9px] uppercase tracking-wider font-bold">Skor</span>
+                                                                    <InfoTooltip
+                                                                        position="bottom"
+                                                                        text={`SMA 111 Puanlama Mantığı:
+• 100: Son 3 mumda yukarı yönlü kırılım gerçekleşti.
+• 90: Trend üstünde ve SMA'ya çok yakın (%1).
+• 80: Trend üstünde ve SMA'ya yakın (%3).
+• 70: Trend üstünde (Güvenli Bölge).`}
+                                                                    />
+                                                                </div>
                                                             </div>
                                                         </div>
 

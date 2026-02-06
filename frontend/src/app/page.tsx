@@ -72,6 +72,7 @@ export default function Dashboard() {
     const [user, setUser] = useState<User | null>(null);
 
     const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
+    const [botFilter, setBotFilter] = useState<'all' | 'position' | 'waiting'>('all');
     const [isLoading, setIsLoading] = useState(true);
     const [isCoinsLoading, setIsCoinsLoading] = useState(false);
     const [activeChartBotId, setActiveChartBotId] = useState<string | null>(null);
@@ -274,9 +275,19 @@ export default function Dashboard() {
         window.location.href = '/login';
     };
 
-    // Bot Listesi Filtreleme
-    const activeBots = bots.filter(b => b.status === 'Running' || b.status === 'WaitingForEntry');
-    const historyBots = bots.filter(b => b.status !== 'Running' && b.status !== 'WaitingForEntry');
+    // Bot Listesi Filtreleme ve Sıralama (En yeni en üstte)
+    const sortedBots = [...bots].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const activeBotsRaw = sortedBots.filter(b => b.status === 'Running' || b.status === 'WaitingForEntry');
+
+    // Filtrelenmiş aktif botlar
+    const activeBots = activeBotsRaw.filter(b => {
+        if (botFilter === 'all') return true;
+        if (botFilter === 'position') return b.status === 'Running';
+        if (botFilter === 'waiting') return b.status === 'WaitingForEntry';
+        return true;
+    });
+
+    const historyBots = sortedBots.filter(b => b.status !== 'Running' && b.status !== 'WaitingForEntry');
 
     return (
         <>
@@ -337,6 +348,7 @@ export default function Dashboard() {
                                         value={stats?.active_bots || 0}
                                         icon={<Activity size={20} />}
                                         delay={0.1}
+                                        description="Şu anda piyasada aktif olarak işlem yapan veya sinyal bekleyen bot sayısı"
                                     />
                                     <StatCard
                                         title="Toplam Bakiye"
@@ -345,42 +357,73 @@ export default function Dashboard() {
                                         delay={0.2}
                                         highlight
                                         onClick={() => openWallet()}
+                                        description="Cüzdanınızdaki toplam varlıkların güncel dolar değeri"
                                     />
                                     <StatCard
                                         title="İşlem Hacmi"
                                         value={`$${stats?.total_volume?.toLocaleString() || 0}`}
                                         icon={<BarChart2 size={20} />}
                                         delay={0.3}
+                                        description="Botlar tarafından gerçekleştirilen toplam alım-satım miktarının dolar karşılığı"
                                     />
                                 </>
                             )}
                         </div>
                         {/* TAB NAVIGATION & ACTIONS */}
-                        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                            <div className="glass-card p-1.5 flex gap-1 w-fit bg-slate-900/60">
-                                <TabButton id="active" label="Aktif Botlar" count={activeBots.length} activeTab={activeTab} setActiveTab={setActiveTab} icon={<Activity size={16} />} />
-                                <TabButton id="history" label="Geçmiş" activeTab={activeTab} setActiveTab={setActiveTab} icon={<History size={16} />} />
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+                            <div className="flex flex-col gap-4 w-full sm:w-auto">
+                                <div className="glass-card p-1.5 flex gap-1 w-fit bg-slate-900/60">
+                                    <TabButton id="active" label="Aktif Botlar" count={activeBotsRaw.length} activeTab={activeTab} setActiveTab={setActiveTab} icon={<Activity size={16} />} />
+                                    <TabButton id="history" label="Geçmiş" activeTab={activeTab} setActiveTab={setActiveTab} icon={<History size={16} />} />
+                                </div>
+
+                                {activeTab === 'active' && activeBotsRaw.length > 0 && (
+                                    <div className="flex items-center gap-2 p-1 bg-slate-900/40 rounded-xl border border-white/5 w-fit">
+                                        <button
+                                            onClick={() => setBotFilter('all')}
+                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider ${botFilter === 'all' ? 'bg-primary/20 text-primary border border-primary/20' : 'text-slate-500 hover:text-slate-300'}`}
+                                        >
+                                            Hepsi
+                                        </button>
+                                        <button
+                                            onClick={() => setBotFilter('position')}
+                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider flex items-center gap-1.5 ${botFilter === 'position' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20' : 'text-slate-500 hover:text-slate-300'}`}
+                                        >
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                                            Pozisyonda
+                                        </button>
+                                        <button
+                                            onClick={() => setBotFilter('waiting')}
+                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider flex items-center gap-1.5 ${botFilter === 'waiting' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/20' : 'text-slate-500 hover:text-slate-300'}`}
+                                        >
+                                            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                                            Sinyal Bekleniyor
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
-                            {activeTab === 'active' && activeBots.length > 0 && (
-                                <button
-                                    onClick={() => setIsStopAllConfirmOpen(true)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-xl hover:bg-rose-600 hover:text-white transition-all text-xs font-bold uppercase tracking-wider group"
-                                >
-                                    <OctagonX size={16} className="group-hover:animate-pulse" />
-                                    Tüm İşlemleri Durdur
-                                </button>
-                            )}
+                            <div className="flex items-center gap-3 w-full sm:w-auto sm:justify-end">
+                                {activeTab === 'active' && activeBotsRaw.length > 0 && (
+                                    <button
+                                        onClick={() => setIsStopAllConfirmOpen(true)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-xl hover:bg-rose-600 hover:text-white transition-all text-xs font-bold uppercase tracking-wider group"
+                                    >
+                                        <OctagonX size={16} className="group-hover:animate-pulse" />
+                                        Tüm İşlemleri Durdur
+                                    </button>
+                                )}
 
-                            {activeTab === 'history' && historyBots.length > 0 && (
-                                <button
-                                    onClick={() => setIsClearHistoryConfirmOpen(true)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-slate-400 border border-white/5 rounded-xl hover:bg-slate-700 hover:text-white transition-all text-xs font-bold uppercase tracking-wider group"
-                                >
-                                    <History size={16} />
-                                    Geçmişi Temizle
-                                </button>
-                            )}
+                                {activeTab === 'history' && historyBots.length > 0 && (
+                                    <button
+                                        onClick={() => setIsClearHistoryConfirmOpen(true)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-slate-400 border border-white/5 rounded-xl hover:bg-slate-700 hover:text-white transition-all text-xs font-bold uppercase tracking-wider group"
+                                    >
+                                        <History size={16} />
+                                        Geçmişi Temizle
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
                         {/* CONTENT AREA */}

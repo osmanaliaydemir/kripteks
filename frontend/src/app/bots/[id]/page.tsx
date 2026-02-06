@@ -2,14 +2,16 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { BotService } from "@/lib/api";
 import { Bot, Log } from "@/types";
-import { ArrowLeft, Activity, StopCircle, PlayCircle, Trash2, Clock, TrendingUp, DollarSign, BarChart2 } from "lucide-react";
+import { ArrowLeft, Activity, StopCircle, PlayCircle, Trash2, Clock, TrendingUp, DollarSign, BarChart2, Info, HelpCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/ui/Navbar";
+import { InfoTooltip } from "@/components/dashboard/InfoTooltip";
 import { toast } from "sonner";
+import { useSignalR } from "@/context/SignalRContext";
 import { StatCardSkeleton, TableSkeleton } from "@/components/ui/Skeletons";
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -37,9 +39,24 @@ const getStatusLabel = (status: string) => {
 export default function BotDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
+    const { connection } = useSignalR();
     const [bot, setBot] = useState<Bot | null>(null);
+    const [user, setUser] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'trades' | 'logs'>('trades');
+    const [activeTab, setActiveTab] = useState<'trades' | 'logs'>('logs');
+    const logScrollRef = useRef<HTMLDivElement>(null);
+
+    // Yeni log geldiğinde en üste kaydır (Çünkü en yeni en üstte)
+    useEffect(() => {
+        if (activeTab === 'logs' && logScrollRef.current) {
+            logScrollRef.current.scrollTop = 0;
+        }
+    }, [bot?.logs, activeTab]);
+
+    useEffect(() => {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) setUser(JSON.parse(storedUser));
+    }, []);
 
     const fetchBot = async () => {
         try {
@@ -55,7 +72,37 @@ export default function BotDetailPage({ params }: { params: Promise<{ id: string
 
     useEffect(() => {
         fetchBot();
-    }, [id]);
+
+        if (connection) {
+            connection.on("ReceiveBotUpdate", (updatedBot: any) => {
+                if (updatedBot.id === id) {
+                    setBot(prev => prev ? { ...prev, ...updatedBot } : updatedBot);
+                }
+            });
+
+            connection.on("ReceiveLog", (botId: string, log: any) => {
+                if (botId === id) {
+                    setBot(prev => {
+                        if (!prev) return prev;
+                        const logs = prev.logs || [];
+                        if (logs.find(l => l.id === log.id)) return prev;
+                        const newLogs = [...logs, log];
+                        return {
+                            ...prev,
+                            logs: newLogs.slice(-100)
+                        };
+                    });
+                }
+            });
+        }
+
+        return () => {
+            if (connection) {
+                connection.off("ReceiveBotUpdate");
+                connection.off("ReceiveLog");
+            }
+        };
+    }, [id, connection]);
 
     const handleStopBot = async () => {
         if (!confirm("Bu botu durdurmak istediğinize emin misiniz?")) return;
@@ -125,7 +172,7 @@ export default function BotDetailPage({ params }: { params: Promise<{ id: string
 
     return (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20">
-            <Navbar user={null} />
+            <Navbar user={user} />
 
             {/* BACK BUTTON & HEADER */}
             <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -143,12 +190,15 @@ export default function BotDetailPage({ params }: { params: Promise<{ id: string
                                 {getStatusLabel(bot.status)}
                             </span>
                         </div>
-                        <div className="flex items-center gap-2 text-slate-400 text-sm mt-1">
-                            <Activity size={14} />
-                            <span>{bot.strategyName}</span>
-                            <span className="w-1 h-1 bg-slate-700 rounded-full"></span>
-                            <Clock size={14} />
-                            <span>{bot.interval}</span>
+                        <div className="flex items-center gap-3 mt-2">
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20 text-xs font-bold uppercase tracking-wider">
+                                <Activity size={14} />
+                                <span>{bot.strategyName}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-800 text-slate-400 border border-white/5 text-xs font-bold uppercase tracking-wider">
+                                <Clock size={14} />
+                                <span>{bot.interval}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -168,23 +218,35 @@ export default function BotDetailPage({ params }: { params: Promise<{ id: string
 
             {/* KPIS */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                <div className="glass-card p-6 border border-white/5 transition-all hover:bg-white/2">
-                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">Toplam Yatırım</p>
+                <div className="glass-card p-6 border border-white/5 transition-all hover:bg-white/2 group">
+                    <div className="flex items-center justify-between mb-1">
+                        <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Toplam Yatırım</p>
+                        <InfoTooltip text="Bota ayrılan toplam sermaye tutarı" />
+                    </div>
                     <h3 className="text-2xl font-display font-bold text-white">${bot.amount.toLocaleString()}</h3>
                 </div>
-                <div className="glass-card p-6 border border-white/5 transition-all hover:bg-white/2">
-                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">Anlık PnL</p>
+                <div className="glass-card p-6 border border-white/5 transition-all hover:bg-white/2 group">
+                    <div className="flex items-center justify-between mb-1">
+                        <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Anlık PnL</p>
+                        <InfoTooltip text="Açık pozisyonun güncel kar/zarar durumu" />
+                    </div>
                     <h3 className={`text-2xl font-mono font-bold ${bot.pnlPercent >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                         {bot.pnlPercent >= 0 ? '+' : ''}%{bot.pnlPercent.toFixed(2)}
                     </h3>
-                    <p className="text-xs text-slate-500 mt-1">${bot.currentPnl.toFixed(2)}</p>
+                    <p className="text-xs text-slate-500 mt-1">${(bot.pnl || bot.currentPnl || 0).toFixed(2)}</p>
                 </div>
-                <div className="glass-card p-6 border border-white/5 transition-all hover:bg-white/2">
-                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">Max Fiyat</p>
+                <div className="glass-card p-6 border border-white/5 transition-all hover:bg-white/2 group">
+                    <div className="flex items-center justify-between mb-1">
+                        <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Tepe Fiyat (Max)</p>
+                        <InfoTooltip text="İşleme girişten beri görülen en yüksek fiyat (İz süren stop için baz alınır)" />
+                    </div>
                     <h3 className="text-2xl font-mono font-bold text-white">${bot.maxPriceReached?.toFixed(4) || '-'}</h3>
                 </div>
-                <div className="glass-card p-6 border border-white/5 transition-all hover:bg-white/2">
-                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">İz Süren Stop</p>
+                <div className="glass-card p-6 border border-white/5 transition-all hover:bg-white/2 group">
+                    <div className="flex items-center justify-between mb-1">
+                        <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">İz Süren Stop</p>
+                        <InfoTooltip text="Fiyat yükseldikçe stop seviyesini yukarı taşıyan mekanizma" />
+                    </div>
                     <div className="flex items-center gap-2">
                         <span className={`w-2 h-2 rounded-full ${bot.isTrailingStop ? 'bg-emerald-500' : 'bg-slate-700'}`}></span>
                         <h3 className="text-lg font-bold text-white">{bot.isTrailingStop ? 'Aktif' : 'Pasif'}</h3>
@@ -226,7 +288,7 @@ export default function BotDetailPage({ params }: { params: Promise<{ id: string
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
-                                    {(bot.trades && bot.trades.length > 0) ? bot.trades.map((trade, i) => (
+                                    {(bot.trades && bot.trades.length > 0) ? [...bot.trades].reverse().map((trade, i) => (
                                         <tr key={i} className="hover:bg-white/2 transition-colors">
                                             <td className="p-4 text-sm text-slate-300 font-mono">{new Date(trade.timestamp).toLocaleString()}</td>
                                             <td className="p-4">
@@ -249,8 +311,11 @@ export default function BotDetailPage({ params }: { params: Promise<{ id: string
                     )}
 
                     {activeTab === 'logs' && (
-                        <div className="max-h-[600px] overflow-y-auto p-4 space-y-2 font-mono text-sm">
-                            {(bot.logs && bot.logs.length > 0) ? bot.logs.map((log: Log) => (
+                        <div
+                            ref={logScrollRef}
+                            className="max-h-[600px] overflow-y-auto p-4 space-y-2 font-mono text-sm scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent"
+                        >
+                            {(bot.logs && bot.logs.length > 0) ? [...bot.logs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((log: Log) => (
                                 <div key={log.id} className="flex gap-3 text-xs p-2 hover:bg-white/5 rounded-lg transition-colors">
                                     <span className="text-slate-500 shrink-0 select-none">
                                         {new Date(log.timestamp).toLocaleTimeString()}

@@ -6,25 +6,29 @@ import { Info } from "lucide-react";
 
 interface InfoTooltipProps {
     text: string;
+    position?: 'top' | 'bottom';
 }
 
-export function InfoTooltip({ text }: InfoTooltipProps) {
+export function InfoTooltip({ text, position = 'top' }: InfoTooltipProps) {
     const [isVisible, setIsVisible] = useState(false);
+
+    const isTop = position === 'top';
+
     return (
-        <div className="relative inline-block ml-1" onMouseEnter={() => setIsVisible(true)} onMouseLeave={() => setIsVisible(false)}>
+        <div className="relative inline-block" onMouseEnter={() => setIsVisible(true)} onMouseLeave={() => setIsVisible(false)}>
             <div className="p-0.5 rounded-full hover:bg-white/10 transition-colors cursor-help text-slate-500 hover:text-slate-300">
                 <Info size={12} />
             </div>
             <AnimatePresence>
                 {isVisible && (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.9, y: 5 }}
+                        initial={{ opacity: 0, scale: 0.9, y: isTop ? 5 : -5 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, y: 5 }}
-                        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-3 bg-slate-900/95 backdrop-blur-md border border-white/10 rounded-xl shadow-2xl z-50 pointer-events-none"
+                        exit={{ opacity: 0, scale: 0.9, y: isTop ? 5 : -5 }}
+                        className={`absolute ${isTop ? 'bottom-full mb-2' : 'top-full mt-2'} left-1/2 -translate-x-1/2 w-64 p-3 bg-slate-900/98 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-9999 pointer-events-none`}
                     >
-                        <p className="text-[10px] leading-relaxed text-slate-300 font-semibold">{text}</p>
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-slate-900/95"></div>
+                        <p className="text-[11px] leading-relaxed text-slate-200 font-medium whitespace-pre-line">{text}</p>
+                        <div className={`absolute left-1/2 -translate-x-1/2 border-[6px] border-transparent ${isTop ? 'top-full border-t-slate-900/98' : 'bottom-full border-b-slate-900/98'}`}></div>
                     </motion.div>
                 )}
             </AnimatePresence>

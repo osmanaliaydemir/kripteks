@@ -1,4 +1,5 @@
 using Kripteks.Core.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
 using Kripteks.Core.DTOs;
 using Binance.Net.Clients;
 using Binance.Net.Enums;
@@ -15,20 +16,23 @@ public class ScannerService
     private readonly IBinanceRestClient _client;
     private readonly ILogger<ScannerService> _logger;
     private readonly IStrategyFactory _strategyFactory;
-    private readonly AppDbContext _dbContext;
+    private readonly IServiceScopeFactory _scopeFactory;
 
-    public ScannerService(ILogger<ScannerService> logger, IStrategyFactory strategyFactory, AppDbContext dbContext,
-        IBinanceRestClient client)
+    public ScannerService(ILogger<ScannerService> logger, IStrategyFactory strategyFactory,
+        IBinanceRestClient client, IServiceScopeFactory scopeFactory)
     {
         _logger = logger;
         _strategyFactory = strategyFactory;
-        _dbContext = dbContext;
         _client = client;
+        _scopeFactory = scopeFactory;
     }
 
     public async Task<List<ScannerFavoriteListDto>> GetUserFavoritesAsync(string userId)
     {
-        var lists = await _dbContext.UserFavoriteLists
+        using var scope = _scopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var lists = await dbContext.UserFavoriteLists
             .Where(x => x.UserId == userId)
             .OrderByDescending(x => x.CreatedAt)
             .ToListAsync();
@@ -44,33 +48,39 @@ public class ScannerService
 
     public async Task<Guid> SaveFavoriteListAsync(string userId, SaveFavoriteListDto dto)
     {
+        using var scope = _scopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
         UserFavoriteList? entity;
 
         if (dto.Id.HasValue && dto.Id != Guid.Empty)
         {
-            entity = await _dbContext.UserFavoriteLists.FirstOrDefaultAsync(x => x.Id == dto.Id && x.UserId == userId);
+            entity = await dbContext.UserFavoriteLists.FirstOrDefaultAsync(x => x.Id == dto.Id && x.UserId == userId);
             if (entity == null) throw new Exception("Liste bulunamadı.");
         }
         else
         {
             entity = new UserFavoriteList { UserId = userId };
-            _dbContext.UserFavoriteLists.Add(entity);
+            dbContext.UserFavoriteLists.Add(entity);
         }
 
         entity.Name = dto.Name;
         entity.Symbols = string.Join(",", dto.Symbols);
 
-        await _dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync();
         return entity.Id;
     }
 
     public async Task DeleteFavoriteListAsync(string userId, Guid id)
     {
-        var entity = await _dbContext.UserFavoriteLists.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+        using var scope = _scopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var entity = await dbContext.UserFavoriteLists.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
         if (entity != null)
         {
-            _dbContext.UserFavoriteLists.Remove(entity);
-            await _dbContext.SaveChangesAsync();
+            dbContext.UserFavoriteLists.Remove(entity);
+            await dbContext.SaveChangesAsync();
         }
     }
 
@@ -131,7 +141,7 @@ public class ScannerService
                 targetSymbols = tickers.Data
                     .Where(x => validSymbols.Contains(x.Symbol))
                     .OrderByDescending(x => x.QuoteVolume) // Use QuoteVolume (USDT volume) for better ranking
-                    .Take(100)
+                    .Take(500)
                     .Select(x => x.Symbol)
                     .ToList();
 
@@ -165,7 +175,7 @@ public class ScannerService
             try
             {
                 var cleanSymbol = symbol.Replace("/", "").ToUpper();
-                var klines = await _client.SpotApi.ExchangeData.GetKlinesAsync(cleanSymbol, interval, limit: 100);
+                var klines = await _client.SpotApi.ExchangeData.GetKlinesAsync(cleanSymbol, interval, limit: 500);
 
                 List<Candle> candles;
                 if (!klines.Success || klines.Data == null)

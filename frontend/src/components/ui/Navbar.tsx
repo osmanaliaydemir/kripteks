@@ -22,6 +22,22 @@ export default function Navbar({ user }: NavbarProps) {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isStatusVisible, setIsStatusVisible] = useState(false);
     const [statusTimeout, setStatusTimeout] = useState<NodeJS.Timeout | null>(null);
+    const [localUser, setLocalUser] = useState<User | null>(user);
+
+    useEffect(() => {
+        if (!user) {
+            const storedUser = localStorage.getItem("user");
+            if (storedUser) {
+                try {
+                    setLocalUser(JSON.parse(storedUser));
+                } catch (e) {
+                    console.error("User parse error", e);
+                }
+            }
+        } else {
+            setLocalUser(user);
+        }
+    }, [user]);
 
 
     const handleLogout = () => {

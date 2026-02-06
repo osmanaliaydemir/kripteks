@@ -65,13 +65,12 @@ public class GoldenRoseStrategy : IStrategy
         // Alım için Trend Takibi kullanıyoruz: Fiyat SMA1'i yukarı kestiğinde.
         if (currentPositionAmount == 0)
         {
-            // CrossOver: Önceki fiyat SMA1 altında veya eşit, Şu anki fiyat SMA1 üstünde
-            bool priceCrossOverSma1 = prevPrice <= prevSma1.Value && currentPrice > sma1;
+            // 1 Mum Kapanış Onayı: 
+            // Hem bir önceki mum SMA111 üzerinde kapatmış olmalı (prevPrice > prevSma1)
+            // Hem de şu anki fiyat SMA111 üzerinde kalmaya devam etmeli.
+            bool isConfirmedBreakout = prevPrice > prevSma1.Value && currentPrice > sma1;
 
-            // Alternatif Güvenli Giriş: Fiyat SMA2 üzerinde olmalı (Uzun vade trend)
-            bool isAboveLongTrend = currentPrice > sma2;
-
-            if (priceCrossOverSma1 && isAboveLongTrend)
+            if (isConfirmedBreakout)
             {
                 // HEDEFLER (Golden Ratio Multipliers)
                 // Hedef 1: Default 1.618 (Altın Oran)
@@ -140,7 +139,7 @@ public class GoldenRoseStrategy : IStrategy
 
         decimal score = 50;
 
-        if (currentPrice > currentSma1 && currentSma1 > currentSma2)
+        if (currentPrice > currentSma1)
         {
             // Bullish trend
             score = 70;

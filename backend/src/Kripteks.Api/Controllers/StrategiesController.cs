@@ -82,6 +82,13 @@ public class StrategiesController : ControllerBase
                     "Fiyat ve RSI/MACD arasındaki uyumsuzlukları tespit eder. Fiyat düşerken RSI yükseliyorsa (bullish divergence) trend dönüşü sinyali verir. Erken giriş fırsatları sunar.",
                 category = "scanner"
             },
+            new
+            {
+                id = "strategy-sma-111-breakout", name = "SMA 111 Kırılım",
+                description =
+                    "Fiyatın SMA 111 (Basit Hareketli Ortalama) seviyesini yukarı yönlü kırmasını takip eder. Güçlü bir trend başlangıcı sinyali olarak kabul edilir.",
+                category = "scanner"
+            },
             // Basic Strategies (Both)
             new
             {

@@ -133,7 +133,7 @@ builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.Diverge
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.MarketBuyStrategy>();
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.GridStrategy>();
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.DcaStrategy>();
-builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.SimulationStrategy>();
+builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.Sma111Strategy>();
 builder.Services.AddScoped<IStrategyFactory, Kripteks.Infrastructure.Strategies.StrategyFactory>();
 
 // Arka Plan Servisleri (Bot Engine)

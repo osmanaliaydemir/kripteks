@@ -18,15 +18,17 @@ interface Props {
 export default function BotLogs({ logs, compact = false }: Props) {
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Yeni log geldiğinde en alta kaydır
+    // En yeni logları en üstte göster (Tarihe göre tersten diz)
+    const displayLogs = [...logs]
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, compact ? 10 : 50);
+
+    // Yeni log geldiğinde en üste kaydır
     useEffect(() => {
         if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+            scrollRef.current.scrollTop = 0;
         }
     }, [logs]);
-
-    // Son 10 logu al
-    const recentLogs = logs.slice(-10);
 
     return (
         <div className={`mt-4 bg-slate-950/30 rounded-xl border border-white/5 overflow-hidden font-mono text-xs ${compact ? 'opacity-70 hover:opacity-100 transition-opacity' : ''}`}>
@@ -38,10 +40,10 @@ export default function BotLogs({ logs, compact = false }: Props) {
                 ref={scrollRef}
                 className={`${compact ? 'h-24' : 'h-32'} overflow-y-auto p-3 space-y-1.5 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent`}
             >
-                {recentLogs.length === 0 ? (
+                {displayLogs.length === 0 ? (
                     <div className="text-slate-600 italic">Log kaydı bekleniyor...</div>
                 ) : (
-                    recentLogs.map((log) => (
+                    displayLogs.map((log: Log) => (
                         <motion.div
                             key={log.id}
                             initial={{ opacity: 0, x: -10 }}

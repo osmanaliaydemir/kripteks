@@ -32,7 +32,8 @@ public class BotService : IBotService
                 StopLoss = b.StopLoss,
                 TakeProfit = b.TakeProfit,
                 Status = b.Status.ToString(),
-                CreatedAt = b.CreatedAt,
+                CreatedAt = DateTime.SpecifyKind(b.CreatedAt, DateTimeKind.Utc),
+                Pnl = b.CurrentPnl,
                 PnlPercent = b.CurrentPnlPercent,
                 IsTrailingStop = b.IsTrailingStop,
                 TrailingStopDistance = b.TrailingStopDistance,
@@ -41,6 +42,13 @@ public class BotService : IBotService
                 Logs = b.Logs
                     .OrderByDescending(l => l.Timestamp)
                     .Take(50)
+                    .Select(l => new LogDto
+                    {
+                        Id = l.Id,
+                        Message = l.Message,
+                        Level = l.Level.ToString(),
+                        Timestamp = DateTime.SpecifyKind(l.Timestamp, DateTimeKind.Utc)
+                    })
                     .ToList()
             })
             .ToListAsync();
@@ -71,9 +79,16 @@ public class BotService : IBotService
             StopLoss = bot.StopLoss,
             TakeProfit = bot.TakeProfit,
             Status = bot.Status.ToString(),
-            CreatedAt = bot.CreatedAt,
+            CreatedAt = DateTime.SpecifyKind(bot.CreatedAt, DateTimeKind.Utc),
+            Pnl = bot.CurrentPnl,
             PnlPercent = bot.CurrentPnlPercent,
-            Logs = logs,
+            Logs = logs.Select(l => new LogDto
+            {
+                Id = l.Id,
+                Message = l.Message,
+                Level = l.Level.ToString(),
+                Timestamp = DateTime.SpecifyKind(l.Timestamp, DateTimeKind.Utc)
+            }).ToList(),
             IsTrailingStop = bot.IsTrailingStop,
             TrailingStopDistance = bot.TrailingStopDistance,
             MaxPriceReached = bot.MaxPriceReached,
@@ -221,13 +236,25 @@ public class BotService : IBotService
                 StopLoss = bot.StopLoss,
                 TakeProfit = bot.TakeProfit,
                 Status = bot.Status.ToString(),
-                CreatedAt = bot.CreatedAt,
+                CreatedAt = DateTime.SpecifyKind(bot.CreatedAt, DateTimeKind.Utc),
                 Pnl = bot.CurrentPnl,
                 PnlPercent = bot.CurrentPnlPercent,
                 IsArchived = bot.IsArchived,
-                Logs = bot.Logs
+                Logs = bot.Logs.Select(l => new LogDto
+                {
+                    Id = l.Id,
+                    Message = l.Message,
+                    Level = l.Level.ToString(),
+                    Timestamp = DateTime.SpecifyKind(l.Timestamp, DateTimeKind.Utc)
+                }).ToList()
             });
-            await _notificationService.NotifyLog(bot.Id.ToString(), log);
+            await _notificationService.NotifyLog(bot.Id.ToString(), new LogDto
+            {
+                Id = log.Id,
+                Message = log.Message,
+                Level = log.Level.ToString(),
+                Timestamp = DateTime.SpecifyKind(log.Timestamp, DateTimeKind.Utc)
+            });
         }
     }
 
