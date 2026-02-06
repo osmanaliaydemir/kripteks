@@ -374,16 +374,17 @@ export default function Dashboard() {
                             <div className="flex flex-col gap-4 w-full sm:w-auto">
                                 <div className="glass-card p-1.5 flex gap-1 w-fit bg-slate-900/60">
                                     <TabButton id="active" label="Aktif Botlar" count={activeBotsRaw.length} activeTab={activeTab} setActiveTab={setActiveTab} icon={<Activity size={16} />} />
-                                    <TabButton id="history" label="Geçmiş" activeTab={activeTab} setActiveTab={setActiveTab} icon={<History size={16} />} />
+                                    <TabButton id="history" label="Geçmiş" count={historyBots.length} activeTab={activeTab} setActiveTab={setActiveTab} icon={<History size={16} />} />
                                 </div>
 
                                 {activeTab === 'active' && activeBotsRaw.length > 0 && (
                                     <div className="flex items-center gap-2 p-1 bg-slate-900/40 rounded-xl border border-white/5 w-fit">
                                         <button
                                             onClick={() => setBotFilter('all')}
-                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider ${botFilter === 'all' ? 'bg-primary/20 text-primary border border-primary/20' : 'text-slate-500 hover:text-slate-300'}`}
+                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider flex items-center gap-1.5 ${botFilter === 'all' ? 'bg-primary/20 text-primary border border-primary/20' : 'text-slate-500 hover:text-slate-300'}`}
                                         >
                                             Hepsi
+                                            <span className={`px-1 rounded ${botFilter === 'all' ? 'bg-primary/20' : 'bg-slate-800'}`}>{activeBotsRaw.length}</span>
                                         </button>
                                         <button
                                             onClick={() => setBotFilter('position')}
@@ -391,6 +392,7 @@ export default function Dashboard() {
                                         >
                                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                                             Pozisyonda
+                                            <span className={`px-1 rounded ${botFilter === 'position' ? 'bg-emerald-500/20' : 'bg-slate-800'}`}>{activeBotsRaw.filter(b => b.status === 'Running').length}</span>
                                         </button>
                                         <button
                                             onClick={() => setBotFilter('waiting')}
@@ -398,6 +400,7 @@ export default function Dashboard() {
                                         >
                                             <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
                                             Sinyal Bekleniyor
+                                            <span className={`px-1 rounded ${botFilter === 'waiting' ? 'bg-amber-500/20' : 'bg-slate-800'}`}>{activeBotsRaw.filter(b => b.status === 'WaitingForEntry').length}</span>
                                         </button>
                                     </div>
                                 )}
@@ -407,10 +410,13 @@ export default function Dashboard() {
                                 {activeTab === 'active' && activeBotsRaw.length > 0 && (
                                     <button
                                         onClick={() => setIsStopAllConfirmOpen(true)}
-                                        className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-xl hover:bg-rose-600 hover:text-white transition-all text-xs font-bold uppercase tracking-wider group"
+                                        className="flex items-center gap-0 hover:gap-2 px-3 hover:px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-xl hover:bg-rose-600 hover:text-white transition-all text-xs font-bold uppercase tracking-wider group relative"
+                                        title="Tüm İşlemleri Durdur"
                                     >
-                                        <OctagonX size={16} className="group-hover:animate-pulse" />
-                                        Tüm İşlemleri Durdur
+                                        <OctagonX size={16} className="shrink-0 group-hover:animate-pulse" />
+                                        <div className="max-w-0 group-hover:max-w-xs overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap">
+                                            <span className="pl-1">Tüm İşlemleri Durdur</span>
+                                        </div>
                                     </button>
                                 )}
 
