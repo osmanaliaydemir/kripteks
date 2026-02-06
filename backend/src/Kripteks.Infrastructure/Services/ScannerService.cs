@@ -6,22 +6,24 @@ using Microsoft.Extensions.Logging;
 using Kripteks.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Kripteks.Core.Entities;
+using Binance.Net.Interfaces.Clients;
 
 namespace Kripteks.Infrastructure.Services;
 
 public class ScannerService
 {
-    private readonly BinanceRestClient _client;
+    private readonly IBinanceRestClient _client;
     private readonly ILogger<ScannerService> _logger;
     private readonly IStrategyFactory _strategyFactory;
     private readonly AppDbContext _dbContext;
 
-    public ScannerService(ILogger<ScannerService> logger, IStrategyFactory strategyFactory, AppDbContext dbContext)
+    public ScannerService(ILogger<ScannerService> logger, IStrategyFactory strategyFactory, AppDbContext dbContext,
+        IBinanceRestClient client)
     {
         _logger = logger;
         _strategyFactory = strategyFactory;
         _dbContext = dbContext;
-        _client = new BinanceRestClient();
+        _client = client;
     }
 
     public async Task<List<ScannerFavoriteListDto>> GetUserFavoritesAsync(string userId)
@@ -74,6 +76,10 @@ public class ScannerService
 
     public async Task<ScannerResultDto> ScanAsync(ScannerRequestDto request)
     {
+        _logger.LogInformation(
+            "Scan request received. Strategy: {StrategyId}, Interval: {Interval}, MinScore: {MinScore}, Symbols Count: {SymbolsCount}",
+            request.StrategyId, request.Interval, request.MinScore, request.Symbols?.Count ?? 0);
+
         var result = new ScannerResultDto();
         var strategy = _strategyFactory.GetStrategy(request.StrategyId);
 
@@ -87,6 +93,7 @@ public class ScannerService
         // If no symbols provided, fetch top symbols by 24h volume
         if (targetSymbols == null || !targetSymbols.Any())
         {
+            _logger.LogInformation("No symbols provided. Fetching top 100 symbols by volume.");
             var exchangeInfoTask = _client.SpotApi.ExchangeData.GetExchangeInfoAsync();
             var tickersTask = _client.SpotApi.ExchangeData.GetTickersAsync();
 
@@ -97,20 +104,26 @@ public class ScannerService
 
             if (exchangeInfo.Success && tickers.Success)
             {
+                // Stabil coin listesi (BaseAsset olarak filtrelenecek)
+                var stableCoins = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "USDT", "USDC", "BUSD", "DAI", "TUSD", "USDP", "FDUSD", "USDD",
+                    "GUSD", "PAX", "FRAX", "LUSD", "MIM", "UST", "PYUSD", "USDJ",
+                    "SUSD", "EURS", "EURT", "AEUR", "USTC", "CUSD", "CEUR", "RSR",
+                    "UU", "U", "USD1", "USDE", "RLUSD", "BFUSD", "XUSD"
+                };
+
                 // 1. Get valid trading symbols
                 var validSymbols = exchangeInfo.Data.Symbols
                     .Where(s => s.Status == SymbolStatus.Trading &&
                                 s.QuoteAsset == "USDT" &&
+                                !stableCoins.Contains(s.BaseAsset) &&
                                 !s.Name.EndsWith("UPUSDT") &&
                                 !s.Name.EndsWith("DOWNUSDT") &&
                                 !s.Name.EndsWith("BEARUSDT") &&
                                 !s.Name.EndsWith("BULLUSDT") &&
-                                !s.Name.Contains("TUSD") && // Optional: Exclude stablecoin pairs
-                                !s.Name.Contains("USDC") &&
-                                !s.Name.Contains("FDUSD") &&
                                 !s.Name.Contains("EUR") &&
-                                !s.Name.Contains("GBP") &&
-                                !s.Name.Contains("DAI"))
+                                !s.Name.Contains("GBP"))
                     .Select(s => s.Name)
                     .ToHashSet();
 
@@ -121,10 +134,31 @@ public class ScannerService
                     .Take(100)
                     .Select(x => x.Symbol)
                     .ToList();
+
+                _logger.LogInformation("Fethed {Count} top symbols.", targetSymbols.Count);
+            }
+            else
+            {
+                _logger.LogError(
+                    "Failed to fetch exchange info or tickers. ExchangeInfo Success: {ExSuccess}, Tickers Success: {TickersSuccess}",
+                    exchangeInfo.Success, tickers.Success);
             }
         }
 
-        if (targetSymbols == null || !targetSymbols.Any()) return result;
+        if (targetSymbols == null || !targetSymbols.Any())
+        {
+            if (request.StrategyId == "strategy-simulation")
+            {
+                targetSymbols = new List<string>
+                    { "BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "ADAUSDT", "AVAXUSDT", "DOTUSDT" };
+                _logger.LogInformation("Target symbols list is empty. Using dummy symbols for simulation.");
+            }
+            else
+            {
+                _logger.LogWarning("Target symbols list is empty. Returning empty result.");
+                return result;
+            }
+        }
 
         foreach (var symbol in targetSymbols)
         {
@@ -133,21 +167,32 @@ public class ScannerService
                 var cleanSymbol = symbol.Replace("/", "").ToUpper();
                 var klines = await _client.SpotApi.ExchangeData.GetKlinesAsync(cleanSymbol, interval, limit: 100);
 
-                if (!klines.Success || !klines.Data.Any())
+                List<Candle> candles;
+                if (!klines.Success || klines.Data == null)
                 {
-                    _logger.LogWarning("Could not fetch klines for {Symbol}", symbol);
-                    continue;
+                    if (request.StrategyId == "strategy-simulation")
+                    {
+                        candles = GenerateDummyCandles();
+                    }
+                    else
+                    {
+                        var errorMsg = klines.Error?.Message ?? "Unknown Error";
+                        _logger.LogWarning("Binance API Error for {Symbol}: {Error}", symbol, errorMsg);
+                        continue;
+                    }
                 }
-
-                var candles = klines.Data.Select(k => new Candle
+                else
                 {
-                    OpenTime = k.OpenTime,
-                    Open = k.OpenPrice,
-                    High = k.HighPrice,
-                    Low = k.LowPrice,
-                    Close = k.ClosePrice,
-                    Volume = k.Volume
-                }).ToList();
+                    candles = klines.Data.Select(k => new Candle
+                    {
+                        OpenTime = k.OpenTime,
+                        Open = k.OpenPrice,
+                        High = k.HighPrice,
+                        Low = k.LowPrice,
+                        Close = k.ClosePrice,
+                        Volume = k.Volume
+                    }).ToList();
+                }
 
                 var score = strategy.CalculateSignalScore(candles);
 
@@ -177,6 +222,7 @@ public class ScannerService
 
         // Sort by score descending
         result.Results = result.Results.OrderByDescending(r => r.SignalScore).ToList();
+        _logger.LogInformation("Scan completed. Found {Count} results.", result.Results.Count);
         return result;
     }
 
@@ -193,4 +239,34 @@ public class ScannerService
         "1d" => KlineInterval.OneDay,
         _ => KlineInterval.OneHour
     };
+
+    private List<Candle> GenerateDummyCandles()
+    {
+        var candles = new List<Candle>();
+        var random = new Random();
+        var price = 100m;
+        var now = DateTime.UtcNow;
+
+        for (int i = 0; i < 100; i++)
+        {
+            var change = (decimal)(random.NextDouble() * 2 - 1); // -1% to +1%
+            var open = price;
+            price += price * (change / 100);
+            var close = price;
+            var high = Math.Max(open, close) * 1.005m;
+            var low = Math.Min(open, close) * 0.995m;
+
+            candles.Add(new Candle
+            {
+                OpenTime = now.AddHours(-100 + i),
+                Open = open,
+                High = high,
+                Low = low,
+                Close = close,
+                Volume = (decimal)random.Next(1000, 10000)
+            });
+        }
+
+        return candles;
+    }
 }

@@ -2,8 +2,8 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Zap, TrendingUp, AlertTriangle, Loader2 } from "lucide-react";
-import { BotService } from "@/lib/api";
+import { X, Zap, TrendingUp, AlertTriangle, Loader2, Wallet } from "lucide-react";
+import { BotService, WalletService } from "@/lib/api";
 import { toast } from "sonner";
 
 interface QuickBuyModalProps {
@@ -18,10 +18,38 @@ export function QuickBuyModal({ isOpen, onClose, symbol, currentPrice, signalSco
     const [amount, setAmount] = useState<number>(100);
     const [loading, setLoading] = useState(false);
     const [strategy, setStrategy] = useState("strategy-market-buy");
+    const [balance, setBalance] = useState<number>(0);
+    const [fetchingBalance, setFetchingBalance] = useState(false);
+
+    React.useEffect(() => {
+        if (isOpen) {
+            fetchBalance();
+        }
+    }, [isOpen]);
+
+    const fetchBalance = async () => {
+        setFetchingBalance(true);
+        try {
+            const data = await WalletService.getWallet();
+            if (data) {
+                // Backend'den available_balance geliyor kabul ediyoruz
+                setBalance(data.available_balance || 0);
+            }
+        } catch (error) {
+            console.error("Bakiye çekilemedi", error);
+        } finally {
+            setFetchingBalance(false);
+        }
+    };
 
     const handleQuickBuy = async () => {
         if (amount <= 0) {
             toast.error("Geçerli bir miktar giriniz");
+            return;
+        }
+
+        if (amount > balance) {
+            toast.error("Yetersiz Bakiye", { description: `Mevcut bakiyeniz: $${balance.toFixed(2)}` });
             return;
         }
 
@@ -140,6 +168,29 @@ export function QuickBuyModal({ isOpen, onClose, symbol, currentPrice, signalSco
                                         min={10}
                                     />
                                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-sm">USDT</span>
+                                </div>
+
+                                {/* Bakiye Bilgisi */}
+                                <div className="flex items-center justify-between text-[10px] px-1">
+                                    <div className="flex items-center gap-1.5 text-slate-400">
+                                        <Wallet size={10} />
+                                        <span>Kullanılabilir Bakiye:</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {fetchingBalance ? (
+                                            <div className="w-12 h-3 bg-white/5 rounded animate-pulse" />
+                                        ) : (
+                                            <span className={`font-bold ${amount > balance ? "text-rose-400" : "text-white"}`}>
+                                                ${balance.toFixed(2)}
+                                            </span>
+                                        )}
+                                        <button
+                                            onClick={() => setAmount(Math.floor(balance))}
+                                            className="text-[9px] font-black text-primary hover:text-primary-light transition-colors uppercase"
+                                        >
+                                            MAX
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* Preset Amounts */}

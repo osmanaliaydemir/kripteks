@@ -20,7 +20,7 @@ public class StrategiesController : ControllerBase
             },
             new
             {
-                id = "strategy-golden-rose", name = "Altın Gül Trendi",
+                id = "strategy-golden-rose", name = "Altın Kesişim Trendi",
                 description =
                     "SMA 111, 200 ve 350 periyotluk hareketli ortalamaları kullanarak ana trend yönünü belirleyen kurumsal düzeyde bir strateji. Giriş sinyalleri için SMA 111 kırılımını, kâr alım hedefleri için ise Fibonacci 1.618 (Golden Ratio) genişleme seviyelerini baz alır. Özellikle Bitcoin halving döngüleri ve makro trend değişimleri için optimize edilmiştir.",
                 category = "simulation"
@@ -87,6 +87,12 @@ public class StrategiesController : ControllerBase
             {
                 id = "SMA_111", name = "Temel SMA 111",
                 description = "Sadece SMA 111 kırılımına bakan basit strateji.",
+                category = "simulation"
+            },
+            new
+            {
+                id = "strategy-simulation", name = "Simülasyon Stratejisi",
+                description = "Gerçek veri olmasa bile test verisi üreterek sistemin akışını kontrol etmenizi sağlar.",
                 category = "both"
             },
             new

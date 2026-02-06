@@ -1,10 +1,10 @@
 /Users/osmanaliaydemir/Documents/kripteks/backend/src/Kripteks.Api/Properties/launchSettings.json içindeki başlatma ayarları kullanılıyor...
 Derleniyor...
 info: Microsoft.EntityFrameworkCore.Database.Command[20101]
-      Executed DbCommand (56ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      Executed DbCommand (84ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
       SELECT 1
 info: Microsoft.EntityFrameworkCore.Database.Command[20101]
-      Executed DbCommand (55ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      Executed DbCommand (95ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
       
       IF EXISTS
           (SELECT *
@@ -21,22 +21,22 @@ info: Microsoft.EntityFrameworkCore.Database.Command[20101]
       )
       SELECT 1 ELSE SELECT 0
 info: Microsoft.EntityFrameworkCore.Database.Command[20101]
-      Executed DbCommand (57ms) [Parameters=[@__normalizedName_0='?' (Size = 256)], CommandType='Text', CommandTimeout='30']
+      Executed DbCommand (140ms) [Parameters=[@__normalizedName_0='?' (Size = 256)], CommandType='Text', CommandTimeout='30']
       SELECT TOP(1) [a].[Id], [a].[ConcurrencyStamp], [a].[Name], [a].[NormalizedName]
       FROM [AspNetRoles] AS [a]
       WHERE [a].[NormalizedName] = @__normalizedName_0
 info: Microsoft.EntityFrameworkCore.Database.Command[20101]
-      Executed DbCommand (46ms) [Parameters=[@__normalizedName_0='?' (Size = 256)], CommandType='Text', CommandTimeout='30']
+      Executed DbCommand (61ms) [Parameters=[@__normalizedName_0='?' (Size = 256)], CommandType='Text', CommandTimeout='30']
       SELECT TOP(1) [a].[Id], [a].[ConcurrencyStamp], [a].[Name], [a].[NormalizedName]
       FROM [AspNetRoles] AS [a]
       WHERE [a].[NormalizedName] = @__normalizedName_0
 info: Microsoft.EntityFrameworkCore.Database.Command[20101]
-      Executed DbCommand (46ms) [Parameters=[@__normalizedName_0='?' (Size = 256)], CommandType='Text', CommandTimeout='30']
+      Executed DbCommand (58ms) [Parameters=[@__normalizedName_0='?' (Size = 256)], CommandType='Text', CommandTimeout='30']
       SELECT TOP(1) [a].[Id], [a].[ConcurrencyStamp], [a].[Name], [a].[NormalizedName]
       FROM [AspNetRoles] AS [a]
       WHERE [a].[NormalizedName] = @__normalizedName_0
 info: Microsoft.EntityFrameworkCore.Database.Command[20101]
-      Executed DbCommand (50ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      Executed DbCommand (77ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
       SELECT CASE
           WHEN EXISTS (
               SELECT 1
@@ -44,75 +44,561 @@ info: Microsoft.EntityFrameworkCore.Database.Command[20101]
           ELSE CAST(0 AS bit)
       END
 info: Microsoft.EntityFrameworkCore.Database.Command[20101]
-      Executed DbCommand (89ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      Executed DbCommand (58ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
       SELECT CASE
           WHEN EXISTS (
               SELECT 1
               FROM [Wallets] AS [w]) THEN CAST(1 AS bit)
           ELSE CAST(0 AS bit)
       END
-info: Kripteks.Infrastructure.Services.SentimentAnalysisJob[0]
-      Sentiment Analysis Job Başlatıldı. 🧠
 info: Kripteks.Infrastructure.Services.BotEngineService[0]
       Bot Engine Başlatıldı (Otomatik Al-Sat Modu) 🚀
 info: Kripteks.Infrastructure.Services.SentimentAnalysisJob[0]
+      Sentiment Analysis Job Başlatıldı. 🧠
+info: Kripteks.Infrastructure.Services.SentimentAnalysisJob[0]
       AI Analizi devre dışı, bekleniyor...
-fail: Microsoft.Extensions.Hosting.Internal.Host[11]
-      Hosting failed to start
-      System.IO.IOException: Failed to bind to address http://127.0.0.1:5292: address already in use.
-       ---> Microsoft.AspNetCore.Connections.AddressInUseException: Address already in use
-       ---> System.Net.Sockets.SocketException (48): Address already in use
-         at System.Net.Sockets.Socket.DoBind(EndPoint endPointSnapshot, SocketAddress socketAddress)
-         at System.Net.Sockets.Socket.Bind(EndPoint localEP)
-         at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportOptions.CreateDefaultBoundListenSocket(EndPoint endpoint)
-         at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketConnectionListener.Bind()
-         --- End of inner exception stack trace ---
-         at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketConnectionListener.Bind()
-         at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportFactory.BindAsync(EndPoint endpoint, CancellationToken cancellationToken)
-         at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure.TransportManager.BindAsync(EndPoint endPoint, ConnectionDelegate connectionDelegate, EndpointConfig endpointConfig, CancellationToken cancellationToken)
-         at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.<>c__DisplayClass28_0`1.<<StartAsync>g__OnBind|0>d.MoveNext()
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5292
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /Users/osmanaliaydemir/Documents/kripteks/backend/src/Kripteks.Api
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (94ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT DISTINCT [b].[Symbol]
+      FROM [Bots] AS [b]
+      WHERE [b].[Status] IN (N'Running', N'WaitingForEntry')
+info: Kripteks.Infrastructure.Services.BinanceMarketService[0]
+      WebSocket Aboneliği Başlatılıyor: 5 Sembol
+fail: Kripteks.Infrastructure.Services.BinanceMarketService[0]
+      WebSocket Abonelik Hatası: [CantConnectError.UnableToConnect] Can't connect to the server
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (123ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'WaitingForEntry'
+      ORDER BY [b].[Id]
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot BTTC/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot XRP/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot CHZ/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot 1000SATS/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot PEPE/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (61ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'Running'
+      ORDER BY [b].[Id]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (67ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'WaitingForEntry'
+      ORDER BY [b].[Id]
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot BTTC/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot XRP/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot CHZ/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot 1000SATS/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot PEPE/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (59ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'Running'
+      ORDER BY [b].[Id]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (81ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'WaitingForEntry'
+      ORDER BY [b].[Id]
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot BTTC/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot XRP/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot CHZ/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot 1000SATS/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot PEPE/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (60ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'Running'
+      ORDER BY [b].[Id]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (60ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'WaitingForEntry'
+      ORDER BY [b].[Id]
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot BTTC/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot XRP/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot CHZ/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot 1000SATS/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot PEPE/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (67ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'Running'
+      ORDER BY [b].[Id]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (63ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'WaitingForEntry'
+      ORDER BY [b].[Id]
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot BTTC/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot XRP/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot CHZ/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot 1000SATS/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot PEPE/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (59ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'Running'
+      ORDER BY [b].[Id]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (86ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'WaitingForEntry'
+      ORDER BY [b].[Id]
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot BTTC/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot XRP/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot CHZ/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot 1000SATS/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot PEPE/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (62ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'Running'
+      ORDER BY [b].[Id]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (79ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'WaitingForEntry'
+      ORDER BY [b].[Id]
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot BTTC/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot XRP/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot CHZ/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot 1000SATS/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot PEPE/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (61ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'Running'
+      ORDER BY [b].[Id]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (83ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'WaitingForEntry'
+      ORDER BY [b].[Id]
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot BTTC/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot XRP/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot CHZ/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot 1000SATS/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot PEPE/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (368ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'Running'
+      ORDER BY [b].[Id]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (312ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'WaitingForEntry'
+      ORDER BY [b].[Id]
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot BTTC/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot XRP/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot CHZ/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot 1000SATS/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot PEPE/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (61ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'Running'
+      ORDER BY [b].[Id]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (109ms) [Parameters=[@__userId_0='?' (Size = 450)], CommandType='Text', CommandTimeout='30']
+      SELECT [u].[Id], [u].[CreatedAt], [u].[Name], [u].[Symbols], [u].[UserId]
+      FROM [UserFavoriteLists] AS [u]
+      WHERE [u].[UserId] = @__userId_0
+      ORDER BY [u].[CreatedAt] DESC
+fail: Kripteks.Infrastructure.Services.BinanceMarketService[0]
+      Binance ExchangeInfo hatası: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (196ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'WaitingForEntry'
+      ORDER BY [b].[Id]
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot BTTC/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot XRP/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot CHZ/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot 1000SATS/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot PEPE/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (124ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'Running'
+      ORDER BY [b].[Id]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2,444ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'WaitingForEntry'
+      ORDER BY [b].[Id]
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot BTTC/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot XRP/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot CHZ/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot 1000SATS/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot PEPE/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (74ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'Running'
+      ORDER BY [b].[Id]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (179ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'WaitingForEntry'
+      ORDER BY [b].[Id]
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot BTTC/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot XRP/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot CHZ/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot 1000SATS/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot PEPE/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (70ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'Running'
+      ORDER BY [b].[Id]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (62ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'WaitingForEntry'
+      ORDER BY [b].[Id]
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot BTTC/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot XRP/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot CHZ/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot 1000SATS/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot PEPE/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (70ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'Running'
+      ORDER BY [b].[Id]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1,020ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'WaitingForEntry'
+      ORDER BY [b].[Id]
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot BTTC/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot XRP/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot CHZ/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot 1000SATS/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot PEPE/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (72ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'Running'
+      ORDER BY [b].[Id]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (68ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'WaitingForEntry'
+      ORDER BY [b].[Id]
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot BTTC/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot XRP/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot CHZ/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot 1000SATS/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+warn: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot PEPE/USDT veri çekemedi: [WebError.NetworkError] : The SSL connection could not be established, see inner exception.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (79ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'Running'
+      ORDER BY [b].[Id]
+fail: Microsoft.EntityFrameworkCore.Database.Command[20102]
+      Failed executing DbCommand (33,025ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT [b].[Id], [b].[Amount], [b].[CreatedAt], [b].[CurrentDcaStep], [b].[CurrentPnl], [b].[CurrentPnlPercent], [b].[EntryPrice], [b].[Interval], [b].[IsArchived], [b].[IsTrailingStop], [b].[MaxPriceReached], [b].[OrderType], [b].[Status], [b].[StopLoss], [b].[StrategyName], [b].[StrategyParams], [b].[Symbol], [b].[TakeProfit], [b].[TrailingStopDistance], [l].[Id], [l].[BotId], [l].[Level], [l].[Message], [l].[Timestamp]
+      FROM [Bots] AS [b]
+      LEFT JOIN [Logs] AS [l] ON [b].[Id] = [l].[BotId]
+      WHERE [b].[Status] = N'WaitingForEntry'
+      ORDER BY [b].[Id]
+fail: Microsoft.EntityFrameworkCore.Query[10100]
+      An exception occurred while iterating over the results of a query for context type 'Kripteks.Infrastructure.Data.AppDbContext'.
+      Microsoft.Data.SqlClient.SqlException (0x80131904): Execution Timeout Expired.  The timeout period elapsed prior to completion of the operation or the server is not responding.
+      A transport-level error has occurred when receiving results from the server. (provider: TCP Provider, error: 35 - An internal exception was caught)
+       ---> System.ComponentModel.Win32Exception (258): Unknown error: 258
+         at System.Threading.Tasks.ContinuationResultTaskFromResultTask`2.InnerInvoke()
+         at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
       --- End of stack trace from previous location ---
-         at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.BindEndpointAsync(ListenOptions endpoint, AddressBindContext context, CancellationToken cancellationToken)
-         --- End of inner exception stack trace ---
-         at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.BindEndpointAsync(ListenOptions endpoint, AddressBindContext context, CancellationToken cancellationToken)
-         at Microsoft.AspNetCore.Server.Kestrel.Core.LocalhostListenOptions.BindAsync(AddressBindContext context, CancellationToken cancellationToken)
-         at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.AddressesStrategy.BindAsync(AddressBindContext context, CancellationToken cancellationToken)
-         at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.BindAsync(CancellationToken cancellationToken)
-         at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.StartAsync[TContext](IHttpApplication`1 application, CancellationToken cancellationToken)
-         at Microsoft.AspNetCore.Hosting.GenericWebHostService.StartAsync(CancellationToken cancellationToken)
-         at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__14_1(IHostedService service, CancellationToken token)
-         at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
-Unhandled exception. System.IO.IOException: Failed to bind to address http://127.0.0.1:5292: address already in use.
- ---> Microsoft.AspNetCore.Connections.AddressInUseException: Address already in use
- ---> System.Net.Sockets.SocketException (48): Address already in use
-   at System.Net.Sockets.Socket.DoBind(EndPoint endPointSnapshot, SocketAddress socketAddress)
-   at System.Net.Sockets.Socket.Bind(EndPoint localEP)
-   at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportOptions.CreateDefaultBoundListenSocket(EndPoint endpoint)
-   at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketConnectionListener.Bind()
-   --- End of inner exception stack trace ---
-   at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketConnectionListener.Bind()
-   at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportFactory.BindAsync(EndPoint endpoint, CancellationToken cancellationToken)
-   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure.TransportManager.BindAsync(EndPoint endPoint, ConnectionDelegate connectionDelegate, EndpointConfig endpointConfig, CancellationToken cancellationToken)
-   at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.<>c__DisplayClass28_0`1.<<StartAsync>g__OnBind|0>d.MoveNext()
---- End of stack trace from previous location ---
-   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.BindEndpointAsync(ListenOptions endpoint, AddressBindContext context, CancellationToken cancellationToken)
-   --- End of inner exception stack trace ---
-   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.BindEndpointAsync(ListenOptions endpoint, AddressBindContext context, CancellationToken cancellationToken)
-   at Microsoft.AspNetCore.Server.Kestrel.Core.LocalhostListenOptions.BindAsync(AddressBindContext context, CancellationToken cancellationToken)
-   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.AddressesStrategy.BindAsync(AddressBindContext context, CancellationToken cancellationToken)
-   at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.BindAsync(CancellationToken cancellationToken)
-   at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.StartAsync[TContext](IHttpApplication`1 application, CancellationToken cancellationToken)
-   at Microsoft.AspNetCore.Hosting.GenericWebHostService.StartAsync(CancellationToken cancellationToken)
-   at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__14_1(IHostedService service, CancellationToken token)
-   at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
-   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)
-   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
-   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
-   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.Run(IHost host)
-   at Program.<Main>$(String[] args) in /Users/osmanaliaydemir/Documents/kripteks/backend/src/Kripteks.Api/Program.cs:line 175
-   at Program.<Main>(String[] args)
-fail: Microsoft.Extensions.Hosting.Internal.Host[9]
-      BackgroundService failed
-      System.Threading.Tasks.TaskCanceledException: A task was canceled.
-         at Kripteks.Infrastructure.Services.SentimentAnalysisJob.ExecuteAsync(CancellationToken stoppingToken) in /Users/osmanaliaydemir/Documents/kripteks/backend/src/Kripteks.Infrastructure/Services/SentimentAnalysisJob.cs:line 39
-         at Microsoft.Extensions.Hosting.Internal.Host.TryExecuteBackgroundServiceAsync(BackgroundService backgroundService)
+         at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+         at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+      --- End of stack trace from previous location ---
+         at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Query.Internal.SingleQueryingEnumerable`1.AsyncEnumerator.InitializeReaderAsync(AsyncEnumerator enumerator, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.SqlServer.Storage.Internal.SqlServerExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Query.Internal.SingleQueryingEnumerable`1.AsyncEnumerator.MoveNextAsync()
+      ClientConnectionId:af45930c-e8fd-44b8-a49e-e476224c2ee6
+      Error Number:-2,State:0,Class:11
+      Microsoft.Data.SqlClient.SqlException (0x80131904): Execution Timeout Expired.  The timeout period elapsed prior to completion of the operation or the server is not responding.
+      A transport-level error has occurred when receiving results from the server. (provider: TCP Provider, error: 35 - An internal exception was caught)
+       ---> System.ComponentModel.Win32Exception (258): Unknown error: 258
+         at System.Threading.Tasks.ContinuationResultTaskFromResultTask`2.InnerInvoke()
+         at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+      --- End of stack trace from previous location ---
+         at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+         at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+      --- End of stack trace from previous location ---
+         at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Query.Internal.SingleQueryingEnumerable`1.AsyncEnumerator.InitializeReaderAsync(AsyncEnumerator enumerator, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.SqlServer.Storage.Internal.SqlServerExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Query.Internal.SingleQueryingEnumerable`1.AsyncEnumerator.MoveNextAsync()
+      ClientConnectionId:af45930c-e8fd-44b8-a49e-e476224c2ee6
+      Error Number:-2,State:0,Class:11
+fail: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot Döngüsünde Kritik Hata!
+      Microsoft.Data.SqlClient.SqlException (0x80131904): Execution Timeout Expired.  The timeout period elapsed prior to completion of the operation or the server is not responding.
+      A transport-level error has occurred when receiving results from the server. (provider: TCP Provider, error: 35 - An internal exception was caught)
+       ---> System.ComponentModel.Win32Exception (258): Unknown error: 258
+         at System.Threading.Tasks.ContinuationResultTaskFromResultTask`2.InnerInvoke()
+         at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+      --- End of stack trace from previous location ---
+         at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+         at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)
+      --- End of stack trace from previous location ---
+         at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Query.Internal.SingleQueryingEnumerable`1.AsyncEnumerator.InitializeReaderAsync(AsyncEnumerator enumerator, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.SqlServer.Storage.Internal.SqlServerExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Query.Internal.SingleQueryingEnumerable`1.AsyncEnumerator.MoveNextAsync()
+         at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync[TSource](IQueryable`1 source, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync[TSource](IQueryable`1 source, CancellationToken cancellationToken)
+         at Kripteks.Infrastructure.Services.BotEngineService.ProcessBotsAsync(CancellationToken stoppingToken) in /Users/osmanaliaydemir/Documents/kripteks/backend/src/Kripteks.Infrastructure/Services/BotEngineService.cs:line 83
+         at Kripteks.Infrastructure.Services.BotEngineService.ExecuteAsync(CancellationToken stoppingToken) in /Users/osmanaliaydemir/Documents/kripteks/backend/src/Kripteks.Infrastructure/Services/BotEngineService.cs:line 55
+      ClientConnectionId:af45930c-e8fd-44b8-a49e-e476224c2ee6
+      Error Number:-2,State:0,Class:11
+fail: Microsoft.EntityFrameworkCore.Database.Connection[20004]
+      An error occurred using the connection to database 'db39678' on server 'db39678.public.databaseasp.net'.
+fail: Microsoft.EntityFrameworkCore.Query[10100]
+      An exception occurred while iterating over the results of a query for context type 'Kripteks.Infrastructure.Data.AppDbContext'.
+      Microsoft.Data.SqlClient.SqlException (0x80131904): A network-related or instance-specific error occurred while establishing a connection to SQL Server. The server was not found or was not accessible. Verify that the instance name is correct and that SQL Server is configured to allow remote connections. (provider: TCP Provider, error: 35 - An internal exception was caught)
+       ---> System.Net.Sockets.SocketException (00000005, 0xFFFDFFFF): nodename nor servname provided, or not known
+         at System.Net.Dns.GetHostEntryOrAddressesCore(String hostName, Boolean justAddresses, AddressFamily addressFamily, Nullable`1 activityOrDefault)
+         at System.Net.Dns.GetHostAddresses(String hostNameOrAddress, AddressFamily family)
+         at Microsoft.Data.SqlClient.SNI.SNICommon.GetDnsIpAddresses(String serverName)
+         at Microsoft.Data.SqlClient.SNI.SNITCPHandle.Connect(String serverName, Int32 port, TimeSpan timeout, Boolean isInfiniteTimeout, SqlConnectionIPAddressPreference ipPreference, String cachedFQDN, SQLDNSInfo& pendingDNSInfo)
+         at Microsoft.Data.SqlClient.SNI.SNITCPHandle..ctor(String serverName, Int32 port, Int64 timerExpire, Boolean parallel, SqlConnectionIPAddressPreference ipPreference, String cachedFQDN, SQLDNSInfo& pendingDNSInfo, Boolean tlsFirst, String hostNameInCertificate, String serverCertificateFilename)
+         at Microsoft.Data.SqlClient.SqlInternalConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+         at Microsoft.Data.SqlClient.TdsParser.ThrowExceptionAndWarning(TdsParserStateObject stateObj, Boolean callerHasConnectionLock, Boolean asyncClose)
+         at Microsoft.Data.SqlClient.TdsParser.Connect(ServerInfo serverInfo, SqlInternalConnectionTds connHandler, Boolean ignoreSniOpenTimeout, Int64 timerExpire, SqlConnectionString connectionOptions, Boolean withFailover)
+         at Microsoft.Data.SqlClient.SqlInternalConnectionTds.AttemptOneLogin(ServerInfo serverInfo, String newPassword, SecureString newSecurePassword, Boolean ignoreSniOpenTimeout, TimeoutTimer timeout, Boolean withFailover)
+         at Microsoft.Data.SqlClient.SqlInternalConnectionTds.LoginNoFailover(ServerInfo serverInfo, String newPassword, SecureString newSecurePassword, Boolean redirectedUserInstance, SqlConnectionString connectionOptions, SqlCredential credential, TimeoutTimer timeout)
+         at Microsoft.Data.SqlClient.SqlInternalConnectionTds.OpenLoginEnlist(TimeoutTimer timeout, SqlConnectionString connectionOptions, SqlCredential credential, String newPassword, SecureString newSecurePassword, Boolean redirectedUserInstance)
+         at Microsoft.Data.SqlClient.SqlInternalConnectionTds..ctor(DbConnectionPoolIdentity identity, SqlConnectionString connectionOptions, SqlCredential credential, Object providerInfo, String newPassword, SecureString newSecurePassword, Boolean redirectedUserInstance, SqlConnectionString userConnectionOptions, SessionData reconnectSessionData, Boolean applyTransientFaultHandling, String accessToken, DbConnectionPool pool)
+         at Microsoft.Data.SqlClient.SqlConnectionFactory.CreateConnection(DbConnectionOptions options, DbConnectionPoolKey poolKey, Object poolGroupProviderInfo, DbConnectionPool pool, DbConnection owningConnection, DbConnectionOptions userOptions)
+         at Microsoft.Data.ProviderBase.DbConnectionFactory.CreatePooledConnection(DbConnectionPool pool, DbConnection owningObject, DbConnectionOptions options, DbConnectionPoolKey poolKey, DbConnectionOptions userOptions)
+         at Microsoft.Data.ProviderBase.DbConnectionPool.CreateObject(DbConnection owningObject, DbConnectionOptions userOptions, DbConnectionInternal oldConnection)
+         at Microsoft.Data.ProviderBase.DbConnectionPool.UserCreateRequest(DbConnection owningObject, DbConnectionOptions userOptions, DbConnectionInternal oldConnection)
+         at Microsoft.Data.ProviderBase.DbConnectionPool.TryGetConnection(DbConnection owningObject, UInt32 waitForMultipleObjectsTimeout, Boolean allowCreate, Boolean onlyOneCheckConnection, DbConnectionOptions userOptions, DbConnectionInternal& connection)
+         at Microsoft.Data.ProviderBase.DbConnectionPool.WaitForPendingOpen()
+      --- End of stack trace from previous location ---
+         at Microsoft.EntityFrameworkCore.Storage.RelationalConnection.OpenInternalAsync(Boolean errorsExpected, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalConnection.OpenInternalAsync(Boolean errorsExpected, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalConnection.OpenAsync(CancellationToken cancellationToken, Boolean errorsExpected)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Query.Internal.SingleQueryingEnumerable`1.AsyncEnumerator.InitializeReaderAsync(AsyncEnumerator enumerator, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.SqlServer.Storage.Internal.SqlServerExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Query.Internal.SingleQueryingEnumerable`1.AsyncEnumerator.MoveNextAsync()
+      ClientConnectionId:00000000-0000-0000-0000-000000000000
+      Microsoft.Data.SqlClient.SqlException (0x80131904): A network-related or instance-specific error occurred while establishing a connection to SQL Server. The server was not found or was not accessible. Verify that the instance name is correct and that SQL Server is configured to allow remote connections. (provider: TCP Provider, error: 35 - An internal exception was caught)
+       ---> System.Net.Sockets.SocketException (00000005, 0xFFFDFFFF): nodename nor servname provided, or not known
+         at System.Net.Dns.GetHostEntryOrAddressesCore(String hostName, Boolean justAddresses, AddressFamily addressFamily, Nullable`1 activityOrDefault)
+         at System.Net.Dns.GetHostAddresses(String hostNameOrAddress, AddressFamily family)
+         at Microsoft.Data.SqlClient.SNI.SNICommon.GetDnsIpAddresses(String serverName)
+         at Microsoft.Data.SqlClient.SNI.SNITCPHandle.Connect(String serverName, Int32 port, TimeSpan timeout, Boolean isInfiniteTimeout, SqlConnectionIPAddressPreference ipPreference, String cachedFQDN, SQLDNSInfo& pendingDNSInfo)
+         at Microsoft.Data.SqlClient.SNI.SNITCPHandle..ctor(String serverName, Int32 port, Int64 timerExpire, Boolean parallel, SqlConnectionIPAddressPreference ipPreference, String cachedFQDN, SQLDNSInfo& pendingDNSInfo, Boolean tlsFirst, String hostNameInCertificate, String serverCertificateFilename)
+         at Microsoft.Data.SqlClient.SqlInternalConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+         at Microsoft.Data.SqlClient.TdsParser.ThrowExceptionAndWarning(TdsParserStateObject stateObj, Boolean callerHasConnectionLock, Boolean asyncClose)
+         at Microsoft.Data.SqlClient.TdsParser.Connect(ServerInfo serverInfo, SqlInternalConnectionTds connHandler, Boolean ignoreSniOpenTimeout, Int64 timerExpire, SqlConnectionString connectionOptions, Boolean withFailover)
+         at Microsoft.Data.SqlClient.SqlInternalConnectionTds.AttemptOneLogin(ServerInfo serverInfo, String newPassword, SecureString newSecurePassword, Boolean ignoreSniOpenTimeout, TimeoutTimer timeout, Boolean withFailover)
+         at Microsoft.Data.SqlClient.SqlInternalConnectionTds.LoginNoFailover(ServerInfo serverInfo, String newPassword, SecureString newSecurePassword, Boolean redirectedUserInstance, SqlConnectionString connectionOptions, SqlCredential credential, TimeoutTimer timeout)
+         at Microsoft.Data.SqlClient.SqlInternalConnectionTds.OpenLoginEnlist(TimeoutTimer timeout, SqlConnectionString connectionOptions, SqlCredential credential, String newPassword, SecureString newSecurePassword, Boolean redirectedUserInstance)
+         at Microsoft.Data.SqlClient.SqlInternalConnectionTds..ctor(DbConnectionPoolIdentity identity, SqlConnectionString connectionOptions, SqlCredential credential, Object providerInfo, String newPassword, SecureString newSecurePassword, Boolean redirectedUserInstance, SqlConnectionString userConnectionOptions, SessionData reconnectSessionData, Boolean applyTransientFaultHandling, String accessToken, DbConnectionPool pool)
+         at Microsoft.Data.SqlClient.SqlConnectionFactory.CreateConnection(DbConnectionOptions options, DbConnectionPoolKey poolKey, Object poolGroupProviderInfo, DbConnectionPool pool, DbConnection owningConnection, DbConnectionOptions userOptions)
+         at Microsoft.Data.ProviderBase.DbConnectionFactory.CreatePooledConnection(DbConnectionPool pool, DbConnection owningObject, DbConnectionOptions options, DbConnectionPoolKey poolKey, DbConnectionOptions userOptions)
+         at Microsoft.Data.ProviderBase.DbConnectionPool.CreateObject(DbConnection owningObject, DbConnectionOptions userOptions, DbConnectionInternal oldConnection)
+         at Microsoft.Data.ProviderBase.DbConnectionPool.UserCreateRequest(DbConnection owningObject, DbConnectionOptions userOptions, DbConnectionInternal oldConnection)
+         at Microsoft.Data.ProviderBase.DbConnectionPool.TryGetConnection(DbConnection owningObject, UInt32 waitForMultipleObjectsTimeout, Boolean allowCreate, Boolean onlyOneCheckConnection, DbConnectionOptions userOptions, DbConnectionInternal& connection)
+         at Microsoft.Data.ProviderBase.DbConnectionPool.WaitForPendingOpen()
+      --- End of stack trace from previous location ---
+         at Microsoft.EntityFrameworkCore.Storage.RelationalConnection.OpenInternalAsync(Boolean errorsExpected, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalConnection.OpenInternalAsync(Boolean errorsExpected, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalConnection.OpenAsync(CancellationToken cancellationToken, Boolean errorsExpected)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Query.Internal.SingleQueryingEnumerable`1.AsyncEnumerator.InitializeReaderAsync(AsyncEnumerator enumerator, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.SqlServer.Storage.Internal.SqlServerExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Query.Internal.SingleQueryingEnumerable`1.AsyncEnumerator.MoveNextAsync()
+      ClientConnectionId:00000000-0000-0000-0000-000000000000
+fail: Kripteks.Infrastructure.Services.BotEngineService[0]
+      Bot Döngüsünde Kritik Hata!
+      Microsoft.Data.SqlClient.SqlException (0x80131904): A network-related or instance-specific error occurred while establishing a connection to SQL Server. The server was not found or was not accessible. Verify that the instance name is correct and that SQL Server is configured to allow remote connections. (provider: TCP Provider, error: 35 - An internal exception was caught)
+       ---> System.Net.Sockets.SocketException (00000005, 0xFFFDFFFF): nodename nor servname provided, or not known
+         at System.Net.Dns.GetHostEntryOrAddressesCore(String hostName, Boolean justAddresses, AddressFamily addressFamily, Nullable`1 activityOrDefault)
+         at System.Net.Dns.GetHostAddresses(String hostNameOrAddress, AddressFamily family)
+         at Microsoft.Data.SqlClient.SNI.SNICommon.GetDnsIpAddresses(String serverName)
+         at Microsoft.Data.SqlClient.SNI.SNITCPHandle.Connect(String serverName, Int32 port, TimeSpan timeout, Boolean isInfiniteTimeout, SqlConnectionIPAddressPreference ipPreference, String cachedFQDN, SQLDNSInfo& pendingDNSInfo)
+         at Microsoft.Data.SqlClient.SNI.SNITCPHandle..ctor(String serverName, Int32 port, Int64 timerExpire, Boolean parallel, SqlConnectionIPAddressPreference ipPreference, String cachedFQDN, SQLDNSInfo& pendingDNSInfo, Boolean tlsFirst, String hostNameInCertificate, String serverCertificateFilename)
+         at Microsoft.Data.SqlClient.SqlInternalConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+         at Microsoft.Data.SqlClient.TdsParser.ThrowExceptionAndWarning(TdsParserStateObject stateObj, Boolean callerHasConnectionLock, Boolean asyncClose)
+         at Microsoft.Data.SqlClient.TdsParser.Connect(ServerInfo serverInfo, SqlInternalConnectionTds connHandler, Boolean ignoreSniOpenTimeout, Int64 timerExpire, SqlConnectionString connectionOptions, Boolean withFailover)
+         at Microsoft.Data.SqlClient.SqlInternalConnectionTds.AttemptOneLogin(ServerInfo serverInfo, String newPassword, SecureString newSecurePassword, Boolean ignoreSniOpenTimeout, TimeoutTimer timeout, Boolean withFailover)
+         at Microsoft.Data.SqlClient.SqlInternalConnectionTds.LoginNoFailover(ServerInfo serverInfo, String newPassword, SecureString newSecurePassword, Boolean redirectedUserInstance, SqlConnectionString connectionOptions, SqlCredential credential, TimeoutTimer timeout)
+         at Microsoft.Data.SqlClient.SqlInternalConnectionTds.OpenLoginEnlist(TimeoutTimer timeout, SqlConnectionString connectionOptions, SqlCredential credential, String newPassword, SecureString newSecurePassword, Boolean redirectedUserInstance)
+         at Microsoft.Data.SqlClient.SqlInternalConnectionTds..ctor(DbConnectionPoolIdentity identity, SqlConnectionString connectionOptions, SqlCredential credential, Object providerInfo, String newPassword, SecureString newSecurePassword, Boolean redirectedUserInstance, SqlConnectionString userConnectionOptions, SessionData reconnectSessionData, Boolean applyTransientFaultHandling, String accessToken, DbConnectionPool pool)
+         at Microsoft.Data.SqlClient.SqlConnectionFactory.CreateConnection(DbConnectionOptions options, DbConnectionPoolKey poolKey, Object poolGroupProviderInfo, DbConnectionPool pool, DbConnection owningConnection, DbConnectionOptions userOptions)
+         at Microsoft.Data.ProviderBase.DbConnectionFactory.CreatePooledConnection(DbConnectionPool pool, DbConnection owningObject, DbConnectionOptions options, DbConnectionPoolKey poolKey, DbConnectionOptions userOptions)
+         at Microsoft.Data.ProviderBase.DbConnectionPool.CreateObject(DbConnection owningObject, DbConnectionOptions userOptions, DbConnectionInternal oldConnection)
+         at Microsoft.Data.ProviderBase.DbConnectionPool.UserCreateRequest(DbConnection owningObject, DbConnectionOptions userOptions, DbConnectionInternal oldConnection)
+         at Microsoft.Data.ProviderBase.DbConnectionPool.TryGetConnection(DbConnection owningObject, UInt32 waitForMultipleObjectsTimeout, Boolean allowCreate, Boolean onlyOneCheckConnection, DbConnectionOptions userOptions, DbConnectionInternal& connection)
+         at Microsoft.Data.ProviderBase.DbConnectionPool.WaitForPendingOpen()
+      --- End of stack trace from previous location ---
+         at Microsoft.EntityFrameworkCore.Storage.RelationalConnection.OpenInternalAsync(Boolean errorsExpected, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalConnection.OpenInternalAsync(Boolean errorsExpected, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalConnection.OpenAsync(CancellationToken cancellationToken, Boolean errorsExpected)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Query.Internal.SingleQueryingEnumerable`1.AsyncEnumerator.InitializeReaderAsync(AsyncEnumerator enumerator, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.SqlServer.Storage.Internal.SqlServerExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Query.Internal.SingleQueryingEnumerable`1.AsyncEnumerator.MoveNextAsync()
+         at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync[TSource](IQueryable`1 source, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync[TSource](IQueryable`1 source, CancellationToken cancellationToken)
+         at Kripteks.Infrastructure.Services.BotEngineService.ProcessBotsAsync(CancellationToken stoppingToken) in /Users/osmanaliaydemir/Documents/kripteks/backend/src/Kripteks.Infrastructure/Services/BotEngineService.cs:line 83
+         at Kripteks.Infrastructure.Services.BotEngineService.ExecuteAsync(CancellationToken stoppingToken) in /Users/osmanaliaydemir/Documents/kripteks/backend/src/Kripteks.Infrastructure/Services/BotEngineService.cs:line 55
+      ClientConnectionId:00000000-0000-0000-0000-000000000000

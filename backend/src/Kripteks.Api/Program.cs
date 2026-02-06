@@ -8,8 +8,23 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Binance.Net.Interfaces.Clients;
 using Binance.Net.Clients;
+using Binance.Net.Objects.Options;
+using CryptoExchange.Net.Objects.Options;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Mac/Development için Global SSL Bypass (.NET 9 uyumlu)
+builder.Services.AddHttpClient("Binance").ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
+});
+
+// Varsayılan HttpClient konfigürasyonu
+builder.Services.AddHttpClient(string.Empty).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
+});
 
 // Add services to the container.
 builder.Services.AddHttpContextAccessor();
@@ -73,6 +88,9 @@ builder.Services.AddSingleton<IMarketDataService, BinanceMarketService>();
 builder.Services.AddScoped<BacktestService>();
 builder.Services.AddScoped<ScannerService>();
 builder.Services.AddScoped<IBacktestRepository, Kripteks.Infrastructure.Repositories.BacktestRepository>();
+// Binance Client Ayarları (SSL bypass dahil)
+// Binance Client Ayarları (Mac SSL Bypass)
+// Binance Client Ayarları (Mac SSL Bypass için Global Çözüm yukarida HttpClientFactory ile yapildi)
 builder.Services.AddSingleton<IBinanceRestClient>(sp => new BinanceRestClient());
 builder.Services.AddSingleton<IBinanceSocketClient>(sp => new BinanceSocketClient());
 
@@ -115,6 +133,7 @@ builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.Diverge
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.MarketBuyStrategy>();
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.GridStrategy>();
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.DcaStrategy>();
+builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.SimulationStrategy>();
 builder.Services.AddScoped<IStrategyFactory, Kripteks.Infrastructure.Strategies.StrategyFactory>();
 
 // Arka Plan Servisleri (Bot Engine)

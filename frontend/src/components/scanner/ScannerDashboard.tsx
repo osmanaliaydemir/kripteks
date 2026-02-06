@@ -6,8 +6,8 @@ import { ScannerService, MarketService } from "@/lib/api";
 import { toast } from "sonner";
 import {
     Search, PlayCircle, TrendingUp, Activity, Info,
-    Zap, Loader2, CheckCircle2, XCircle, BarChart3,
-    Gauge, Target, History, RefreshCw, Filter, Trash2, Edit2, ListPlus
+    Zap, Loader2, CheckCircle2, XCircle, BarChart3, Clock,
+    Gauge, Target, History, RefreshCw, Filter, Trash2, Edit2, ListPlus, Volume2, VolumeX
 } from "lucide-react";
 import { Coin, Strategy, ScannerResultItem, ScannerFavoriteList } from "@/types";
 import { InfoTooltip } from "@/components/dashboard/InfoTooltip";
@@ -41,6 +41,32 @@ export default function ScannerDashboard() {
     const [isQuickBuyOpen, setIsQuickBuyOpen] = useState(false);
     const [quickBuyItem, setQuickBuyItem] = useState<ScannerResultItem | null>(null);
 
+    // Auto Scan States
+    const [autoScanInterval, setAutoScanInterval] = useState<number>(0);
+    const [nextScanTime, setNextScanTime] = useState<Date | null>(null);
+    const [timeLeft, setTimeLeft] = useState<number>(0);
+
+
+    const [isSoundEnabled, setIsSoundEnabled] = useState(false);
+
+    // Ref ile güncel state'i takip et (Stale closure fix)
+    const isSoundEnabledRef = React.useRef(isSoundEnabled);
+    const autoScanIntervalRef = React.useRef(autoScanInterval);
+
+    useEffect(() => {
+        isSoundEnabledRef.current = isSoundEnabled;
+    }, [isSoundEnabled]);
+
+    useEffect(() => {
+        autoScanIntervalRef.current = autoScanInterval;
+    }, [autoScanInterval]);
+
+    const playNotificationSound = () => {
+        const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
+        audio.play().catch(e => console.error("Audio play failed", e));
+    };
+
+
     const loadData = async () => {
         try {
             const [coinsData, strData, favData] = await Promise.all([
@@ -66,6 +92,7 @@ export default function ScannerDashboard() {
         loadData();
     }, []);
 
+
     const filteredCoins = useMemo(() => {
         const filtered = coins.filter(c => c.symbol.toLowerCase().includes(searchTerm.toLowerCase()));
         return [...filtered].sort((a, b) => {
@@ -83,9 +110,18 @@ export default function ScannerDashboard() {
         );
     };
 
-    const handleRunScanner = async () => {
-        setLoading(true);
-        setResults([]);
+    const handleRunScanner = async (isAuto = false) => {
+        if (!strategy) {
+            if (!isAuto) toast.error("Lütfen bir strateji seçiniz");
+            return;
+        }
+
+        console.log("[DEBUG] Scanner Started. Strategy:", strategy, "IsAuto:", isAuto, "Symbols:", selectedSymbols.length);
+
+        if (!isAuto) setLoading(true);
+        // Silent loading için sonuçları temizlemiyoruz
+        if (!isAuto) setResults([]);
+
         try {
             const data = await ScannerService.scan({
                 symbols: selectedSymbols,
@@ -94,17 +130,80 @@ export default function ScannerDashboard() {
                 minScore: minScore > 0 ? minScore : undefined
             });
 
+            console.log("[DEBUG] Scanner Results:", data);
+
             if (data && data.results) {
                 setResults(data.results);
                 setHasScanned(true);
-                toast.success("Tarama Tamamlandı", { description: `${data.results.length} parite analiz edildi.` });
+                if (!isAuto) toast.success("Tarama Tamamlandı", { description: `${data.results.length} parite analiz edildi.` });
+
+                // Otomatik taramada sesli bildirim kontrolü
+                // Ref değerini kullanıyoruz çünkü handleRunScanner stale closure içinde kalabilir
+                if (isAuto && isSoundEnabledRef.current) {
+                    const hasHighScores = data.results.some((r: any) => {
+                        const score = r.signalScore ?? r.SignalScore ?? 0;
+                        return score >= 80;
+                    });
+
+                    if (hasHighScores) {
+                        playNotificationSound();
+                        toast.success("Yüksek Skorlu Fırsat Yakalandı!", {
+                            description: "Otomatik tarama sonucunda >80 puanlı coinler bulundu.",
+                            duration: 5000
+                        });
+                    }
+                }
+            } else {
+                console.warn("[DEBUG] No results in response:", data);
             }
         } catch (error: any) {
-            toast.error("Hata", { description: error.message || "Bağlantı hatası oluştu." });
+            console.error("[DEBUG] Scanner Error:", error);
+            if (!isAuto) toast.error("Hata", { description: error.message || "Bağlantı hatası oluştu." });
         } finally {
-            setLoading(false);
+            if (!isAuto) setLoading(false);
+
+            // Otomatik tarama aktifse, işlem bittikten sonra sayacı yeniden başlat
+            // Böylece tarama süresi, bekleme süresine dahil edilmez
+            // Otomatik tarama aktifse, işlem bittikten sonra sayacı yeniden başlat
+            // Ref'ten güncel interval değerini al
+            if (autoScanIntervalRef.current > 0) {
+                const newNextTime = new Date(Date.now() + autoScanIntervalRef.current);
+                setNextScanTime(newNextTime);
+                setTimeLeft(Math.ceil(autoScanIntervalRef.current / 1000));
+            }
         }
     };
+
+    useEffect(() => {
+        // Interval kapalıysa hiçbir şey yapma
+        if (autoScanInterval === 0) {
+            setNextScanTime(null);
+            setTimeLeft(0);
+            return;
+        }
+
+        const timer = window.setInterval(() => {
+            // Eğer bir sonraki tarama zamanı belirlenmemişse, hiçbir şey yapma (bekle)
+            // handleRunScanner bitince nextScanTime set edilecek
+            if (!nextScanTime) return;
+
+            const now = new Date();
+            const diff = nextScanTime.getTime() - now.getTime();
+
+            // Süre bitti, tarama zamanı geldi
+            if (diff <= 0) {
+                // Sayacı durdur (nextScanTime null yaparak)
+                setNextScanTime(null);
+                // Taramayı başlat
+                handleRunScanner(true);
+            } else {
+                // Sadece sayacı güncelle
+                setTimeLeft(Math.ceil(diff / 1000));
+            }
+        }, 1000);
+
+        return () => window.clearInterval(timer);
+    }, [autoScanInterval, nextScanTime, strategy, selectedSymbols]);
 
     const displayResults = useMemo(() => {
         return results.filter(r => {
@@ -200,6 +299,7 @@ export default function ScannerDashboard() {
                                                                     : "bg-white/5 border-white/5 hover:bg-white/10"
                                                                     }`}
                                                                 onClick={() => {
+                                                                    console.log("[DEBUG] Selected List:", list.name, "Symbols:", list.symbols);
                                                                     setSelectedListId(list.id);
                                                                     setSelectedSymbols(list.symbols);
                                                                 }}
@@ -327,10 +427,69 @@ export default function ScannerDashboard() {
                                         }}
                                     />
                                 </div>
+
+                                {/* Auto Scan UI */}
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest flex items-center gap-2">
+                                            <Clock size={12} /> Otomatik Tarama
+                                        </label>
+                                        {nextScanTime && (
+                                            <span className="text-[10px] font-bold text-emerald-400 animate-pulse bg-emerald-500/10 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                                <span>{timeLeft}s</span>
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <select
+                                            value={autoScanInterval}
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value);
+                                                setAutoScanInterval(val);
+                                                if (val === 0) {
+                                                    setNextScanTime(null);
+                                                    setTimeLeft(0);
+                                                }
+                                                else {
+                                                    // Hemen başlatmak için süreyi şimdiye ayarla
+                                                    // Timer döngüsü bunu yakalayıp taramayı başlatacak
+                                                    setNextScanTime(new Date());
+                                                }
+                                            }}
+                                            className={`w-full bg-slate-950/40 border border-white/5 rounded-xl px-3 py-2.5 text-xs focus:outline-none cursor-pointer ${autoScanInterval === 0 ? "text-slate-400" : "text-emerald-400 font-bold border-emerald-500/30 bg-emerald-500/10"}`}
+                                        >
+                                            <option value={0}>Kapalı (Manuel)</option>
+                                            <option value={60000}>1 Dakika</option>
+                                            <option value={180000}>3 Dakika</option>
+                                            <option value={300000}>5 Dakika</option>
+                                            <option value={900000}>15 Dakika</option>
+                                            <option value={1800000}>30 Dakika</option>
+                                            <option value={3600000}>1 Saat</option>
+                                        </select>
+                                        <button
+                                            onClick={() => {
+                                                const newState = !isSoundEnabled;
+                                                setIsSoundEnabled(newState);
+                                                if (newState) {
+                                                    // Test sesi çal (Kullanıcı etkileşimi ile)
+                                                    playNotificationSound();
+                                                    toast.success("Sesli bildirimler açıldı");
+                                                }
+                                            }}
+                                            className={`p-2.5 rounded-xl border transition-all ${isSoundEnabled
+                                                ? "bg-primary/20 text-primary border-primary/30 shadow-[0_0_10px_rgba(var(--primary-rgb),0.2)]"
+                                                : "bg-slate-950/40 border-white/5 text-slate-500 hover:text-white"
+                                                }`}
+                                            title="Sesli Bildirim"
+                                        >
+                                            {isSoundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
                             <button
-                                onClick={handleRunScanner}
+                                onClick={() => handleRunScanner(false)}
                                 disabled={loading || !strategy}
                                 className={`w-full py-4 rounded-2xl font-bold text-sm text-white shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed ${!strategy
                                     ? "bg-slate-700 shadow-none"

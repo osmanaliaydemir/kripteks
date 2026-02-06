@@ -9,15 +9,16 @@ namespace Kripteks.Infrastructure.Services;
 public class BinanceMarketService : IMarketDataService
 {
     private readonly ILogger<BinanceMarketService> _logger;
-    private readonly BinanceRestClient _client;
+    private readonly IBinanceRestClient _client;
     private readonly IBinanceSocketClient _socketClient;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, decimal> _priceCache = new();
 
-    public BinanceMarketService(ILogger<BinanceMarketService> logger, IBinanceSocketClient socketClient)
+    public BinanceMarketService(ILogger<BinanceMarketService> logger, IBinanceSocketClient socketClient,
+        IBinanceRestClient client)
     {
         _logger = logger;
         _socketClient = socketClient;
-        _client = new BinanceRestClient(); // Public veri için API Key gerekmez
+        _client = client;
     }
 
     public async Task<List<CoinDto>> GetAvailablePairsAsync()
@@ -48,19 +49,26 @@ public class BinanceMarketService : IMarketDataService
                 priceDict = prices.Data.ToDictionary(p => p.Symbol, p => p.Price);
             }
 
+            // Stabil coin listesi (BaseAsset olarak filtrelenecek)
+            var stableCoins = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "USDT", "USDC", "BUSD", "DAI", "TUSD", "USDP", "FDUSD", "USDD",
+                "GUSD", "PAX", "FRAX", "LUSD", "MIM", "UST", "PYUSD", "USDJ",
+                "SUSD", "EURS", "EURT", "AEUR", "USTC", "CUSD", "CEUR", "RSR",
+                "UU", "U", "USD1", "USDE", "RLUSD", "BFUSD", "XUSD" // Yeni eklenen stabil coinler
+            };
+
             var pairs = exchangeInfo.Data.Symbols
                 .Where(s => s.Status == Binance.Net.Enums.SymbolStatus.Trading &&
                             s.QuoteAsset == "USDT" &&
+                            !stableCoins.Contains(s.BaseAsset) && // Stabil coinleri BaseAsset olarak hariç tut
                             !s.Name.EndsWith("UPUSDT") &&
                             !s.Name.EndsWith("DOWNUSDT") &&
                             !s.Name.EndsWith("BEARUSDT") &&
                             !s.Name.EndsWith("BULLUSDT") &&
-                            !s.Name.Contains("TUSD") &&
-                            !s.Name.Contains("USDC") &&
-                            !s.Name.Contains("FDUSD") &&
                             !s.Name.Contains("EUR") &&
-                            !s.Name.Contains("GBP") &&
-                            !s.Name.Contains("DAI")) // Sadece USDT pariteleri ve aktif olanlar, kaldıraçlı/stable hariç
+                            !s.Name.Contains(
+                                "GBP")) // Sadece USDT pariteleri ve aktif olanlar, kaldıraçlı/stable/fiat hariç
                 .Select(s => new CoinDto
                 {
                     Id = s.Name,
