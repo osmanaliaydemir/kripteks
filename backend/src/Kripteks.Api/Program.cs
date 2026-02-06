@@ -107,6 +107,11 @@ builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.GoldenR
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.AlphaTrendStrategy>();
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.ScoutBreakoutStrategy>();
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.PhoenixMomentumStrategy>();
+builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.WhaleAccumulationStrategy>();
+builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.OversoldRecoveryStrategy>();
+builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.TrendSurferStrategy>();
+builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.BreakoutHunterStrategy>();
+builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.DivergenceDetectorStrategy>();
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.MarketBuyStrategy>();
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.GridStrategy>();
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.DcaStrategy>();

@@ -13,13 +13,15 @@ import { Coin, Strategy, ScannerResultItem, ScannerFavoriteList } from "@/types"
 import { InfoTooltip } from "@/components/dashboard/InfoTooltip";
 import FavoriteListModal from "./FavoriteListModal";
 import { ScannerResultDetailModal } from "./ScannerResultDetailModal";
+import { StrategyDetailModal } from "./StrategyDetailModal";
+import { QuickBuyModal } from "./QuickBuyModal";
 
 export default function ScannerDashboard() {
     const [coins, setCoins] = useState<Coin[]>([]);
     const [strategies, setStrategies] = useState<Strategy[]>([]);
     const [selectedSymbols, setSelectedSymbols] = useState<string[]>([]);
     const [interval, setInterval] = useState("1h");
-    const [strategy, setStrategy] = useState("strategy-golden-rose");
+    const [strategy, setStrategy] = useState("");
     const [loading, setLoading] = useState(false);
     const [selectedDetailResult, setSelectedDetailResult] = useState<ScannerResultItem | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -35,6 +37,9 @@ export default function ScannerDashboard() {
     const [isFavoriteModalOpen, setIsFavoriteModalOpen] = useState(false);
     const [editingList, setEditingList] = useState<ScannerFavoriteList | null>(null);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isStrategyDetailOpen, setIsStrategyDetailOpen] = useState(false);
+    const [isQuickBuyOpen, setIsQuickBuyOpen] = useState(false);
+    const [quickBuyItem, setQuickBuyItem] = useState<ScannerResultItem | null>(null);
 
     const loadData = async () => {
         try {
@@ -44,7 +49,11 @@ export default function ScannerDashboard() {
                 ScannerService.getFavorites()
             ]);
             setCoins(coinsData || []);
-            setStrategies(strData || []);
+            // Filter only scanner and both categories for scanner dashboard
+            const scannerStrategies = (strData || []).filter(
+                (s: Strategy) => s.category === 'scanner' || s.category === 'both'
+            );
+            setStrategies(scannerStrategies);
             setFavoriteLists(favData || []);
         } catch (error) {
             toast.error("Veriler yüklenemedi");
@@ -265,14 +274,26 @@ export default function ScannerDashboard() {
                         <div className="space-y-4">
                             <div className="space-y-3">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest flex items-center gap-2">
-                                        Strateji
-                                    </label>
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest flex items-center gap-2">
+                                            Strateji <span className="text-rose-400">*</span>
+                                        </label>
+                                        {strategy && (
+                                            <button
+                                                onClick={() => setIsStrategyDetailOpen(true)}
+                                                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-[9px] font-bold uppercase tracking-wider transition-all border border-primary/20"
+                                            >
+                                                <Info size={10} />
+                                                Detay
+                                            </button>
+                                        )}
+                                    </div>
                                     <select
                                         value={strategy}
                                         onChange={(e) => setStrategy(e.target.value)}
-                                        className="w-full bg-slate-950/40 border border-white/5 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-primary/40 cursor-pointer"
+                                        className={`w-full bg-slate-950/40 border border-white/5 rounded-xl px-3 py-2.5 text-xs focus:outline-none cursor-pointer ${!strategy ? "text-slate-400" : "text-white focus:border-primary/40"}`}
                                     >
+                                        <option value="" disabled>Strateji Seçiniz...</option>
                                         {strategies.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                     </select>
                                 </div>
@@ -310,14 +331,21 @@ export default function ScannerDashboard() {
 
                             <button
                                 onClick={handleRunScanner}
-                                disabled={loading}
-                                className={`w-full py-4 rounded-2xl font-bold text-sm text-white shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 ${selectedSymbols.length === 0
-                                    ? "bg-linear-to-r from-amber-600 to-orange-600 shadow-orange-900/20 hover:shadow-orange-900/40"
-                                    : "bg-linear-to-r from-primary to-indigo-600 shadow-primary/20 hover:shadow-primary/40"
+                                disabled={loading || !strategy}
+                                className={`w-full py-4 rounded-2xl font-bold text-sm text-white shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed ${!strategy
+                                    ? "bg-slate-700 shadow-none"
+                                    : selectedSymbols.length === 0
+                                        ? "bg-linear-to-r from-amber-600 to-orange-600 shadow-orange-900/20 hover:shadow-orange-900/40"
+                                        : "bg-linear-to-r from-primary to-indigo-600 shadow-primary/20 hover:shadow-primary/40"
                                     }`}
                             >
                                 {loading ? (
                                     <Loader2 className="w-5 h-5 animate-spin" />
+                                ) : !strategy ? (
+                                    <>
+                                        <Target className="w-5 h-5" />
+                                        <span>Strateji Seçiniz</span>
+                                    </>
                                 ) : (
                                     <>
                                         {selectedSymbols.length === 0 ? <Target className="w-5 h-5" /> : <RefreshCw className="w-5 h-5" />}
@@ -466,7 +494,20 @@ export default function ScannerDashboard() {
                                                                 <div className="flex items-center gap-2">
                                                                     <div className="flex items-center gap-1">
                                                                         {res.suggestedAction.toString() === "Buy" || res.suggestedAction.toString() === "1" ? (
-                                                                            <span className="text-emerald-400 flex items-center gap-1 text-[10px] font-bold"><CheckCircle2 size={10} /> ALIM UYGUN</span>
+                                                                            <>
+                                                                                <span className="text-emerald-400 flex items-center gap-1 text-[10px] font-bold"><CheckCircle2 size={10} /> ALIM UYGUN</span>
+                                                                                <button
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        setQuickBuyItem(res);
+                                                                                        setIsQuickBuyOpen(true);
+                                                                                    }}
+                                                                                    className="ml-2 px-2 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 text-[9px] font-bold flex items-center gap-1 transition-all border border-emerald-500/30 hover:scale-105"
+                                                                                >
+                                                                                    <Zap size={10} />
+                                                                                    HIZLI AL
+                                                                                </button>
+                                                                            </>
                                                                         ) : res.suggestedAction.toString() === "Sell" || res.suggestedAction.toString() === "2" ? (
                                                                             <span className="text-rose-400 flex items-center gap-1 text-[10px] font-bold"><XCircle size={10} /> SATIŞ UYGUN</span>
                                                                         ) : (
@@ -538,6 +579,10 @@ export default function ScannerDashboard() {
                 isOpen={isDetailModalOpen}
                 onClose={() => setIsDetailModalOpen(false)}
                 result={selectedDetailResult}
+                onQuickBuy={(result) => {
+                    setQuickBuyItem(result);
+                    setIsQuickBuyOpen(true);
+                }}
             />
 
             {/* Favorite List Modal */}
@@ -548,6 +593,27 @@ export default function ScannerDashboard() {
                 onSaved={loadData}
                 editList={editingList}
             />
+
+            {/* Strategy Detail Modal */}
+            <StrategyDetailModal
+                isOpen={isStrategyDetailOpen}
+                onClose={() => setIsStrategyDetailOpen(false)}
+                strategy={currentStrategy || null}
+            />
+
+            {/* Quick Buy Modal */}
+            {quickBuyItem && (
+                <QuickBuyModal
+                    isOpen={isQuickBuyOpen}
+                    onClose={() => {
+                        setIsQuickBuyOpen(false);
+                        setQuickBuyItem(null);
+                    }}
+                    symbol={quickBuyItem.symbol}
+                    currentPrice={quickBuyItem.lastPrice}
+                    signalScore={quickBuyItem.signalScore}
+                />
+            )}
         </div >
     );
 }

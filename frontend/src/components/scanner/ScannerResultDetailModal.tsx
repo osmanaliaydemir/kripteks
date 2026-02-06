@@ -9,7 +9,8 @@ import {
     XCircle,
     BarChart2,
     Clock,
-    DollarSign
+    DollarSign,
+    Zap
 } from 'lucide-react';
 import { ScannerResultItem } from '@/types';
 import { InfoTooltip } from '@/components/dashboard/InfoTooltip';
@@ -18,12 +19,14 @@ interface ScannerResultDetailModalProps {
     isOpen: boolean;
     onClose: () => void;
     result: ScannerResultItem | null;
+    onQuickBuy?: (result: ScannerResultItem) => void;
 }
 
 export const ScannerResultDetailModal: React.FC<ScannerResultDetailModalProps> = ({
     isOpen,
     onClose,
-    result
+    result,
+    onQuickBuy
 }) => {
     if (!result) return null;
 
@@ -168,6 +171,17 @@ export const ScannerResultDetailModal: React.FC<ScannerResultDetailModalProps> =
                             >
                                 <Activity size={14} /> Grafiğe Bak
                             </button>
+                            {(result.suggestedAction.toString() === "Buy" || result.suggestedAction.toString() === "1") && onQuickBuy && (
+                                <button
+                                    onClick={() => {
+                                        onQuickBuy(result);
+                                        onClose();
+                                    }}
+                                    className="flex-1 py-3 bg-linear-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 rounded-xl font-bold text-xs text-white transition-all uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20"
+                                >
+                                    <Zap size={14} /> Hızlı Al
+                                </button>
+                            )}
                         </div>
                     </motion.div>
                 </div>
