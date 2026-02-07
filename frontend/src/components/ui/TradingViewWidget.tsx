@@ -111,7 +111,7 @@ const TradingViewWidget = memo(({ symbol, strategy }: TradingViewWidgetProps) =>
     }, [symbol, strategy]);
 
     return (
-        <div className="w-full h-[500px] glass-card rounded-2xl overflow-hidden relative mt-4 mb-4">
+        <div className="w-full h-[400px] sm:h-[500px] glass-card rounded-2xl overflow-hidden relative mt-4 mb-4">
             <div id={`tv_chart_${symbol.replace('/', '')}`} ref={container} className="h-full w-full" />
         </div>
     );

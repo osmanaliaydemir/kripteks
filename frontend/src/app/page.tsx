@@ -300,7 +300,7 @@ export default function Dashboard() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     {/* LEFT COLUMN - CREATE BOT */}
-                    <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-8 h-fit">
+                    <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-8 h-fit hidden lg:block">
                         <div className="glass-card p-1 relative overflow-hidden group">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none group-hover:bg-primary/30 transition-all duration-700"></div>
 
@@ -371,24 +371,24 @@ export default function Dashboard() {
                         </div>
                         {/* TAB NAVIGATION & ACTIONS */}
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-                            <div className="flex flex-col gap-4 w-full sm:w-auto">
-                                <div className="glass-card p-1.5 flex gap-1 w-fit bg-slate-900/60">
+                            <div className="flex flex-col gap-4 w-full sm:w-auto overflow-hidden">
+                                <div className="glass-card p-1.5 flex gap-1 w-full sm:w-fit bg-slate-900/60 overflow-x-auto scrollbar-hide">
                                     <TabButton id="active" label="Aktif Botlar" count={activeBotsRaw.length} activeTab={activeTab} setActiveTab={setActiveTab} icon={<Activity size={16} />} />
                                     <TabButton id="history" label="Geçmiş" count={historyBots.length} activeTab={activeTab} setActiveTab={setActiveTab} icon={<History size={16} />} />
                                 </div>
 
                                 {activeTab === 'active' && activeBotsRaw.length > 0 && (
-                                    <div className="flex items-center gap-2 p-1 bg-slate-900/40 rounded-xl border border-white/5 w-fit">
+                                    <div className="flex items-center gap-2 p-1 bg-slate-900/40 rounded-xl border border-white/5 w-full sm:w-fit overflow-x-auto scrollbar-hide">
                                         <button
                                             onClick={() => setBotFilter('all')}
-                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider flex items-center gap-1.5 ${botFilter === 'all' ? 'bg-primary/20 text-primary border border-primary/20' : 'text-slate-500 hover:text-slate-300'}`}
+                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider flex items-center gap-1.5 shrink-0 ${botFilter === 'all' ? 'bg-primary/20 text-primary border border-primary/20' : 'text-slate-500 hover:text-slate-300'}`}
                                         >
                                             Hepsi
                                             <span className={`px-1 rounded ${botFilter === 'all' ? 'bg-primary/20' : 'bg-slate-800'}`}>{activeBotsRaw.length}</span>
                                         </button>
                                         <button
                                             onClick={() => setBotFilter('position')}
-                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider flex items-center gap-1.5 ${botFilter === 'position' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20' : 'text-slate-500 hover:text-slate-300'}`}
+                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider flex items-center gap-1.5 shrink-0 ${botFilter === 'position' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20' : 'text-slate-500 hover:text-slate-300'}`}
                                         >
                                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                                             Pozisyonda
@@ -396,7 +396,7 @@ export default function Dashboard() {
                                         </button>
                                         <button
                                             onClick={() => setBotFilter('waiting')}
-                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider flex items-center gap-1.5 ${botFilter === 'waiting' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/20' : 'text-slate-500 hover:text-slate-300'}`}
+                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider flex items-center gap-1.5 shrink-0 ${botFilter === 'waiting' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/20' : 'text-slate-500 hover:text-slate-300'}`}
                                         >
                                             <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
                                             Sinyal Bekleniyor
@@ -518,6 +518,14 @@ export default function Dashboard() {
                                 )
                             }
                         </AnimatePresence >
+
+                        {/* Mobile FAB */}
+                        <button
+                            onClick={() => setIsWizardOpen(true)}
+                            className="fixed bottom-6 right-6 z-40 lg:hidden w-14 h-14 bg-linear-to-r from-primary to-amber-500 text-slate-900 rounded-full shadow-xl shadow-primary/20 flex items-center justify-center active:scale-95 transition-transform hover:scale-110"
+                        >
+                            <Plus size={28} className="font-bold" />
+                        </button>
 
                         {/* Strategy Details Modal */}
                         <StrategyModal

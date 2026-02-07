@@ -22,7 +22,7 @@ export function StatCardSkeleton() {
 
 export function BotCardSkeleton() {
     return (
-        <div className="glass-card p-5 border border-white/5 bg-slate-900/40">
+        <div className="glass-card p-4 sm:p-5 border border-white/5 bg-slate-900/40">
             <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-3">
                     <SkeletonBase className="w-10 h-10 rounded-xl" />

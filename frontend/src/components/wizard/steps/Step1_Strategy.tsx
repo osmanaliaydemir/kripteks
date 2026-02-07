@@ -64,7 +64,7 @@ export default function Step1_Strategy({
             {/* Strategy Selection */}
             <div className="space-y-3">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Strateji Algoritması</label>
-                <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-1">
+                <div className="grid grid-cols-1 gap-3">
                     {strategies.map((strategy) => {
                         const isSelected = selectedStrategy === strategy.id;
                         const Icon = STRATEGY_ICONS[strategy.id] || STRATEGY_ICONS["default"];

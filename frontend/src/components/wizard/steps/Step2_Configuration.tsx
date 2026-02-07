@@ -144,7 +144,7 @@ export default function Step2_Configuration({
             {selectedStrategy === "strategy-grid" && (
                 <div className="space-y-4 pt-4 border-t border-white/10">
                     <h4 className="text-sm font-display font-bold text-amber-500">Grid Strateji Ayarları</h4>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Alt Limit</label>
                             <input
@@ -186,7 +186,7 @@ export default function Step2_Configuration({
             {selectedStrategy === "strategy-dca" && (
                 <div className="space-y-4 pt-4 border-t border-white/10">
                     <h4 className="text-sm font-display font-bold text-amber-500">DCA Bot Ayarları</h4>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Düşüş Sapması (%)</label>
                             <input

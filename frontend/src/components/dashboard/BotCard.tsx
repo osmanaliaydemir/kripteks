@@ -38,7 +38,7 @@ export function BotCard({ bot, isActive, activeChartBotId, setActiveChartBotId, 
                 : 'bg-slate-900/30 opacity-70 hover:opacity-100 border-l-4 border-l-slate-700'
                 }`}
         >
-            <div className="p-6 flex flex-col sm:flex-row items-center gap-6">
+            <div className="p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
 
                 {/* Symbol Icon */}
                 <div className="relative">

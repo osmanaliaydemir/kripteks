@@ -110,14 +110,14 @@ export default function BotWizardModal({
     const isStep2Valid = amount > 0 && (!isImmediate || !isInsufficientBalance) && isGridValid && isDcaValid;
 
     return (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose}></div>
 
             <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="relative bg-slate-950 border border-white/10 rounded-3xl w-full md:max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+                className="relative bg-slate-950 border border-white/10 rounded-t-3xl sm:rounded-3xl w-full md:max-w-2xl overflow-hidden shadow-2xl flex flex-col h-[90vh] sm:h-auto sm:max-h-[90vh]"
             >
                 {/* Header / Progress */}
                 <div className="px-4 py-4 md:px-8 md:py-6 border-b border-white/5 bg-slate-900/50 flex items-center justify-between shrink-0">

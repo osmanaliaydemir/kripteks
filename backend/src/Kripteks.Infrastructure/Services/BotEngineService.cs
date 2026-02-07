@@ -18,6 +18,7 @@ public class BotEngineService : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<BotEngineService> _logger;
     private readonly TimeSpan _checkInterval = TimeSpan.FromSeconds(5); // Socket sayesinde 5sn'ye düşürdük
+    private readonly HashSet<Guid> _insufficientBalanceNotifiedBots = new();
 
     public BotEngineService(IServiceProvider serviceProvider, ILogger<BotEngineService> logger)
     {
@@ -211,26 +212,40 @@ public class BotEngineService : BackgroundService
 
                 if (wallet == null || currentBalance < botToUpdate.Amount)
                 {
-                    _logger.LogWarning("Yetersiz Bakiye! {Symbol} işlemi açılamadı.", botToUpdate.Symbol);
-                    await logService.LogWarningAsync(
-                        $"Yetersiz Bakiye: {botToUpdate.Symbol} için ${botToUpdate.Amount} gerekli.",
-                        botToUpdate.Id);
-
-                    var log = new Log
+                    // Sadece daha önce bildirim gönderilmediyse işlem yap
+                    if (!_insufficientBalanceNotifiedBots.Contains(botToUpdate.Id))
                     {
-                        Message =
-                            $"⚠️ ALIM SİNYALİ GELDİ ANCAK BAKİYE YETERSİZ! İstek: ${botToUpdate.Amount}, Mevcut: ${currentBalance}",
-                        Level = BotLogLevel.Warning,
-                        Timestamp = DateTime.UtcNow
-                    };
-                    botToUpdate.Logs.Add(log);
+                        _logger.LogWarning("Yetersiz Bakiye! {Symbol} işlemi açılamadı.", botToUpdate.Symbol);
+                        await logService.LogWarningAsync(
+                            $"Yetersiz Bakiye: {botToUpdate.Symbol} için ${botToUpdate.Amount} gerekli.",
+                            botToUpdate.Id);
 
-                    await notificationService.NotifyLog(botToUpdate.Id.ToString(), log);
-                    _ = Task.Run(() => mailService.SendInsufficientBalanceEmailAsync(botToUpdate.Symbol, strategy.Name,
-                        botToUpdate.Amount, currentBalance, botToUpdate.Amount - currentBalance));
+                        var log = new Log
+                        {
+                            Message =
+                                $"⚠️ ALIM SİNYALİ GELDİ ANCAK BAKİYE YETERSİZ! İstek: ${botToUpdate.Amount}, Mevcut: ${currentBalance}",
+                            Level = BotLogLevel.Warning,
+                            Timestamp = DateTime.UtcNow
+                        };
+                        botToUpdate.Logs.Add(log);
 
-                    await dbContext.SaveChangesAsync(stoppingToken);
+                        await notificationService.NotifyLog(botToUpdate.Id.ToString(), log);
+                        _ = Task.Run(() => mailService.SendInsufficientBalanceEmailAsync(botToUpdate.Symbol,
+                            strategy.Name,
+                            botToUpdate.Amount, currentBalance, botToUpdate.Amount - currentBalance));
+
+                        await dbContext.SaveChangesAsync(stoppingToken);
+
+                        _insufficientBalanceNotifiedBots.Add(botToUpdate.Id);
+                    }
+
                     return;
+                }
+
+                // Bakiye yeterli olduğu için listeden çıkar (tekrar düşerse yine mail atabilsin)
+                if (_insufficientBalanceNotifiedBots.Contains(botToUpdate.Id))
+                {
+                    _insufficientBalanceNotifiedBots.Remove(botToUpdate.Id);
                 }
 
                 wallet.Balance -= botToUpdate.Amount;
