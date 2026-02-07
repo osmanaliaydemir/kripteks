@@ -134,6 +134,7 @@ builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.MarketB
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.GridStrategy>();
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.DcaStrategy>();
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.Sma111Strategy>();
+builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.GoldenCrossStrategy>();
 builder.Services.AddScoped<IStrategyFactory, Kripteks.Infrastructure.Strategies.StrategyFactory>();
 
 // Arka Plan Servisleri (Bot Engine)

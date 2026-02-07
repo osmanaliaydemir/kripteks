@@ -1,34 +1,36 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { X, ChevronRight, ChevronLeft } from "lucide-react";
 import { Coin, Strategy, Wallet } from "@/types";
+import { useSignalR } from "@/context/SignalRContext";
 import Step1_Strategy from "./steps/Step1_Strategy";
 import Step2_Configuration from "./steps/Step2_Configuration";
 import Step3_RiskManagement from "./steps/Step3_RiskManagement";
 import Step4_Review from "./steps/Step4_Review";
 
-interface BotWizardModalProps {
-    isOpen: boolean;
-    onClose: () => void;
+interface BotWizardProps {
     coins: Coin[];
     strategies: Strategy[];
     wallet: Wallet | null;
     onBotCreate: (payload: any) => Promise<void>;
+    onCancel: () => void;
     isCoinsLoading: boolean;
     refreshCoins: () => void;
 }
 
-export default function BotWizardModal({
-    isOpen,
-    onClose,
+export default function BotWizard({
     coins,
     strategies,
     wallet,
     onBotCreate,
+    onCancel,
     isCoinsLoading,
     refreshCoins
-}: BotWizardModalProps) {
+}: BotWizardProps) {
+    const { isConnected: isSignalRConnected } = useSignalR();
     const [step, setStep] = useState(1);
+    const [isStatusVisible, setIsStatusVisible] = useState(false);
+    const [statusTimeout, setStatusTimeout] = useState<NodeJS.Timeout | null>(null);
 
     // Form State
     const [selectedCoin, setSelectedCoin] = useState("BTC/USDT");
@@ -51,25 +53,20 @@ export default function BotWizardModal({
     const [dcaDeviation, setDcaDeviation] = useState("2");
     const [dcaScale, setDcaScale] = useState("2");
 
-    // Reset on open
+    // Initial default strategy selection
     useEffect(() => {
-        if (isOpen) {
-            setStep(1);
-            // Optional: reset form or keep last state
-            if (strategies.length > 0 && !selectedStrategy) {
-                setSelectedStrategy(strategies[0].id);
-            }
+        if (strategies.length > 0 && !selectedStrategy) {
+            setSelectedStrategy(strategies[0].id);
         }
-    }, [isOpen, strategies]);
+    }, [strategies]);
 
     // Strategy defaults
     useEffect(() => {
         if (selectedStrategy === "strategy-market-buy") setSelectedInterval("1m");
         else if (selectedStrategy === "strategy-golden-rose") setSelectedInterval("1h");
+        else if (selectedStrategy === "strategy-golden-cross") setSelectedInterval("4h");
         else if (selectedStrategy === "strategy-sma-crossover") setSelectedInterval("15m");
     }, [selectedStrategy]);
-
-    if (!isOpen) return null;
 
     const handleNext = () => setStep(prev => prev + 1);
     const handleBack = () => setStep(prev => prev - 1);
@@ -98,7 +95,6 @@ export default function BotWizardModal({
 
         await onBotCreate(payload);
         setIsStarting(false);
-        onClose();
     };
 
     // Validation
@@ -110,32 +106,55 @@ export default function BotWizardModal({
     const isStep2Valid = amount > 0 && (!isImmediate || !isInsufficientBalance) && isGridValid && isDcaValid;
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4">
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose}></div>
-
+        <div className="w-full max-w-4xl mx-auto">
             <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="relative bg-slate-950 border border-white/10 rounded-t-3xl sm:rounded-3xl w-full md:max-w-2xl overflow-hidden shadow-2xl flex flex-col h-[90vh] sm:h-auto sm:max-h-[90vh]"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-slate-950 border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col min-h-[600px]"
             >
                 {/* Header / Progress */}
-                <div className="px-4 py-4 md:px-8 md:py-6 border-b border-white/5 bg-slate-900/50 flex items-center justify-between shrink-0">
+                <div className="px-6 py-6 border-b border-white/5 bg-slate-900/50 flex items-center justify-between shrink-0">
                     <div>
-                        <h2 className="text-lg md:text-xl font-display font-bold text-white tracking-widest">Yeni Bot Oluştur</h2>
+                        <h2 className="text-xl font-display font-bold text-white tracking-widest">Yeni Bot Oluştur</h2>
                         <div className="flex items-center gap-2 mt-2">
                             {[1, 2, 3, 4].map((s) => (
                                 <div key={s} className={`h-1.5 rounded-full transition-all duration-500 ${s <= step ? 'w-8 bg-primary' : 'w-2 bg-slate-800'}`}></div>
                             ))}
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 -mr-2 text-slate-500 hover:text-white hover:bg-white/5 rounded-xl transition-colors">
-                        <X size={24} />
-                    </button>
+
+                    <div className="flex items-center gap-4">
+                        {/* System Status Icon */}
+                        <div
+                            className="flex items-center gap-0 px-2 py-1 bg-slate-900/40 rounded-full border border-white/5 backdrop-blur-sm transition-all hover:bg-slate-800/50 cursor-pointer"
+                            onMouseEnter={() => {
+                                setIsStatusVisible(true);
+                                if (statusTimeout) clearTimeout(statusTimeout);
+                            }}
+                            onMouseLeave={() => {
+                                const timeout = setTimeout(() => setIsStatusVisible(false), 3000);
+                                setStatusTimeout(timeout);
+                            }}
+                        >
+                            <div className="relative flex h-2 w-2 shrink-0 my-0.5 mx-0.5">
+                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isSignalRConnected ? 'bg-emerald-400' : 'bg-rose-500'}`}></span>
+                                <span className={`relative inline-flex rounded-full h-2 w-2 ${isSignalRConnected ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                            </div>
+                            <div className={`overflow-hidden transition-all duration-500 ease-in-out flex items-center ${isStatusVisible ? 'max-w-[200px] opacity-100' : 'max-w-0 opacity-0'}`}>
+                                <span className="text-[10px] text-slate-300 font-medium tracking-wide whitespace-nowrap pl-2">
+                                    {isSignalRConnected ? 'SİSTEM ÇEVRİMİÇİ' : 'BAĞLANTI YOK'}
+                                </span>
+                            </div>
+                        </div>
+
+                        <button onClick={onCancel} className="p-2 -mr-2 text-slate-500 hover:text-white hover:bg-white/5 rounded-xl transition-colors">
+                            <X size={24} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Body */}
-                <div className="p-4 md:p-8 overflow-y-auto min-h-[400px]">
+                <div className="p-6 md:p-8 flex-1">
                     {step === 1 && (
                         <Step1_Strategy
                             coins={coins}
@@ -202,7 +221,7 @@ export default function BotWizardModal({
 
                 {/* Footer Buttons */}
                 {step < 4 && (
-                    <div className="px-4 py-4 md:px-8 md:py-6 bg-slate-900/50 border-t border-white/5 flex justify-between items-center shrink-0">
+                    <div className="px-6 py-6 bg-slate-900/50 border-t border-white/5 flex justify-between items-center shrink-0">
                         {step > 1 ? (
                             <button
                                 onClick={handleBack}

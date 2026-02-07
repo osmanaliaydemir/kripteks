@@ -45,8 +45,6 @@ import Link from "next/link";
 import Navbar from "@/components/ui/Navbar";
 import { useUI } from "@/context/UIContext";
 import { useSignalR } from "@/context/SignalRContext";
-import BotWizardModal from "@/components/wizard/BotWizardModal";
-
 // Dashboard Components
 import { StatCard } from "@/components/dashboard/StatCard";
 import { TabButton } from "@/components/dashboard/TabButton";
@@ -84,7 +82,6 @@ export default function Dashboard() {
     const prevBotsRef = useRef<Bot[]>([]);
 
     // Wizard State
-    const [isWizardOpen, setIsWizardOpen] = useState(false);
     const [isStopAllConfirmOpen, setIsStopAllConfirmOpen] = useState(false);
     const [isClearHistoryConfirmOpen, setIsClearHistoryConfirmOpen] = useState(false);
 
@@ -211,19 +208,6 @@ export default function Dashboard() {
         prevBotsRef.current = bots;
     }, [bots]);
 
-    // Wizard Handler
-    const handleBotCreate = async (payload: any) => {
-        try {
-            const res = await BotService.create(payload);
-            if (res?._unauthorized) return;
-            toast.success("Bot Başlatıldı", { description: `${payload.symbol} üzerinde işlem başladı.` });
-            await fetchLiveUpdates();
-        } catch (error: unknown) {
-            const msg = error instanceof Error ? error.message : "Bot başlatılamadı!";
-            toast.error("Hata", { description: msg });
-        }
-    };
-
     // Stop Confirmation Logic
     const [confirmStopId, setConfirmStopId] = useState<string | null>(null);
 
@@ -314,13 +298,13 @@ export default function Dashboard() {
                                     Yapay zeka destekli otonom alım-satım botunu saniyeler içinde kurun ve kazanmaya başlayın.
                                 </p>
 
-                                <button
-                                    onClick={() => setIsWizardOpen(true)}
+                                <Link
+                                    href="/bots/new"
                                     className="w-full bg-linear-to-r from-primary to-amber-500 hover:to-amber-400 text-slate-900 font-display font-bold py-4 rounded-xl shadow-lg shadow-primary/20 active:scale-[0.98] transition-all flex justify-center items-center gap-2 group/btn"
                                 >
                                     <Zap className="fill-current w-5 h-5 group-hover/btn:scale-110 transition-transform" />
-                                    Bot Sihirbazını Aç
-                                </button>
+                                    Yeni Bot Oluştur
+                                </Link>
                             </div>
                         </div>
 
@@ -520,30 +504,18 @@ export default function Dashboard() {
                         </AnimatePresence >
 
                         {/* Mobile FAB */}
-                        <button
-                            onClick={() => setIsWizardOpen(true)}
+                        <Link
+                            href="/bots/new"
                             className="fixed bottom-6 right-6 z-40 lg:hidden w-14 h-14 bg-linear-to-r from-primary to-amber-500 text-slate-900 rounded-full shadow-xl shadow-primary/20 flex items-center justify-center active:scale-95 transition-transform hover:scale-110"
                         >
                             <Plus size={28} className="font-bold" />
-                        </button>
+                        </Link>
 
                         {/* Strategy Details Modal */}
                         <StrategyModal
                             isOpen={!!selectedStrategyId}
                             onClose={() => setSelectedStrategyId(null)}
                             strategyId={selectedStrategyId}
-                        />
-
-                        {/* Bot Wizard Modal */}
-                        <BotWizardModal
-                            isOpen={isWizardOpen}
-                            onClose={() => setIsWizardOpen(false)}
-                            coins={coins}
-                            strategies={strategies}
-                            wallet={wallet}
-                            onBotCreate={handleBotCreate}
-                            isCoinsLoading={isCoinsLoading}
-                            refreshCoins={refreshCoins}
                         />
 
                         {/* Stop All Confirmation Modal */}

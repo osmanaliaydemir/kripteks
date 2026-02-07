@@ -1,4 +1,5 @@
 import { Coin, Strategy } from "@/types";
+import { useState } from "react";
 import SearchableSelect from "@/components/ui/SearchableSelect";
 import { Activity, Zap, TrendingUp, BarChart2, Info } from "lucide-react";
 import { motion } from "framer-motion";
@@ -38,6 +39,15 @@ export default function Step1_Strategy({
     isLoadingCoins,
     refreshCoins
 }: Step1Props) {
+    const [selectedCategory, setSelectedCategory] = useState<'all' | 'simulation' | 'scanner'>('all');
+
+    const filteredStrategies = strategies.filter(s => {
+        if (selectedCategory === 'all') return true;
+        if (selectedCategory === 'simulation') return s.category === 'simulation' || s.category === 'both';
+        if (selectedCategory === 'scanner') return s.category === 'scanner' || s.category === 'both';
+        return true;
+    });
+
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Header */}
@@ -63,9 +73,28 @@ export default function Step1_Strategy({
 
             {/* Strategy Selection */}
             <div className="space-y-3">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Strateji Algoritması</label>
-                <div className="grid grid-cols-1 gap-3">
-                    {strategies.map((strategy) => {
+                <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Strateji Algoritması</label>
+
+                    {/* Category Filter */}
+                    <div className="flex bg-slate-900/50 p-1 rounded-lg border border-white/5">
+                        {(['all', 'simulation', 'scanner'] as const).map((cat) => (
+                            <button
+                                key={cat}
+                                onClick={() => setSelectedCategory(cat)}
+                                className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${selectedCategory === cat
+                                    ? 'bg-primary text-slate-900 shadow-lg shadow-primary/20'
+                                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                    }`}
+                            >
+                                {cat === 'all' ? 'Tümü' : cat === 'simulation' ? 'Simülasyon' : 'Tarayıcı'}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    {filteredStrategies.map((strategy) => {
                         const isSelected = selectedStrategy === strategy.id;
                         const Icon = STRATEGY_ICONS[strategy.id] || STRATEGY_ICONS["default"];
                         const colorClass = STRATEGY_COLORS[strategy.id] || STRATEGY_COLORS["default"];
@@ -90,11 +119,21 @@ export default function Step1_Strategy({
                                             <h4 className={`font-bold text-sm ${isSelected ? 'text-white' : 'text-slate-300'}`}>
                                                 {strategy.name}
                                             </h4>
-                                            {isSelected && (
-                                                <span className="text-[10px] font-bold bg-primary text-slate-900 px-2 py-0.5 rounded-full">
-                                                    SEÇİLDİ
-                                                </span>
-                                            )}
+                                            <div className="flex items-center gap-2">
+                                                {strategy.category && (
+                                                    <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded border ${strategy.category === 'simulation' ? 'text-blue-400 border-blue-500/30' :
+                                                        strategy.category === 'scanner' ? 'text-purple-400 border-purple-500/30' :
+                                                            'text-slate-400 border-slate-500/30'
+                                                        }`}>
+                                                        {strategy.category === 'both' ? 'GENEL' : strategy.category === 'simulation' ? 'SİM' : 'SCAN'}
+                                                    </span>
+                                                )}
+                                                {isSelected && (
+                                                    <span className="text-[10px] font-bold bg-primary text-slate-900 px-2 py-0.5 rounded-full">
+                                                        SEÇİLDİ
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                         <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 group-hover:line-clamp-none transition-all">
                                             {strategy.description || "Bu strateji için detaylı açıklama bulunmuyor."}
@@ -108,6 +147,12 @@ export default function Step1_Strategy({
                             </motion.div>
                         );
                     })}
+
+                    {filteredStrategies.length === 0 && (
+                        <div className="text-center py-8 text-slate-500 text-sm">
+                            Bu kategoride strateji bulunamadı.
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

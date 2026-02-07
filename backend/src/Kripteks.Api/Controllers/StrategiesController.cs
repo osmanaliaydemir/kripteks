@@ -32,6 +32,13 @@ public class StrategiesController : ControllerBase
                     "EMA 20 (Hızlı) ve EMA 50 (Yavaş) üstel hareketli ortalama kesişimlerini temel alan trend takip stratejisi. Yanıltıcı sinyalleri elemek için RSI (14) momentum filtresi kullanır; RSI'ın 50 üzerindeki kalıcılığına ve hacim desteğine göre trend başlangıçlarını saptamaya çalışır.",
                 category = "simulation"
             },
+            new
+            {
+                id = "strategy-golden-cross", name = "Altın Kesişim (Golden Cross)",
+                description =
+                    "Klasik SMA 50 ve SMA 200 kesişim stratejisi. SMA 50, SMA 200'ü yukarı kestiğinde alım (Golden Cross), aşağı kestiğinde satış (Death Cross) sinyali üretir. Uzun vadeli trend takibi için idealdir.",
+                category = "simulation"
+            },
             // Scanner Strategies
             new
             {
