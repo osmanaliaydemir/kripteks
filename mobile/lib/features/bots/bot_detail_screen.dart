@@ -15,30 +15,61 @@ class BotDetailScreen extends ConsumerWidget {
     final botAsync = ref.watch(botDetailProvider(botId));
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Colors.black,
       appBar: AppBar(
         title: Text(
           'İşlem Detayları',
           style: GoogleFonts.inter(color: Colors.white),
         ),
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: botAsync.when(
-        data: (bot) => _buildContent(context, ref, bot),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(
-          child: Text(
-            'Hata: $err',
-            style: const TextStyle(color: Colors.redAccent),
+      extendBodyBehindAppBar: true,
+      body: Stack(
+        children: [
+          // Background Gradient (Same as Login)
+          Positioned(
+            top: -100,
+            left: 0,
+            right: 0,
+            height: 400,
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.topCenter,
+                  radius: 0.8,
+                  colors: [
+                    Color(0x40F59E0B), // Amber with transparency
+                    Colors.transparent,
+                  ],
+                  stops: [0.0, 1.0],
+                ),
+              ),
+            ),
           ),
-        ),
+          SafeArea(
+            child: botAsync.when(
+              data: (bot) => _buildContent(context, ref, bot),
+              loading: () => const Center(
+                child: CircularProgressIndicator(color: Color(0xFFF59E0B)),
+              ),
+              error: (err, stack) => Center(
+                child: Text(
+                  'Hata: $err',
+                  style: const TextStyle(color: Colors.redAccent),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildContent(BuildContext context, WidgetRef ref, Bot bot) {
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -313,7 +344,7 @@ class BotDetailScreen extends ConsumerWidget {
     final confirmed = await _showConfirmationDialog(
       context,
       'Botu Durdur',
-      'Botu durdurmak istediğinize emin misiniz? Açık pozisyonlar manuel yönetilmelidir.',
+      'Botu durdurmak istediğinize emin misiniz? Durdurma işlemi yapıldığında işlemi geri alamazsınız.',
     );
 
     if (confirmed != true) return;
@@ -374,6 +405,7 @@ class BotDetailScreen extends ConsumerWidget {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}:${date.second.toString().padLeft(2, '0')}';
+    final localDate = date.toLocal();
+    return '${localDate.hour.toString().padLeft(2, '0')}:${localDate.minute.toString().padLeft(2, '0')}:${localDate.second.toString().padLeft(2, '0')}';
   }
 }

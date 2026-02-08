@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/widgets/app_header.dart';
+
 import 'package:mobile/features/auth/providers/auth_provider.dart';
+import 'package:mobile/features/settings/services/profile_service.dart';
 import 'providers/settings_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -11,24 +13,11 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final apiStatusAsync = ref.watch(apiKeyStatusProvider);
-    // User info could be fetched from a dedicated UserProvider if available
-    // For now we use a placeholder or decoded token if we implemented it
-    const String userEmail = 'Trader';
+    final profileAsync = ref.watch(userProfileProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      appBar: AppBar(
-        title: Text(
-          'Ayarlar',
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: const Color(0xFF0F172A),
-        elevation: 0,
-      ),
+      backgroundColor: Colors.transparent,
+      appBar: const AppHeader(title: 'Ayarlar', showBackButton: false),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -36,41 +25,80 @@ class SettingsScreen extends ConsumerWidget {
           children: [
             // Profile Section
             _buildSectionHeader('Profil'),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white10),
-              ),
-              child: Row(
-                children: [
-                  const CircleAvatar(
-                    radius: 24,
-                    backgroundColor: Color(0xFF3B82F6),
-                    child: Icon(Icons.person, color: Colors.white),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          userEmail,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+            profileAsync.when(
+              data: (profile) => Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundColor: const Color(0xFF3B82F6),
+                      child: Text(
+                        '${profile.firstName.isNotEmpty ? profile.firstName[0] : ''}${profile.lastName.isNotEmpty ? profile.lastName[0] : ''}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
-                        const Text(
-                          'Trader',
-                          style: TextStyle(color: Colors.white54, fontSize: 13),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${profile.firstName} ${profile.lastName}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          Text(
+                            profile.email,
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Color(0xFFF59E0B)),
+                      onPressed: () => context.push('/settings/profile-edit'),
+                    ),
+                  ],
+                ),
+              ),
+              loading: () => Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: const Center(
+                  child: CircularProgressIndicator(color: Color(0xFFF59E0B)),
+                ),
+              ),
+              error: (err, stack) => Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: Text(
+                  'Profil yüklenemedi',
+                  style: const TextStyle(color: Colors.red),
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -79,7 +107,9 @@ class SettingsScreen extends ConsumerWidget {
             _buildSectionHeader('Borsa Bağlantısı'),
             apiStatusAsync.when(
               data: (status) => _buildApiKeyCard(context, ref, status),
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(
+                child: CircularProgressIndicator(color: Color(0xFFF59E0B)),
+              ),
               error: (err, stack) =>
                   Text('Hata: $err', style: const TextStyle(color: Colors.red)),
             ),
@@ -98,15 +128,15 @@ class SettingsScreen extends ConsumerWidget {
                   _buildListTile(
                     icon: Icons.notifications,
                     title: 'Bildirimler',
-                    subtitle: 'Açık',
-                    onTap: () {},
+                    subtitle: 'Bildirim tercihlerini yönet',
+                    onTap: () => context.push('/settings/notifications'),
                   ),
                   const Divider(color: Colors.white10, height: 1),
                   _buildListTile(
-                    icon: Icons.language,
-                    title: 'Dil',
-                    subtitle: 'Türkçe',
-                    onTap: () {},
+                    icon: Icons.lock_outline,
+                    title: 'Şifre Güncelle',
+                    subtitle: 'Hesap şifrenizi değiştirin',
+                    onTap: () => context.push('/settings/change-password'),
                   ),
                   const Divider(color: Colors.white10, height: 1),
                   _buildListTile(
@@ -164,14 +194,10 @@ class SettingsScreen extends ConsumerWidget {
                   color: const Color(0xFFF3BA2F).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Image.network(
-                  'https://upload.wikimedia.org/wikipedia/commons/1/12/Binance_logo.svg', // Placeholder or use Asset
-                  height: 24,
-                  width: 24,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
-                    Icons.currency_bitcoin,
-                    color: Color(0xFFF3BA2F),
-                  ),
+                child: const Icon(
+                  Icons.currency_bitcoin,
+                  color: Color(0xFFF3BA2F),
+                  size: 24,
                 ),
               ),
               const SizedBox(width: 16),
@@ -283,7 +309,7 @@ class SettingsScreen extends ConsumerWidget {
               child: const Text('İptal'),
             ),
             if (isLoading)
-              const CircularProgressIndicator()
+              const CircularProgressIndicator(color: Color(0xFFF59E0B))
             else
               TextButton(
                 onPressed: () async {

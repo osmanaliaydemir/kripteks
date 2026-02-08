@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/widgets/app_header.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'providers/scanner_provider.dart';
 import 'models/scanner_model.dart';
@@ -28,17 +29,8 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
-      appBar: AppBar(
-        title: Text(
-          'Tarayıcı',
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: const Color(0xFF0F172A),
-        elevation: 0,
+      appBar: AppHeader(
+        title: 'Strateji Tarayıcı',
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white70),
@@ -51,7 +43,10 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
           // Configuration Panel
           Container(
             padding: const EdgeInsets.all(16),
-            color: const Color(0xFF1E293B),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B).withValues(alpha: 0.5),
+              border: const Border(bottom: BorderSide(color: Colors.white10)),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -138,7 +133,11 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.radar, size: 64, color: Colors.white10),
+                        const Icon(
+                          Icons.radar,
+                          size: 64,
+                          color: Colors.white10,
+                        ),
                         const SizedBox(height: 16),
                         const Text(
                           'Taramayı başlatmak için "Tara" butonuna basın',
@@ -189,19 +188,10 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
   void _triggerScan(List<ScannerFavoriteList>? favoriteLists) {
     List<String> symbols = [];
     if (_useFavorites && favoriteLists != null) {
-      // Flatten all symbols from all favorite lists for now
-      // In a real app, user might select WHICH favorite list
       for (var list in favoriteLists) {
         symbols.addAll(list.symbols);
       }
       symbols = symbols.toSet().toList(); // Remove duplicates
-
-      // If favorites enabled but list is empty, maybe warn?
-      // For now logic is: if empty list passed to provider, it uses default.
-      // So we should make sure if user WANTED favorites but has NONE, we pass a dummy or empty list that provider understands as "EMPTY USER LIST" vs "DEFAULT ALL".
-      // Current provider logic: empty = default.
-      // To fix this in provider later: pass null for default, empty list for "no symbols".
-      // For now, let's just scan.
     }
 
     ref

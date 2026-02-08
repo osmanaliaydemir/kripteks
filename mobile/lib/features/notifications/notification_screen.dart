@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/widgets/app_header.dart';
 import 'package:intl/intl.dart';
 import 'providers/notification_provider.dart';
 import 'models/notification_model.dart';
@@ -13,21 +13,10 @@ class NotificationScreen extends ConsumerWidget {
     final notificationsAsync = ref.watch(notificationsProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      appBar: AppBar(
-        title: Text(
-          'Bildirimler',
-          style: GoogleFonts.plusJakartaSans(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: const Color(0xFF0F172A),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+      backgroundColor: Colors.black,
+      extendBodyBehindAppBar: true,
+      appBar: AppHeader(
+        title: 'Bildirimler',
         actions: [
           TextButton(
             onPressed: () =>
@@ -39,56 +28,96 @@ class NotificationScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          return ref.read(notificationsProvider.notifier).refresh();
-        },
-        color: const Color(0xFFF59E0B),
-        backgroundColor: const Color(0xFF1E293B),
-        child: notificationsAsync.when(
-          data: (notifications) {
-            if (notifications.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.notifications_none,
-                      size: 64,
-                      color: Colors.white10,
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Okunmamış bildirim yok',
-                      style: TextStyle(color: Colors.white38),
-                    ),
+      body: Stack(
+        children: [
+          // Background Gradient (Same as Login)
+          Positioned(
+            top: -100,
+            left: 0,
+            right: 0,
+            height: 400,
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.topCenter,
+                  radius: 0.8,
+                  colors: [
+                    Color(0x40F59E0B), // Amber with transparency
+                    Colors.transparent,
                   ],
+                  stops: [0.0, 1.0],
                 ),
-              );
-            }
-            return ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: notifications.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 12),
-              itemBuilder: (context, index) =>
-                  _buildNotificationItem(context, ref, notifications[index]),
-            );
-          },
-          loading: () => const Center(
-            child: CircularProgressIndicator(color: Color(0xFFF59E0B)),
-          ),
-          error: (err, stack) => Center(
-            child: Text(
-              'Hata: $err',
-              style: const TextStyle(color: Colors.red),
+              ),
             ),
           ),
-        ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: RefreshIndicator(
+                onRefresh: () async =>
+                    ref.read(notificationsProvider.notifier).refresh(),
+                color: const Color(0xFFF59E0B),
+                backgroundColor: const Color(0xFF1E293B),
+                child: notificationsAsync.when(
+                  data: (notifications) {
+                    if (notifications.isEmpty) {
+                      return ListView(
+                        children: [
+                          SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.7,
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.notifications_none_outlined,
+                                    size: 64,
+                                    color: Colors.white10,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'Bildirim bulunmuyor',
+                                    style: TextStyle(color: Colors.white38),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+
+                    return ListView.separated(
+                      padding: const EdgeInsets.only(top: 16, bottom: 32),
+                      itemCount: notifications.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 12),
+                      itemBuilder: (context, index) => _buildNotificationTile(
+                        context,
+                        ref,
+                        notifications[index],
+                      ),
+                    );
+                  },
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(color: Color(0xFFF59E0B)),
+                  ),
+                  error: (err, stack) => Center(
+                    child: Text(
+                      'Hata: $err',
+                      style: const TextStyle(color: Colors.redAccent),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildNotificationItem(
+  Widget _buildNotificationTile(
     BuildContext context,
     WidgetRef ref,
     NotificationModel notification,
@@ -97,61 +126,67 @@ class NotificationScreen extends ConsumerWidget {
     Color color;
 
     switch (notification.type) {
-      case NotificationType.Success:
-        icon = Icons.check_circle;
+      case NotificationType.Trade:
+        icon = Icons.swap_horiz_rounded;
         color = const Color(0xFF10B981);
         break;
+      case NotificationType.Info:
+        icon = Icons.info_outline;
+        color = const Color(0xFF6366F1);
+        break;
       case NotificationType.Warning:
-        icon = Icons.warning;
+        icon = Icons.warning_amber_outlined;
         color = const Color(0xFFF59E0B);
         break;
       case NotificationType.Error:
-        icon = Icons.error;
-        color = const Color(0xFFEF4444);
+        icon = Icons.error_outline;
+        color = const Color(0xFFF43F5E);
         break;
-      case NotificationType.Trade:
-        icon = Icons.currency_exchange;
-        color = Colors.blueAccent;
-        break;
-      case NotificationType.Info:
-        icon = Icons.info;
-        color = Colors.blueGrey;
-        break;
+      default:
+        icon = Icons.notifications_outlined;
+        color = Colors.grey;
     }
 
     return Dismissible(
       key: Key(notification.id),
       background: Container(
-        color: const Color(0xFFEF4444),
+        decoration: BoxDecoration(
+          color: Colors.redAccent.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
+        ),
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        child: const Icon(Icons.delete, color: Colors.white),
+        child: const Icon(Icons.delete_outline, color: Colors.redAccent),
       ),
       direction: DismissDirection.endToStart,
-      onDismissed: (direction) {
+      onDismissed: (_) {
         ref.read(notificationsProvider.notifier).markAsRead(notification.id);
       },
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
+          color: notification.isRead
+              ? const Color(0xFF1E293B).withValues(alpha: 0.3)
+              : const Color(0xFFF59E0B).withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(16),
-          border: notification.isRead
-              ? null
-              : Border.all(color: color.withValues(alpha: 0.5), width: 1),
+          border: Border.all(
+            color: notification.isRead
+                ? Colors.white.withValues(alpha: 0.05)
+                : const Color(0xFFF59E0B).withValues(alpha: 0.2),
+          ),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: 20),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -162,18 +197,20 @@ class NotificationScreen extends ConsumerWidget {
                       Expanded(
                         child: Text(
                           notification.title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                            fontSize: 15,
+                            fontWeight: notification.isRead
+                                ? FontWeight.normal
+                                : FontWeight.bold,
                           ),
                         ),
                       ),
                       Text(
-                        _formatDate(notification.createdAt),
+                        DateFormat('HH:mm').format(notification.createdAt),
                         style: const TextStyle(
                           color: Colors.white38,
-                          fontSize: 10,
+                          fontSize: 11,
                         ),
                       ),
                     ],
@@ -181,7 +218,11 @@ class NotificationScreen extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Text(
                     notification.message,
-                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    style: const TextStyle(
+                      color: Colors.white60,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
                   ),
                 ],
               ),
@@ -190,12 +231,5 @@ class NotificationScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    if (DateTime.now().difference(date).inDays < 1) {
-      return DateFormat('HH:mm').format(date);
-    }
-    return DateFormat('dd MMM').format(date);
   }
 }

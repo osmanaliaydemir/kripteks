@@ -1,3 +1,4 @@
+using System;
 using Kripteks.Core.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
@@ -18,14 +19,16 @@ public class AuthController : ControllerBase
     private readonly SignInManager<AppUser> _signInManager;
     private readonly IConfiguration _configuration;
     private readonly IAuditLogService _auditLogService;
+    private readonly IEmailService _emailService;
 
     public AuthController(UserManager<AppUser> userManager, SignInManager<AppUser> signInManager,
-        IConfiguration configuration, IAuditLogService auditLogService)
+        IConfiguration configuration, IAuditLogService auditLogService, IEmailService emailService)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _configuration = configuration;
         _auditLogService = auditLogService;
+        _emailService = emailService;
     }
 
     [HttpPost("register")]
@@ -133,6 +136,59 @@ public class AuthController : ControllerBase
 
         return BadRequest(new { message = "Şifre değiştirilemedi.", errors = result.Errors });
     }
+
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto model)
+    {
+        var user = await _userManager.FindByEmailAsync(model.Email);
+        if (user == null) return Ok(new { message = "Eğer hesap mevcutsa, kod gönderilecektir." });
+
+        var code = new Random().Next(100000, 999999).ToString();
+        user.ResetCode = code;
+        user.ResetCodeExpiry = DateTime.UtcNow.AddMinutes(15);
+        await _userManager.UpdateAsync(user);
+
+        await _emailService.SendResetCodeEmailAsync(user.Email!, code);
+        await _auditLogService.LogAsync(user.Id, "Şifre Sıfırlama Kodu İstendi", new { user.Email });
+
+        return Ok(new { message = "Sıfırlama kodu gönderildi." });
+    }
+
+    [HttpPost("verify-reset-code")]
+    public async Task<IActionResult> VerifyResetCode([FromBody] VerifyResetCodeDto model)
+    {
+        var user = await _userManager.FindByEmailAsync(model.Email);
+        if (user == null || user.ResetCode != model.Code || user.ResetCodeExpiry < DateTime.UtcNow)
+        {
+            return BadRequest(new { message = "Geçersiz veya süresi dolmuş kod." });
+        }
+
+        return Ok(new { message = "Kod doğrulandı." });
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto model)
+    {
+        var user = await _userManager.FindByEmailAsync(model.Email);
+        if (user == null || user.ResetCode != model.Code || user.ResetCodeExpiry < DateTime.UtcNow)
+        {
+            return BadRequest(new { message = "Geçersiz işlem." });
+        }
+
+        var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var result = await _userManager.ResetPasswordAsync(user, resetToken, model.NewPassword);
+
+        if (result.Succeeded)
+        {
+            user.ResetCode = null;
+            user.ResetCodeExpiry = null;
+            await _userManager.UpdateAsync(user);
+            await _auditLogService.LogAsync(user.Id, "Şifre Sıfırlandı");
+            return Ok(new { message = "Şifreniz başarıyla sıfırlandı." });
+        }
+
+        return BadRequest(new { message = "Şifre sıfırlanamadı.", errors = result.Errors });
+    }
 }
 
 public class ChangePasswordDto
@@ -169,4 +225,22 @@ public class UserDetailDto
 
     [System.Text.Json.Serialization.JsonPropertyName("role")]
     public string Role { get; set; } = string.Empty;
+}
+
+public class ForgotPasswordDto
+{
+    public string Email { get; set; } = string.Empty;
+}
+
+public class VerifyResetCodeDto
+{
+    public string Email { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+}
+
+public class ResetPasswordDto
+{
+    public string Email { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
 }

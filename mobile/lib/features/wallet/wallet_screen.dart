@@ -3,111 +3,225 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:mobile/core/widgets/app_header.dart';
 import 'providers/wallet_provider.dart';
 import 'models/wallet_model.dart';
 
-class WalletScreen extends ConsumerWidget {
+class WalletScreen extends ConsumerStatefulWidget {
   const WalletScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WalletScreen> createState() => _WalletScreenState();
+}
+
+class _WalletScreenState extends ConsumerState<WalletScreen> {
+  int _selectedTabIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
     final walletAsync = ref.watch(walletDetailsProvider);
     final transactionsAsync = ref.watch(walletTransactionsProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      appBar: AppBar(
-        title: Text(
-          'Cüzdan',
-          style: GoogleFonts.inter(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+      backgroundColor: Colors.black,
+      extendBodyBehindAppBar: true,
+      appBar: const AppHeader(title: 'Cüzdan', showBackButton: false),
+      body: Stack(
+        children: [
+          // Background Gradient (Same as Login)
+          Positioned(
+            top: -100,
+            left: 0,
+            right: 0,
+            height: 400,
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.topCenter,
+                  radius: 0.8,
+                  colors: [
+                    Color(0x40F59E0B), // Amber with transparency
+                    Colors.transparent,
+                  ],
+                  stops: [0.0, 1.0],
+                ),
+              ),
+            ),
           ),
-        ),
-        backgroundColor: const Color(0xFF0F172A),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(walletDetailsProvider);
-          ref.invalidate(walletTransactionsProvider);
-        },
-        color: const Color(0xFFF59E0B),
-        backgroundColor: const Color(0xFF1E293B),
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Balance Card
-              walletAsync.when(
-                data: (wallet) => _buildBalanceCard(wallet),
-                loading: () => const Center(
-                  child: CircularProgressIndicator(color: Color(0xFFF59E0B)),
-                ),
-                error: (err, _) => _buildErrorState(err.toString()),
-              ),
-              const SizedBox(height: 24),
-
-              // Transactions Title
-              Text(
-                'İşlem Geçmişi',
-                style: GoogleFonts.inter(
-                  color: Colors.white70,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Transactions List
-              transactionsAsync.when(
-                data: (transactions) {
-                  if (transactions.isEmpty) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(32.0),
-                        child: Text(
-                          'Henüz işlem yok',
-                          style: TextStyle(color: Colors.white38),
+          Padding(
+            padding: const EdgeInsets.only(top: kToolbarHeight + 30),
+            child: RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(walletDetailsProvider);
+                ref.invalidate(walletTransactionsProvider);
+              },
+              color: const Color(0xFFF59E0B),
+              backgroundColor: const Color(0xFF1E293B),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Balance Card
+                    walletAsync.when(
+                      data: (wallet) => _buildBalanceCard(wallet),
+                      loading: () => const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFFF59E0B),
                         ),
                       ),
-                    );
-                  }
-                  return ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: transactions.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 8),
-                    itemBuilder: (context, index) =>
-                        _buildTransactionItem(transactions[index])
-                            .animate()
-                            .fadeIn(delay: (100 * index).ms)
-                            .slideX(begin: 0.2, end: 0),
-                  );
-                },
-                loading: () => const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: CircularProgressIndicator(color: Color(0xFFF59E0B)),
-                  ),
-                ),
-                error: (err, _) => Text(
-                  'Hata: $err',
-                  style: const TextStyle(color: Colors.red),
+                      error: (err, _) => _buildErrorState(err.toString()),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Transactions Title
+                    Text(
+                      'İşlem Geçmişi',
+                      style: GoogleFonts.inter(
+                        color: Colors.white70,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Transaction Filter Tabs
+                    _buildTransactionTabs(),
+                    const SizedBox(height: 12),
+
+                    // Transactions List
+                    transactionsAsync.when(
+                      data: (transactions) {
+                        final filteredTransactions = _filterTransactions(
+                          transactions,
+                        );
+
+                        if (filteredTransactions.isEmpty) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(32.0),
+                              child: Text(
+                                'Henüz işlem yok',
+                                style: TextStyle(color: Colors.white38),
+                              ),
+                            ),
+                          );
+                        }
+                        return ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: filteredTransactions.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 8),
+                          itemBuilder: (context, index) =>
+                              _buildTransactionItem(filteredTransactions[index])
+                                  .animate()
+                                  .fadeIn(delay: (100 * index).ms)
+                                  .slideX(begin: 0.2, end: 0),
+                        );
+                      },
+                      loading: () => const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(20),
+                          child: CircularProgressIndicator(
+                            color: Color(0xFFF59E0B),
+                          ),
+                        ),
+                      ),
+                      error: (err, _) => Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Text(
+                            'Hata: $err',
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTransactionTabs() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B).withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        children: [
+          _buildTabButton('Hepsi', 0),
+          const SizedBox(width: 4),
+          _buildTabButton('Yatırma', 1),
+          const SizedBox(width: 4),
+          _buildTabButton('Çekim', 2),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabButton(String title, int index) {
+    final isSelected = _selectedTabIndex == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() => _selectedTabIndex = index);
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFFF59E0B) : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(
+              color: isSelected ? Colors.white : Colors.white54,
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            ),
           ),
         ),
       ),
     );
+  }
+
+  List<WalletTransaction> _filterTransactions(
+    List<WalletTransaction> transactions,
+  ) {
+    if (_selectedTabIndex == 0) {
+      // Hepsi
+      return transactions;
+    } else if (_selectedTabIndex == 1) {
+      // Yatırma (Girişler)
+      return transactions
+          .where(
+            (tx) =>
+                tx.type == TransactionType.Deposit ||
+                tx.type == TransactionType.BotReturn,
+          )
+          .toList();
+    } else {
+      // Çekim (Çıkışlar)
+      return transactions
+          .where(
+            (tx) =>
+                tx.type == TransactionType.Withdraw ||
+                tx.type == TransactionType.BotInvestment ||
+                tx.type == TransactionType.Fee,
+          )
+          .toList();
+    }
   }
 
   Widget _buildBalanceCard(WalletDetails wallet) {
@@ -229,12 +343,10 @@ class WalletScreen extends ConsumerWidget {
       case TransactionType.BotInvestment:
         // Red/Pinkish for Investment (Money Out)
         icon = Icons.north_east; // Arrow Up-Right
-        color = Colors
-            .white; // Text color listed as white in screenshot for negative
+        color = Colors.white;
         iconBgColor = const Color(
           0xFFF43F5E,
         ).withValues(alpha: 0.1); // Rose-500 bg
-        // If amount is already negative, don't add another '-'
         prefix = '';
         defaultTitle = 'Otomatik Alım';
         break;
@@ -255,8 +367,6 @@ class WalletScreen extends ConsumerWidget {
         break;
     }
 
-    // Use description from API if available and robust, otherwise use default title
-    // If description is just the enum name (e.g. "BotInvestment"), use default title
     String title = tx.description;
     if (title.isEmpty ||
         title == 'BotInvestment' ||
@@ -266,14 +376,12 @@ class WalletScreen extends ConsumerWidget {
       title = defaultTitle;
     }
 
-    // Icon Color override
     Color iconColor = (tx.type == TransactionType.BotInvestment)
         ? const Color(0xFFF43F5E)
         : (tx.type == TransactionType.BotReturn)
         ? const Color(0xFF10B981)
         : color;
 
-    // Amount Color: Green for positive, White for negative (BotInvestment is negative flow)
     Color amountColor = (prefix == '+')
         ? const Color(0xFF10B981)
         : Colors.white;
@@ -289,7 +397,6 @@ class WalletScreen extends ConsumerWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Icon Box
           Container(
             width: 40,
             height: 40,
@@ -301,8 +408,6 @@ class WalletScreen extends ConsumerWidget {
             child: Icon(icon, color: iconColor, size: 18),
           ),
           const SizedBox(width: 12),
-
-          // Content
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -325,8 +430,6 @@ class WalletScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 8),
-
-          // Amount
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [

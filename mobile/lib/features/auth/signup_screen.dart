@@ -3,64 +3,42 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:mobile/features/auth/providers/auth_provider.dart';
 
-class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+class SignUpScreen extends ConsumerStatefulWidget {
+  const SignUpScreen({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<SignUpScreen> createState() => _SignUpScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  void _handleLogin() async {
+  void _handleSignUp() async {
     if (_formKey.currentState!.validate()) {
-      final email = _emailController.text.trim();
-      final password = _passwordController.text;
-
-      await ref.read(authControllerProvider.notifier).login(email, password);
+      // Mock signup for now
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kayıt olma işlemi henüz aktif değil.')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Listen for auth state changes
-    ref.listen(authControllerProvider, (previous, next) {
-      next.when(
-        data: (_) {
-          if (!next.isLoading && !next.hasError) {
-            context.go('/dashboard');
-          }
-        },
-        error: (err, stack) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(err.toString().replaceAll('Exception: ', '')),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-        },
-        loading: () {},
-      );
-    });
-
-    final authState = ref.watch(authControllerProvider);
-    final isLoading = authState.isLoading;
-
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.black, // Dark background base
       body: Stack(
         children: [
           // Ambient Glow Background
@@ -91,7 +69,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Logo Section
+                    // Logo
                     Container(
                       margin: const EdgeInsets.only(bottom: 40),
                       child: Column(
@@ -134,7 +112,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           const SizedBox(height: 24),
 
                           Text(
-                                'Kripteks\'e Giriş Yap',
+                                'Kripteks\'e Kayıt Ol',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
@@ -149,12 +127,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
 
-                    // Form Section
+                    // Form
                     Form(
                       key: _formKey,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          _buildLabel('Ad Soyad'),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                                controller: _nameController,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: _buildInputDecoration(
+                                  hint: 'Adınızı girin',
+                                  prefixIcon: Icons.person_outline,
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Ad Soyad gerekli';
+                                  }
+                                  return null;
+                                },
+                              )
+                              .animate()
+                              .fadeIn(delay: 300.ms)
+                              .slideX(begin: 0.1, end: 0),
+                          const SizedBox(height: 16),
+
                           _buildLabel('Email'),
                           const SizedBox(height: 8),
                           TextFormField(
@@ -172,7 +171,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 },
                               )
                               .animate()
-                              .fadeIn(delay: 300.ms)
+                              .fadeIn(delay: 400.ms)
                               .slideX(begin: 0.1, end: 0),
                           const SizedBox(height: 16),
 
@@ -207,35 +206,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 },
                               )
                               .animate()
-                              .fadeIn(delay: 400.ms)
+                              .fadeIn(delay: 500.ms)
                               .slideX(begin: 0.1, end: 0),
-
-                          // Forgot Password link
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: Padding(
-                              padding: const EdgeInsets.only(top: 12),
-                              child: TextButton(
-                                onPressed: () =>
-                                    context.push('/forgot-password'),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: Colors.white54,
-                                  padding: EdgeInsets.zero,
-                                  minimumSize: Size.zero,
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                child: const Text(
-                                  'Şifremi Unuttum?',
-                                  style: TextStyle(fontSize: 12),
-                                ),
-                              ),
-                            ),
-                          ).animate().fadeIn(delay: 500.ms),
-
                           const SizedBox(height: 32),
 
-                          // Login Button
+                          // Sign Up Button
                           Container(
                                 height: 56,
                                 decoration: BoxDecoration(
@@ -259,7 +234,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ],
                                 ),
                                 child: ElevatedButton(
-                                  onPressed: isLoading ? null : _handleLogin,
+                                  onPressed: _handleSignUp,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.transparent,
                                     shadowColor: Colors.transparent,
@@ -267,23 +242,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       borderRadius: BorderRadius.circular(16),
                                     ),
                                   ),
-                                  child: isLoading
-                                      ? const SizedBox(
-                                          width: 24,
-                                          height: 24,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white,
-                                          ),
-                                        )
-                                      : const Text(
-                                          'Giriş Yap',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
+                                  child: const Text(
+                                    'Kayıt Ol',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               )
                               .animate()
@@ -292,18 +258,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                           const SizedBox(height: 32),
 
-                          // Sign Up Link
+                          // Bottom Link
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               const Text(
-                                'Hesabın yok mu? ',
+                                'Hesabın var mı? ',
                                 style: TextStyle(color: Colors.white54),
                               ),
                               GestureDetector(
-                                onTap: () => context.go('/signup'),
+                                onTap: () => context.go('/login'),
                                 child: const Text(
-                                  'Kayıt Ol',
+                                  'Giriş Yap',
                                   style: TextStyle(
                                     color: Color(0xFFF59E0B),
                                     fontWeight: FontWeight.bold,

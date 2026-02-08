@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/widgets/app_header.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:shimmer/shimmer.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'providers/bot_provider.dart';
 import 'models/bot_model.dart';
@@ -24,20 +23,8 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
     final botListAsync = ref.watch(botListProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // Slate-950
-      appBar: AppBar(
-        title: Text(
-          'Botlar',
-          style: GoogleFonts.inter(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: const Color(0xFF0F172A),
-        elevation: 0,
-        centerTitle: false,
-      ),
+      backgroundColor: Colors.transparent,
+      appBar: const AppHeader(title: 'Botlarım', showBackButton: false),
       body: botListAsync.when(
         data: (bots) {
           // Calculate counts
@@ -77,12 +64,12 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
 
           return Column(
             children: [
-              // 1. Level Tabs (Active vs History)
+              // Tabs
               Container(
-                margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B), // Slate-800
+                  color: const Color(0xFF1E293B),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.white10),
                 ),
@@ -91,74 +78,62 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
                     Expanded(
                       child: _buildTabButton(
                         'Aktif Botlar',
-                        activeBots.length,
                         _selectedTab == 'Aktif Botlar',
+                        count: activeBots.length,
                       ),
                     ),
                     Expanded(
                       child: _buildTabButton(
                         'Geçmiş',
-                        historyBots.length,
                         _selectedTab == 'Geçmiş',
+                        count: historyBots.length,
                       ),
                     ),
                   ],
                 ),
               ),
 
-              // 2. Level Filters (Only for Active Bots)
+              // Filters (Only for Active Bots)
               if (_selectedTab == 'Aktif Botlar')
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   child: Row(
                     children: [
-                      _buildFilterButton(
-                        'Hepsi',
-                        activeBots.length,
-                        const Color(0xFFF59E0B),
-                      ), // Amber
-                      const SizedBox(width: 12),
-                      _buildFilterButton(
-                        'Pozisyonda',
-                        inPositionCount,
-                        const Color(0xFF10B981),
-                      ), // Emerald
-                      const SizedBox(width: 12),
-                      _buildFilterButton(
-                        'Sinyal Bekleniyor',
-                        waitingCount,
-                        const Color(0xFF3B82F6),
-                      ), // Blue
+                      _buildFilterChip('Hepsi', activeBots.length),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Pozisyonda', inPositionCount),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Sinyal Bekleniyor', waitingCount),
                     ],
                   ),
                 ),
 
-              if (_selectedTab == 'Aktif Botlar') const SizedBox(height: 16),
-
-              // Bot List
+              // List
               Expanded(
                 child: displayedBots.isEmpty
                     ? Center(
                         child: Text(
                           'Bot bulunamadı',
-                          style: GoogleFonts.inter(color: Colors.white54),
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.3),
+                          ),
                         ),
                       )
                     : RefreshIndicator(
-                        onRefresh: () async {
-                          // ignore: unused_result
-                          ref.refresh(botListProvider);
-                        },
+                        onRefresh: () async => ref.refresh(botListProvider),
                         child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.all(16),
                           itemCount: displayedBots.length,
                           itemBuilder: (context, index) {
-                            final bot = displayedBots[index];
-                            return _buildBotCard(bot)
-                                .animate()
-                                .fadeIn(delay: (50 * index).ms)
-                                .slideX(begin: 0.1, end: 0);
+                            return _BotCardItem(
+                              bot: displayedBots[index],
+                              onStop: () =>
+                                  _showStopConfirmation(displayedBots[index]),
+                            );
                           },
                         ),
                       ),
@@ -166,156 +141,122 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
             ],
           );
         },
-        loading: () => _buildShimmerList(),
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: Color(0xFFF59E0B)),
+        ),
         error: (err, stack) => Center(
-          child: Text(
-            'Hata: $err',
-            style: const TextStyle(color: Colors.redAccent),
-          ),
+          child: Text('Hata: $err', style: const TextStyle(color: Colors.red)),
         ),
       ),
     );
   }
 
-  Widget _buildTabButton(String label, int count, bool isSelected) {
+  Widget _buildTabButton(String title, bool isSelected, {int? count}) {
     return GestureDetector(
       onTap: () => setState(() {
-        _selectedTab = label;
-        // Reset sub-filter when switching tabs? Or keep it?
-        // Usually safer to reset or keep assuming logical defaults.
-        if (label == 'Aktif Botlar') _activeFilter = 'Hepsi';
+        _selectedTab = title;
+        _activeFilter = 'Hepsi';
       }),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFF334155) // Slate-700 (Lighter for active)
-              : const Color(0xFF1E293B), // Transparent/Base
+          color: isSelected ? const Color(0xFFF59E0B) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Icon based on label?
-            Icon(
-              label == 'Aktif Botlar' ? Icons.monitor_heart : Icons.history,
-              size: 18,
-              color: isSelected ? Colors.white : Colors.white54,
-            ),
-            const SizedBox(width: 8),
             Text(
-              label,
+              title,
               style: TextStyle(
-                color: isSelected ? Colors.white : Colors.white54,
+                color: isSelected ? Colors.black : Colors.white60,
                 fontWeight: FontWeight.bold,
-                fontSize: 14,
               ),
             ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? const Color(0xFF475569)
-                    : const Color(0xFF334155),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                '$count',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+            if (count != null) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.black26 : Colors.white10,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  count.toString(),
+                  style: TextStyle(
+                    color: isSelected ? Colors.black : Colors.white60,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildFilterButton(String label, int count, Color color) {
+  Widget _buildFilterChip(String label, int count) {
     final isSelected = _activeFilter == label;
-    // final baseColor = isSelected ? color : const Color(0xFF1E293B);
-    // final textColor = isSelected ? Colors.black : Colors.white54;
-    // For 'Hepsi', simplify color logic or use specific design
-    // The image shows 'Hepsi' as brown/orange button, others as dark with colored dot.
-
-    // Let's implement specific styling per type based on the screenshot description
-    // "Hepsi": Solid brownish button (if selected) or outline?
-    // "Pozisyonda": Dark bg, Green dot, Green text (or white if simple)
-    // Actually, let's follow a cleaner "pill" design where:
-    // Selected = Filled with Color (low opacity) + Border
-    // Unselected = Dark bg + Border
-
-    // For "Hepsi" specifically it looked like a full button.
-    // For others it looked like "Dot + Text + Badge".
-
-    // Let's go with a consistent look first:
-    // Filled for selected, Outlined for unselected.
-
     return GestureDetector(
       onTap: () => setState(() => _activeFilter = label),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected
-              ? color.withValues(alpha: 0.2)
-              : const Color(0xFF1E293B).withValues(alpha: 0.5),
+              ? const Color(0xFFF59E0B).withValues(alpha: 0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? color : Colors.white10,
-            width: 1,
+            color: isSelected ? const Color(0xFFF59E0B) : Colors.white10,
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (label != 'Hepsi') ...[
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: color.withValues(alpha: 0.5),
-                            blurRadius: 4,
-                          ),
-                        ]
-                      : null,
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? color : Colors.white70,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-                letterSpacing: 0.5,
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: label == 'Pozisyonda'
+                    ? const Color(0xFF10B981)
+                    : label == 'Sinyal Bekleniyor'
+                    ? const Color(0xFFF59E0B)
+                    : Colors.white38,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  if (isSelected)
+                    BoxShadow(
+                      color:
+                          (label == 'Pozisyonda'
+                                  ? const Color(0xFF10B981)
+                                  : label == 'Sinyal Bekleniyor'
+                                  ? const Color(0xFFF59E0B)
+                                  : Colors.white38)
+                              .withValues(alpha: 0.5),
+                      blurRadius: 4,
+                    ),
+                ],
               ),
             ),
             const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? color.withValues(alpha: 0.2)
-                    : const Color(0xFF334155),
-                borderRadius: BorderRadius.circular(6),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.white38,
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
-              child: Text(
-                '$count',
-                style: TextStyle(
-                  color: isSelected ? color : Colors.white54,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                ),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '($count)',
+              style: TextStyle(
+                color: isSelected
+                    ? const Color(0xFFF59E0B).withValues(alpha: 0.7)
+                    : Colors.white24,
+                fontSize: 11,
               ),
             ),
           ],
@@ -324,233 +265,536 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
     );
   }
 
-  Widget _buildBotCard(Bot bot) {
+  void _showStopConfirmation(Bot bot) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Botu Durdur',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          '${bot.symbol} botunu durdurmak istediğinize emin misiniz? Açık pozisyonlar piyasa fiyatından kapatılacaktır.',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('İptal', style: TextStyle(color: Colors.white38)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ref.read(botServiceProvider).stopBot(bot.id);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Durdur',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BotCardItem extends StatefulWidget {
+  final Bot bot;
+  final VoidCallback onStop;
+
+  const _BotCardItem({required this.bot, required this.onStop});
+
+  @override
+  State<_BotCardItem> createState() => _BotCardItemState();
+}
+
+class _BotCardItemState extends State<_BotCardItem> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final bot = widget.bot;
     final isPositive = bot.pnl >= 0;
-    final pnlColor = isPositive
-        ? const Color(0xFF10B981)
-        : const Color(0xFFEF4444);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withValues(alpha: 0.5),
+        color: const Color(0xFF0F172A).withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            context.push('/bots/${bot.id}');
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        children: [
+          // Top Info Row
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                // Icon Stack
+                Stack(
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0F172A),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.smart_toy,
-                            color: Color(0xFFF59E0B),
-                            size: 20,
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E293B),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.1),
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          bot.symbol.isNotEmpty
+                              ? bot.symbol.substring(0, 1)
+                              : '?',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
+                      ),
+                    ),
+                    Positioned(
+                      right: -2,
+                      bottom: -2,
+                      child: Container(
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(bot.status),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFF0F172A),
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 12),
+                // Middle Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
                               bot.symbol,
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildMiniStatusBadge(bot.status),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.attach_money_rounded,
+                              size: 14,
+                              color: Colors.white38,
+                            ),
+                            const SizedBox(width: 4),
                             Text(
-                              bot.strategyName,
+                              '${bot.amount.toInt()} Bakiye',
                               style: const TextStyle(
-                                color: Colors.white54,
+                                color: Colors.white70,
                                 fontSize: 12,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                    _buildStatusBadge(bot.status),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 16),
-                const Divider(color: Colors.white10),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                // Right Info (PnL & ROI)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'PNL (USDT)',
-                          style: TextStyle(color: Colors.white54, fontSize: 10),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '\$${bot.pnl.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            color: pnlColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      '${isPositive ? '+' : ''}${bot.pnl.toStringAsFixed(2)}\$',
+                      style: TextStyle(
+                        color: isPositive
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFFF43F5E),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                      ),
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        const Text(
-                          'ROI',
-                          style: TextStyle(color: Colors.white54, fontSize: 10),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            (isPositive
+                                    ? const Color(0xFF10B981)
+                                    : const Color(0xFFF43F5E))
+                                .withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${bot.pnlPercent < 0 ? '-' : ''}%${bot.pnlPercent.abs().toStringAsFixed(2)} ROI',
+                        style: TextStyle(
+                          color: isPositive
+                              ? const Color(0xFF10B981)
+                              : const Color(0xFFF43F5E),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '%${bot.pnlPercent.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            color: pnlColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildStatusBadge(String status) {
-    Color color;
-    String text;
-
-    switch (status) {
-      case 'Running':
-        color = const Color(0xFF10B981);
-        text = 'Çalışıyor';
-        break;
-      case 'WaitingForEntry':
-        color = const Color(0xFF3B82F6);
-        text = 'Bekliyor';
-        break;
-      case 'Stopped':
-        color = const Color(0xFF94A3B8);
-        text = 'Durdu';
-        break;
-      case 'Completed':
-        color = const Color(0xFF8B5CF6);
-        text = 'Tamamlandı';
-        break;
-      default:
-        color = const Color(0xFF94A3B8);
-        text = status;
-    }
-
-    final badge = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-
-    if (status == 'Running') {
-      return badge
-          .animate(onPlay: (controller) => controller.repeat())
-          .shimmer(duration: 2000.ms, color: color.withValues(alpha: 0.5));
-    }
-
-    return badge;
-  }
-
-  Widget _buildShimmerList() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: 5,
-      itemBuilder: (context, index) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          height: 140,
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E293B).withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white10),
-          ),
-          child: Shimmer.fromColors(
-            baseColor: Colors.white10,
-            highlightColor: Colors.white12,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // Action Row
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            child: Row(
+              children: [
+                // Strategy & Interval Buttons
+                Expanded(
+                  child: Row(
                     children: [
-                      Container(width: 100, height: 20, color: Colors.white),
+                      // Strategy
+                      Expanded(
+                        flex: 2,
+                        child: Container(
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E293B),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.05),
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(
+                            bot.strategyName.toUpperCase().contains('STRATEGY-')
+                                ? bot.strategyName.toUpperCase().replaceAll(
+                                    'STRATEGY-',
+                                    '',
+                                  )
+                                : bot.strategyName.toUpperCase(),
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            style: const TextStyle(
+                              color: Colors.white38,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Interval
                       Container(
-                        width: 60,
-                        height: 20,
+                        height: 48,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(
+                              0xFFF59E0B,
+                            ).withValues(alpha: 0.3),
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          bot.interval.toUpperCase(),
+                          style: const TextStyle(
+                            color: Color(0xFFF59E0B),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
-                    height: 1,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(width: 80, height: 40, color: Colors.white),
-                      Container(width: 80, height: 40, color: Colors.white),
-                    ],
-                  ),
+                ),
+                const SizedBox(width: 12),
+                // Action Icons
+                Row(
+                  children: [
+                    _buildIconAction(
+                      icon: Icons.show_chart_rounded,
+                      onTap: () => _openTradingView(bot.symbol),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildIconAction(
+                      icon: Icons.stop_rounded,
+                      color: Colors.redAccent.withValues(alpha: 0.1),
+                      iconColor: Colors.redAccent,
+                      onTap: widget.onStop,
+                    ),
+                    const SizedBox(width: 8),
+                    _buildIconAction(
+                      icon: Icons.open_in_new_rounded,
+                      onTap: () => context.push('/bots/${bot.id}'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Logs Accordion
+          Container(
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+              ),
+            ),
+            child: Theme(
+              data: Theme.of(
+                context,
+              ).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                onExpansionChanged: (value) {
+                  setState(() {
+                    _isExpanded = value;
+                  });
+                },
+                title: Row(
+                  children: [
+                    const Icon(Icons.code, size: 16, color: Color(0xFF8B5CF6)),
+                    const SizedBox(width: 8),
+                    const Icon(
+                      Icons.chevron_right,
+                      size: 14,
+                      color: Colors.white38,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'İŞLEM KAYITLARI',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.4),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+                trailing: Icon(
+                  _isExpanded
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  color: Colors.white24,
+                ),
+                children: [
+                  if (bot.logs != null && bot.logs!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                      child: Column(
+                        children: bot.logs!.take(5).map((log) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              children: [
+                                Text(
+                                  _formatTime(log.timestamp),
+                                  style: const TextStyle(
+                                    color: Colors.white24,
+                                    fontSize: 10,
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    log.message,
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.7,
+                                      ),
+                                      fontSize: 10,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    )
+                  else
+                    const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text(
+                        'LOG KAYDI BULUNAMADI',
+                        style: TextStyle(color: Colors.white24, fontSize: 10),
+                      ),
+                    ),
                 ],
               ),
             ),
           ),
-        );
-      },
+        ],
+      ),
     );
+  }
+
+  Widget _buildMiniStatusBadge(String status) {
+    Color color = _getStatusColor(status);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 4,
+            height: 4,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            _getStatusLabel(status),
+            style: TextStyle(
+              color: color,
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIconAction({
+    required IconData icon,
+    required VoidCallback onTap,
+    Color? color,
+    Color? iconColor,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: color ?? Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+        child: Icon(
+          icon,
+          size: 20,
+          color: iconColor ?? Colors.white.withValues(alpha: 0.6),
+        ),
+      ),
+    );
+  }
+
+  String _getStatusLabel(String status) {
+    switch (status) {
+      case 'Running':
+        return 'POZİSYONDA';
+      case 'WaitingForEntry':
+        return 'BEKLİYOR';
+      case 'Stopped':
+        return 'DURDU';
+      default:
+        return status.toUpperCase();
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Running':
+        return const Color(0xFF10B981);
+      case 'WaitingForEntry':
+        return const Color(0xFFF59E0B);
+      case 'Stopped':
+        return const Color(0xFFF43F5E);
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _formatTime(DateTime date) {
+    final localDate = date.toLocal();
+    return '${localDate.hour.toString().padLeft(2, '0')}:${localDate.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _openTradingView(String symbol) async {
+    try {
+      final url = Uri.parse(
+        'https://tr.tradingview.com/chart/RbphTzbt/?symbol=BINANCE:$symbol',
+      );
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('TradingView açılamadı')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Hata: $e')));
+      }
+    }
   }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/widgets/app_header.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'providers/backtest_provider.dart';
@@ -54,17 +54,7 @@ class _BacktestConfigScreenState extends ConsumerState<BacktestConfigScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
-      appBar: AppBar(
-        title: Text(
-          'Yeni Backtest',
-          style: GoogleFonts.plusJakartaSans(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: const Color(0xFF0F172A),
-        elevation: 0,
-      ),
+      appBar: const AppHeader(title: 'Simülasyon'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -254,7 +244,7 @@ class _BacktestConfigScreenState extends ConsumerState<BacktestConfigScreen> {
   }) {
     return InkWell(
       onTap: () async {
-        final picked = await showDatePicker(
+        final date = await showDatePicker(
           context: context,
           initialDate: selectedDate,
           firstDate: DateTime(2020),
@@ -273,12 +263,12 @@ class _BacktestConfigScreenState extends ConsumerState<BacktestConfigScreen> {
             );
           },
         );
-        if (picked != null) onSelect(picked);
+        if (date != null) onSelect(date);
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
+          color: const Color(0xFF1E293B).withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.white10),
         ),
@@ -291,10 +281,10 @@ class _BacktestConfigScreenState extends ConsumerState<BacktestConfigScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              DateFormat('dd MMM yyyy').format(selectedDate),
+              DateFormat('dd/MM/yyyy').format(selectedDate),
               style: const TextStyle(
                 color: Colors.white,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ],
@@ -307,10 +297,9 @@ class _BacktestConfigScreenState extends ConsumerState<BacktestConfigScreen> {
     return Text(
       title,
       style: const TextStyle(
-        color: Color(0xFFF59E0B),
-        fontWeight: FontWeight.bold,
+        color: Colors.white70,
         fontSize: 14,
-        letterSpacing: 0.5,
+        fontWeight: FontWeight.bold,
       ),
     );
   }
@@ -318,9 +307,9 @@ class _BacktestConfigScreenState extends ConsumerState<BacktestConfigScreen> {
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: Colors.white54),
+      labelStyle: const TextStyle(color: Colors.white54, fontSize: 14),
       filled: true,
-      fillColor: const Color(0xFF1E293B),
+      fillColor: const Color(0xFF1E293B).withValues(alpha: 0.5),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: Colors.white10),

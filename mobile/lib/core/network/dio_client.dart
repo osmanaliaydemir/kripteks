@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:mobile/core/network/auth_state_provider.dart';
 import 'package:mobile/core/constants.dart';
 
 final dioProvider = Provider<Dio>((ref) {
@@ -30,8 +31,9 @@ final dioProvider = Provider<Dio>((ref) {
       onError: (DioException e, handler) async {
         // Handle 401 Unauthorized -> Logout or Refresh Token
         if (e.response?.statusCode == 401) {
-          // Trigger generic logout logic here if needed
           await storage.delete(key: 'auth_token');
+          // Update global auth state to trigger redirect
+          ref.read(authStateProvider.notifier).setAuthenticated(false);
         }
         return handler.next(e);
       },

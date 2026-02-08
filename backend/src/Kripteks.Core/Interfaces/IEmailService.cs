@@ -6,4 +6,5 @@ public interface IEmailService
 {
     Task SendEmailAsync(string toEmail, string subject, string body);
     Task SendWelcomeEmailAsync(string toEmail, string firstName, string password);
+    Task SendResetCodeEmailAsync(string toEmail, string code);
 }

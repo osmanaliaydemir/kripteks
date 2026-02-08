@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobile/core/network/dio_client.dart';
+import 'package:mobile/core/network/auth_state_provider.dart';
 import 'package:mobile/features/auth/services/auth_service.dart';
 
 final authServiceProvider = Provider<AuthService>((ref) {
@@ -17,7 +18,6 @@ final authControllerProvider = AsyncNotifierProvider<AuthController, void>(
 class AuthController extends AsyncNotifier<void> {
   @override
   FutureOr<void> build() {
-    // Initial state
     return null;
   }
 
@@ -26,6 +26,9 @@ class AuthController extends AsyncNotifier<void> {
     state = await AsyncValue.guard(
       () => ref.read(authServiceProvider).login(email, password),
     );
+    if (!state.hasError) {
+      ref.read(authStateProvider.notifier).setAuthenticated(true);
+    }
   }
 
   Future<void> logout() async {
@@ -33,5 +36,10 @@ class AuthController extends AsyncNotifier<void> {
     state = await AsyncValue.guard(
       () => ref.read(authServiceProvider).logout(),
     );
+    ref.read(authStateProvider.notifier).setAuthenticated(false);
+  }
+
+  void setUnauthenticated() {
+    ref.read(authStateProvider.notifier).setAuthenticated(false);
   }
 }
