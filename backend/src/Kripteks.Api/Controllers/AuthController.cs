@@ -34,55 +34,85 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto model)
     {
-        var user = new AppUser
-            { UserName = model.Email, Email = model.Email, FirstName = model.FirstName, LastName = model.LastName };
-        var result = await _userManager.CreateAsync(user, model.Password);
-
-        if (result.Succeeded)
+        try
         {
-            return Ok(new { message = "Kayıt başarılı" });
-        }
+            var user = new AppUser
+                { UserName = model.Email, Email = model.Email, FirstName = model.FirstName, LastName = model.LastName };
+            var result = await _userManager.CreateAsync(user, model.Password);
 
-        return BadRequest(result.Errors);
+            if (result.Succeeded)
+            {
+                return Ok(new { message = "Kayıt başarılı" });
+            }
+
+            return BadRequest(result.Errors);
+        }
+        catch (Exception ex)
+        {
+            // GEÇICI DEBUG: Gerçek hatayı görmek için
+            return StatusCode(500, new
+            {
+                error = "Registration failed with exception",
+                message = ex.Message,
+                innerException = ex.InnerException?.Message,
+                stackTrace = ex.StackTrace?.Split('\n').FirstOrDefault(),
+                type = ex.GetType().Name
+            });
+        }
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto model)
     {
-        var user = await _userManager.FindByEmailAsync(model.Email);
-        if (user == null)
+        try
         {
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null)
+            {
+                await _auditLogService.LogAnonymousAsync("Giriş Denemesi Başarısız",
+                    new { model.Email, Reason = "Kullanıcı bulunamadı" });
+                return Unauthorized("Giriş başarısız");
+            }
+
+            var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
+
+            if (result.Succeeded)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+                var primaryRole = roles.FirstOrDefault() ?? "User";
+                var token = GenerateJwtToken(user, roles);
+
+                await _auditLogService.LogAsync(user.Id, "Giriş Başarılı", new { user.Email });
+                return Ok(new LoginResponseDto
+                {
+                    Token = token,
+                    User = new UserDetailDto
+                    {
+                        FirstName = user.FirstName,
+                        LastName = user.LastName,
+                        Email = user.Email ?? string.Empty,
+                        Role = primaryRole
+                    }
+                });
+            }
+
             await _auditLogService.LogAnonymousAsync("Giriş Denemesi Başarısız",
-                new { model.Email, Reason = "Kullanıcı bulunamadı" });
+                new { model.Email, Reason = "Hatalı şifre" });
+
             return Unauthorized("Giriş başarısız");
         }
-
-        var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
-
-        if (result.Succeeded)
+        catch (Exception ex)
         {
-            var roles = await _userManager.GetRolesAsync(user);
-            var primaryRole = roles.FirstOrDefault() ?? "User";
-            var token = GenerateJwtToken(user, roles);
-
-            await _auditLogService.LogAsync(user.Id, "Giriş Başarılı", new { user.Email });
-            return Ok(new LoginResponseDto
+            // GEÇICI DEBUG: Gerçek hatayı görmek için
+            return StatusCode(500, new
             {
-                Token = token,
-                User = new UserDetailDto
-                {
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    Email = user.Email ?? string.Empty,
-                    Role = primaryRole
-                }
+                error = "Login failed with exception",
+                message = ex.Message,
+                innerException = ex.InnerException?.Message,
+                stackTrace = ex.StackTrace?.Split('\n').FirstOrDefault(),
+                type = ex.GetType().Name
             });
         }
-
-        await _auditLogService.LogAnonymousAsync("Giriş Denemesi Başarısız",
-            new { model.Email, Reason = "Hatalı şifre" });
-
-        return Unauthorized("Giriş başarısız");
     }
 
     private string GenerateJwtToken(AppUser user, IList<string> roles)

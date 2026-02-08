@@ -37,7 +37,16 @@ public class SentimentAnalysisJob : BackgroundService
             if (_configuration.GetValue<bool>("AiSettings:Enabled") == false)
             {
                 _logger.LogInformation("AI Analizi devre dışı, bekleniyor...");
-                await Task.Delay(TimeSpan.FromMinutes(10), stoppingToken);
+                try
+                {
+                    await Task.Delay(TimeSpan.FromMinutes(10), stoppingToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    _logger.LogInformation("Sentiment Analysis Job kapatılıyor...");
+                    break;
+                }
+
                 continue;
             }
 
