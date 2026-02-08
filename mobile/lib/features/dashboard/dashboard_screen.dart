@@ -205,50 +205,186 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Widget _buildConnectionStatus(SignalRConnectionStatus status) {
     bool isOnline = status == SignalRConnectionStatus.connected;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: isOnline
-            ? AppColors.success.withValues(alpha: 0.1)
-            : AppColors.error.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
+    final signalRService = ref.read(signalRServiceProvider);
+
+    return InkWell(
+      onTap: () {
+        _showStatusBottomSheet(context, status, signalRService.lastError);
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
           color: isOnline
-              ? AppColors.success.withValues(alpha: 0.2)
-              : AppColors.error.withValues(alpha: 0.2),
+              ? AppColors.success.withValues(alpha: 0.1)
+              : AppColors.error.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isOnline
+                ? AppColors.success.withValues(alpha: 0.2)
+                : AppColors.error.withValues(alpha: 0.2),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: isOnline ? AppColors.success : AppColors.error,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: (isOnline ? AppColors.success : AppColors.error)
+                        .withValues(alpha: 0.5),
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              isOnline
+                  ? AppLocalizations.of(context)!.online
+                  : AppLocalizations.of(context)!.offline,
+              style: TextStyle(
+                color: isOnline ? AppColors.success : AppColors.error,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: isOnline ? AppColors.success : AppColors.error,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: (isOnline ? AppColors.success : AppColors.error)
-                      .withValues(alpha: 0.5),
-                  blurRadius: 4,
+    );
+  }
+
+  void _showStatusBottomSheet(
+    BuildContext context,
+    SignalRConnectionStatus status,
+    String? lastError,
+  ) {
+    bool isOnline = status == SignalRConnectionStatus.connected;
+    final l10n = AppLocalizations.of(context)!;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.textSecondary.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Icon(
+                isOnline ? Icons.check_circle_rounded : Icons.error_rounded,
+                color: isOnline ? AppColors.success : AppColors.error,
+                size: 64,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                isOnline ? l10n.online : l10n.offline,
+                style: GoogleFonts.inter(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isOnline
+                    ? 'Sistem aktif çalışıyor ve gerçek zamanlı veriler alınıyor.'
+                    : 'Sunucu bağlantısı koptu. Veriler güncellenemiyor.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              if (!isOnline && lastError != null) ...[
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.error.withValues(alpha: 0.1),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(
+                            Icons.bug_report_outlined,
+                            size: 16,
+                            color: AppColors.error,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Hata Detayı',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.error,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        lastError,
+                        style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
-            ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (!isOnline) {
+                      ref.read(signalRServiceProvider).initConnection();
+                    }
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isOnline
+                        ? AppColors.primary
+                        : AppColors.error,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(isOnline ? 'Kapat' : 'Tekrar Bağlanmayı Dene'),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Text(
-            isOnline
-                ? AppLocalizations.of(context)!.online
-                : AppLocalizations.of(context)!.offline,
-            style: TextStyle(
-              color: isOnline ? AppColors.success : AppColors.error,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

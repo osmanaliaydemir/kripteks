@@ -4,6 +4,7 @@ import 'package:mobile/core/widgets/app_header.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mobile/core/theme/app_colors.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'providers/bot_provider.dart';
 import 'models/bot_model.dart';
@@ -16,8 +17,8 @@ class BotListScreen extends ConsumerStatefulWidget {
 }
 
 class _BotListScreenState extends ConsumerState<BotListScreen> {
-  String _selectedTab = 'Aktif Botlar'; // Aktif Botlar, Geçmiş
-  String _activeFilter = 'Hepsi'; // Hepsi, Pozisyonda, Sinyal Bekleniyor
+  String _selectedTab = 'Aktif Botlar';
+  String _activeFilter = 'Hepsi';
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +29,6 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
       appBar: const AppHeader(title: 'Botlarım', showBackButton: false),
       body: botListAsync.when(
         data: (bots) {
-          // Calculate counts
           final activeBots = bots
               .where(
                 (b) => b.status == 'Running' || b.status == 'WaitingForEntry',
@@ -45,7 +45,6 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
               .where((b) => b.status == 'WaitingForEntry')
               .length;
 
-          // Filter logic
           List<Bot> displayedBots = [];
           if (_selectedTab == 'Aktif Botlar') {
             if (_activeFilter == 'Hepsi') {
@@ -70,9 +69,11 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white10),
+                  color: AppColors.surfaceLight,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.05),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -94,7 +95,7 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
                 ),
               ),
 
-              // Filters (Only for Active Bots)
+              // Filters
               if (_selectedTab == 'Aktif Botlar')
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -143,10 +144,13 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
           );
         },
         loading: () => const Center(
-          child: CircularProgressIndicator(color: Color(0xFFF59E0B)),
+          child: CircularProgressIndicator(color: AppColors.primary),
         ),
         error: (err, stack) => Center(
-          child: Text('Hata: $err', style: const TextStyle(color: Colors.red)),
+          child: Text(
+            'Hata: $err',
+            style: const TextStyle(color: AppColors.error),
+          ),
         ),
       ),
     );
@@ -159,10 +163,10 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
         _activeFilter = 'Hepsi';
       }),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFF59E0B) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          color: isSelected ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -172,6 +176,7 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
               style: TextStyle(
                 color: isSelected ? Colors.black : Colors.white60,
                 fontWeight: FontWeight.bold,
+                fontSize: 13,
               ),
             ),
             if (count != null) ...[
@@ -179,8 +184,10 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.black26 : Colors.white10,
-                  borderRadius: BorderRadius.circular(10),
+                  color: isSelected
+                      ? Colors.black.withValues(alpha: 0.1)
+                      : Colors.white10,
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   count.toString(),
@@ -203,14 +210,14 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
     return GestureDetector(
       onTap: () => setState(() => _activeFilter = label),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFFF59E0B).withValues(alpha: 0.1)
+              ? AppColors.primary.withValues(alpha: 0.1)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? const Color(0xFFF59E0B) : Colors.white10,
+            color: isSelected ? AppColors.primary : Colors.white10,
           ),
         ),
         child: Row(
@@ -221,24 +228,11 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
               height: 6,
               decoration: BoxDecoration(
                 color: label == 'Pozisyonda'
-                    ? const Color(0xFF10B981)
+                    ? AppColors.success
                     : label == 'Sinyal Bekleniyor'
-                    ? const Color(0xFFF59E0B)
+                    ? AppColors.primary
                     : Colors.white38,
                 shape: BoxShape.circle,
-                boxShadow: [
-                  if (isSelected)
-                    BoxShadow(
-                      color:
-                          (label == 'Pozisyonda'
-                                  ? AppColors.success
-                                  : label == 'Sinyal Bekleniyor'
-                                  ? AppColors.primary
-                                  : AppColors.textSecondary)
-                              .withValues(alpha: 0.5),
-                      blurRadius: 4,
-                    ),
-                ],
               ),
             ),
             const SizedBox(width: 8),
@@ -252,14 +246,15 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 6),
             Text(
-              '($count)',
+              '$count',
               style: TextStyle(
                 color: isSelected
-                    ? AppColors.primary.withValues(alpha: 0.7)
-                    : AppColors.white10,
+                    ? AppColors.primary
+                    : AppColors.textSecondary.withValues(alpha: 0.3),
                 fontSize: 11,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ],
@@ -273,13 +268,10 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surfaceLight,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           'Botu Durdur',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         content: Text(
           '${bot.symbol} botunu durdurmak istediğinize emin misiniz? Açık pozisyonlar piyasa fiyatından kapatılacaktır.',
@@ -297,9 +289,9 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
-              foregroundColor: AppColors.textPrimary,
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(10),
               ),
             ),
             child: const Text(
@@ -334,163 +326,111 @@ class _BotCardItemState extends State<_BotCardItem> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: AppColors.surface.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       child: Column(
         children: [
-          // Top Info Row
+          // Header
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
             child: Row(
               children: [
-                // Icon Stack
-                Stack(
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.1),
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          bot.symbol.isNotEmpty
-                              ? bot.symbol.substring(0, 1)
-                              : '?',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceLight,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Center(
+                    child: Text(
+                      bot.symbol.isNotEmpty ? bot.symbol.substring(0, 1) : '?',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Positioned(
-                      right: -2,
-                      bottom: -2,
-                      child: Container(
-                        width: 14,
-                        height: 14,
-                        decoration: BoxDecoration(
-                          color: _getStatusColor(bot.status),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFF0F172A),
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
                 const SizedBox(width: 12),
-                // Middle Info
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(
+                        bot.symbol,
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
                       Row(
                         children: [
-                          Flexible(
-                            child: Text(
-                              bot.symbol,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: _getStatusColor(bot.status),
+                              shape: BoxShape.circle,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          _buildMiniStatusBadge(bot.status),
+                          const SizedBox(width: 6),
+                          Text(
+                            _getStatusLabel(bot.status),
+                            style: GoogleFonts.inter(
+                              color: _getStatusColor(
+                                bot.status,
+                              ).withValues(alpha: 0.8),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
                         ],
-                      ),
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.attach_money_rounded,
-                              size: 14,
-                              color: Colors.white38,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${bot.amount.toInt()} Bakiye',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
                     ],
                   ),
                 ),
-                // Right Info (PnL & ROI)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
                       '${isPositive ? '+' : ''}${bot.pnl.toStringAsFixed(2)}\$',
-                      style: TextStyle(
-                        color: isPositive
-                            ? const Color(0xFF10B981)
-                            : const Color(0xFFF43F5E),
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
+                      style: GoogleFonts.inter(
+                        color: isPositive ? AppColors.success : AppColors.error,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color:
-                            (isPositive
-                                    ? const Color(0xFF10B981)
-                                    : const Color(0xFFF43F5E))
-                                .withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        '${bot.pnlPercent < 0 ? '-' : ''}%${bot.pnlPercent.abs().toStringAsFixed(2)} ROI',
-                        style: TextStyle(
-                          color: isPositive
-                              ? const Color(0xFF10B981)
-                              : const Color(0xFFF43F5E),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${bot.pnlPercent < 0 ? '-' : ''}%${bot.pnlPercent.abs().toStringAsFixed(2)}',
+                          style: GoogleFonts.inter(
+                            color: isPositive
+                                ? AppColors.success
+                                : AppColors.error,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 4),
+                        const Text(
+                          'ROI',
+                          style: TextStyle(
+                            color: Colors.white24,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -500,92 +440,57 @@ class _BotCardItemState extends State<_BotCardItem> {
 
           // Action Row
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Row(
               children: [
-                // Strategy & Interval Buttons
                 Expanded(
                   child: Row(
                     children: [
-                      // Strategy
-                      Expanded(
-                        flex: 2,
-                        child: Container(
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E293B),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.05),
-                            ),
-                          ),
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Text(
-                            bot.strategyName.toUpperCase().contains('STRATEGY-')
-                                ? bot.strategyName.toUpperCase().replaceAll(
-                                    'STRATEGY-',
-                                    '',
-                                  )
-                                : bot.strategyName.toUpperCase(),
-                            textAlign: TextAlign.center,
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                            style: const TextStyle(
-                              color: Colors.white38,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
+                      Flexible(
+                        child: _buildSmallChip(
+                          bot.strategyName.toUpperCase().contains('STRATEGY-')
+                              ? bot.strategyName.toUpperCase().replaceFirst(
+                                  'STRATEGY-',
+                                  '',
+                                )
+                              : bot.strategyName.toUpperCase(),
+                          color: Colors.white.withValues(alpha: 0.05),
+                          textColor: Colors.white38,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      // Interval
-                      Container(
-                        height: 48,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(
-                              0xFFF59E0B,
-                            ).withValues(alpha: 0.3),
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          bot.interval.toUpperCase(),
-                          style: const TextStyle(
-                            color: Color(0xFFF59E0B),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
+                      const SizedBox(width: 6),
+                      _buildSmallChip(
+                        bot.interval.toUpperCase(),
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        textColor: AppColors.primary,
+                      ),
+                      const SizedBox(width: 6),
+                      _buildSmallChip(
+                        '${bot.amount.toInt()}\$',
+                        color: Colors.white.withValues(alpha: 0.03),
+                        textColor: Colors.white38,
+                        icon: Icons.account_balance_wallet_outlined,
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Action Icons
                 Row(
                   children: [
-                    _buildIconAction(
+                    _buildMinimalAction(
                       icon: Icons.show_chart_rounded,
                       onTap: () => _openTradingView(bot.symbol),
                     ),
-                    const SizedBox(width: 8),
-                    _buildIconAction(
+                    const SizedBox(width: 6),
+                    _buildMinimalAction(
                       icon: Icons.stop_rounded,
-                      color: Colors.redAccent.withValues(alpha: 0.1),
-                      iconColor: Colors.redAccent,
+                      color: AppColors.error.withValues(alpha: 0.1),
+                      iconColor: AppColors.error,
                       onTap: widget.onStop,
                     ),
-                    const SizedBox(width: 8),
-                    _buildIconAction(
-                      icon: Icons.open_in_new_rounded,
+                    const SizedBox(width: 6),
+                    _buildMinimalAction(
+                      icon: Icons.keyboard_arrow_right_rounded,
                       onTap: () => context.push('/bots/${bot.id}'),
                     ),
                   ],
@@ -594,11 +499,11 @@ class _BotCardItemState extends State<_BotCardItem> {
             ),
           ),
 
-          // Logs Accordion
+          // Logs
           Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               border: Border(
-                top: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+                top: BorderSide(color: Colors.white10, width: 0.5),
               ),
             ),
             child: Theme(
@@ -606,53 +511,41 @@ class _BotCardItemState extends State<_BotCardItem> {
                 context,
               ).copyWith(dividerColor: Colors.transparent),
               child: ExpansionTile(
-                onExpansionChanged: (value) {
-                  setState(() {
-                    _isExpanded = value;
-                  });
-                },
-                title: Row(
-                  children: [
-                    const Icon(Icons.code, size: 16, color: Color(0xFF8B5CF6)),
-                    const SizedBox(width: 8),
-                    const Icon(
-                      Icons.chevron_right,
-                      size: 14,
-                      color: Colors.white38,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'İŞLEM KAYITLARI',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.4),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                  ],
+                onExpansionChanged: (value) =>
+                    setState(() => _isExpanded = value),
+                dense: true,
+                visualDensity: VisualDensity.compact,
+                title: Text(
+                  'İŞLEM KAYITLARI',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
                 ),
                 trailing: Icon(
                   _isExpanded
                       ? Icons.keyboard_arrow_up_rounded
                       : Icons.keyboard_arrow_down_rounded,
-                  color: Colors.white24,
+                  color: Colors.white12,
+                  size: 20,
                 ),
                 children: [
                   if (bot.logs != null && bot.logs!.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                       child: Column(
-                        children: bot.logs!.take(5).map((log) {
+                        children: bot.logs!.take(3).map((log) {
                           return Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
+                            padding: const EdgeInsets.only(bottom: 4),
                             child: Row(
                               children: [
                                 Text(
                                   _formatTime(log.timestamp),
                                   style: const TextStyle(
                                     color: Colors.white24,
-                                    fontSize: 10,
+                                    fontSize: 9,
                                     fontFamily: 'monospace',
                                   ),
                                 ),
@@ -662,7 +555,7 @@ class _BotCardItemState extends State<_BotCardItem> {
                                     log.message,
                                     style: TextStyle(
                                       color: Colors.white.withValues(
-                                        alpha: 0.7,
+                                        alpha: 0.5,
                                       ),
                                       fontSize: 10,
                                     ),
@@ -675,14 +568,6 @@ class _BotCardItemState extends State<_BotCardItem> {
                           );
                         }).toList(),
                       ),
-                    )
-                  else
-                    const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Text(
-                        'LOG KAYDI BULUNAMADI',
-                        style: TextStyle(color: Colors.white24, fontSize: 10),
-                      ),
                     ),
                 ],
               ),
@@ -693,30 +578,36 @@ class _BotCardItemState extends State<_BotCardItem> {
     );
   }
 
-  Widget _buildMiniStatusBadge(String status) {
-    Color color = _getStatusColor(status);
+  Widget _buildSmallChip(
+    String label, {
+    required Color color,
+    required Color textColor,
+    IconData? icon,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        color: color,
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 4,
-            height: 4,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            _getStatusLabel(status),
-            style: TextStyle(
-              color: color,
-              fontSize: 9,
-              fontWeight: FontWeight.w900,
+          if (icon != null) ...[
+            Icon(icon, size: 10, color: textColor.withValues(alpha: 0.5)),
+            const SizedBox(width: 4),
+          ],
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.3,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -724,7 +615,7 @@ class _BotCardItemState extends State<_BotCardItem> {
     );
   }
 
-  Widget _buildIconAction({
+  Widget _buildMinimalAction({
     required IconData icon,
     required VoidCallback onTap,
     Color? color,
@@ -734,20 +625,54 @@ class _BotCardItemState extends State<_BotCardItem> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Container(
-        width: 42,
-        height: 42,
+        width: 36,
+        height: 36,
         decoration: BoxDecoration(
           color: color ?? Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
         child: Icon(
           icon,
-          size: 20,
-          color: iconColor ?? Colors.white.withValues(alpha: 0.6),
+          size: 18,
+          color: iconColor ?? Colors.white.withValues(alpha: 0.4),
         ),
       ),
     );
+  }
+
+  Future<void> _openTradingView(String symbol) async {
+    try {
+      // 1. Try to open directly in the TradingView App using custom scheme
+      final appUrl = Uri.parse('tradingview://chart?symbol=BINANCE:$symbol');
+
+      // Attempt to launch the app scheme
+      final bool launchedApp = await launchUrl(
+        appUrl,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!launchedApp) {
+        // 2. Fallback to Browser if app is not installed or doesn't support the scheme
+        final webUrl = Uri.parse(
+          'https://tr.tradingview.com/chart/RbphTzbt/?symbol=BINANCE:$symbol',
+        );
+        await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      // 3. Last fallback: try browser directly if first attempt threw error
+      try {
+        final webUrl = Uri.parse(
+          'https://tr.tradingview.com/chart/RbphTzbt/?symbol=BINANCE:$symbol',
+        );
+        await launchUrl(webUrl, mode: LaunchMode.externalNonBrowserApplication);
+      } catch (innerError) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('TradingView açılamadı')),
+          );
+        }
+      }
+    }
   }
 
   String _getStatusLabel(String status) {
@@ -779,28 +704,5 @@ class _BotCardItemState extends State<_BotCardItem> {
   String _formatTime(DateTime date) {
     final localDate = date.toLocal();
     return '${localDate.hour.toString().padLeft(2, '0')}:${localDate.minute.toString().padLeft(2, '0')}';
-  }
-
-  Future<void> _openTradingView(String symbol) async {
-    try {
-      final url = Uri.parse(
-        'https://tr.tradingview.com/chart/RbphTzbt/?symbol=BINANCE:$symbol',
-      );
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('TradingView açılamadı')),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Hata: $e')));
-      }
-    }
   }
 }

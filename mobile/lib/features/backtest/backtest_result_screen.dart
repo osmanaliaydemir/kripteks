@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'models/backtest_model.dart';
+import 'package:mobile/core/theme/app_colors.dart';
 
 class BacktestResultScreen extends StatelessWidget {
   final BacktestResult result;
@@ -12,111 +13,173 @@ class BacktestResultScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
-          'Sonuçlar',
-          style: GoogleFonts.plusJakartaSans(
+          'Simülasyon Sonuçları',
+          style: GoogleFonts.inter(
             fontWeight: FontWeight.bold,
             color: Colors.white,
+            fontSize: 18,
           ),
         ),
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Summary Cards
-            Row(
+      body: Stack(
+        children: [
+          // Background Gradient
+          Positioned(
+            top: -100,
+            left: 0,
+            right: 0,
+            height: 400,
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.topCenter,
+                  radius: 0.8,
+                  colors: [AppColors.primaryTransparent, AppColors.transparent],
+                  stops: [0.0, 1.0],
+                ),
+              ),
+            ),
+          ),
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: _buildSummaryCard(
-                    'Net Kâr',
-                    '\$${result.totalPnl.toStringAsFixed(2)}',
-                    result.totalPnl >= 0
-                        ? const Color(0xFF10B981)
-                        : const Color(0xFFEF4444),
-                  ),
+                // Top Stats Row
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard(
+                        'Net Kar/Zarar',
+                        '${result.totalPnl >= 0 ? "+" : ""}\$${result.totalPnl.toStringAsFixed(2)}',
+                        result.totalPnl >= 0
+                            ? AppColors.success
+                            : AppColors.error,
+                        '${result.totalPnlPercent.toStringAsFixed(2)}%',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildStatCard(
+                        'Başarı Oranı',
+                        '%${result.winRate.toStringAsFixed(1)}',
+                        AppColors.primary,
+                        '${result.winningTrades}/${result.totalTrades} İşlem',
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildSummaryCard(
-                    'Başarı %',
-                    '%${result.winRate.toStringAsFixed(1)}',
-                    Colors.blueAccent,
+                const SizedBox(height: 24),
+
+                // Chart Section
+                _buildSectionHeader('Sermaye Eğrisi', Icons.show_chart_rounded),
+                const SizedBox(height: 12),
+                Container(
+                  height: 220,
+                  padding: const EdgeInsets.fromLTRB(8, 24, 16, 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
                   ),
+                  child: _buildEquityChart(),
                 ),
+                const SizedBox(height: 24),
+
+                // Trade History
+                _buildSectionHeader('İşlem Geçmişi', Icons.history_rounded),
+                const SizedBox(height: 12),
+                if (result.trades.isEmpty)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      child: Text(
+                        'İşlem kaydı bulunamadı',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  ...result.trades.reversed.map(
+                    (trade) => _buildTradeItem(trade),
+                  ),
+                const SizedBox(height: 40),
               ],
             ),
-            const SizedBox(height: 24),
-
-            // Equity Curve Chart
-            const Text(
-              'Bakiye Grafiği',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              height: 200,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: _buildEquityChart(),
-            ),
-            const SizedBox(height: 24),
-
-            // Trade List
-            const Text(
-              'İşlem Geçmişi',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ...result.trades.map((trade) => _buildTradeItem(trade)),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSummaryCard(String title, String value, Color color) {
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.white54),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: GoogleFonts.inter(
+            color: Colors.white70,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard(
+    String title,
+    String value,
+    Color color,
+    String subtitle,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        color: AppColors.surface.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(color: Colors.white54, fontSize: 12),
+            style: const TextStyle(
+              color: Colors.white54,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             value,
-            style: TextStyle(
+            style: GoogleFonts.inter(
               color: color,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w900,
               fontSize: 20,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: TextStyle(
+              color: color.withValues(alpha: 0.6),
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -125,47 +188,69 @@ class BacktestResultScreen extends StatelessWidget {
   }
 
   Widget _buildTradeItem(BacktestTrade trade) {
-    final isWin = (trade.pnl ?? 0) >= 0;
+    final isWin = trade.pnl >= 0;
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.surface.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: (trade.type == 'BUY' ? AppColors.success : AppColors.error)
+                  .withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              trade.type == 'BUY'
+                  ? Icons.south_west_rounded
+                  : Icons.north_east_rounded,
+              color: trade.type == 'BUY' ? AppColors.success : AppColors.error,
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${trade.type} @ \$${trade.entryPrice.toStringAsFixed(2)}',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  DateFormat('dd MMM, HH:mm').format(trade.entryDate),
+                  style: const TextStyle(color: Colors.white24, fontSize: 10),
+                ),
+              ],
+            ),
+          ),
           Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                trade.type,
-                style: TextStyle(
-                  color: trade.type == 'BUY'
-                      ? const Color(0xFF10B981)
-                      : const Color(0xFFEF4444),
-                  fontWeight: FontWeight.bold,
+                '${isWin ? "+" : ""}${trade.pnl.toStringAsFixed(2)}\$',
+                style: GoogleFonts.inter(
+                  color: isWin ? AppColors.success : AppColors.error,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
               Text(
-                DateFormat('dd MMM HH:mm').format(trade.entryTime),
-                style: const TextStyle(color: Colors.white38, fontSize: 12),
+                'Exit: \$${trade.exitPrice.toStringAsFixed(2)}',
+                style: const TextStyle(color: Colors.white38, fontSize: 10),
               ),
             ],
-          ),
-          Text(
-            '\$${trade.entryPrice.toStringAsFixed(2)} -> \$${(trade.exitPrice ?? 0).toStringAsFixed(2)}',
-            style: const TextStyle(color: Colors.white70, fontSize: 13),
-          ),
-          Text(
-            trade.pnl != null
-                ? '${isWin ? "+" : ""}${trade.pnl!.toStringAsFixed(2)}\$'
-                : 'Açık',
-            style: TextStyle(
-              color: isWin ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-              fontWeight: FontWeight.bold,
-            ),
           ),
         ],
       ),
@@ -173,52 +258,55 @@ class BacktestResultScreen extends StatelessWidget {
   }
 
   Widget _buildEquityChart() {
-    // Generate simple spots from equity curve or trades if curve not available
-    // Assuming equityCurve is list of {time, balance}
-    // If not, we simulate from trades for visual demo
     List<FlSpot> spots = [];
 
-    if (result.equityCurve.isNotEmpty) {
-      // Parse equity curve
-      for (int i = 0; i < result.equityCurve.length; i++) {
-        // Simple mapping index to value
-        // dynamic val = result.equityCurve[i]['balance'];
-        // spots.add(FlSpot(i.toDouble(), (val as num).toDouble()));
-        // Note: simplified for demo as actual parsing depends on specific json structure
+    if (result.candles.isNotEmpty) {
+      for (int i = 0; i < result.candles.length; i++) {
+        spots.add(FlSpot(i.toDouble(), result.candles[i].close));
       }
     }
 
-    // Fallback: build from trades for visual check
     if (spots.isEmpty) {
-      spots.add(const FlSpot(0, 0));
-      double cumPnl = 0;
+      double currentBalance = 1000;
+      spots.add(FlSpot(0, currentBalance));
       for (int i = 0; i < result.trades.length; i++) {
-        cumPnl += (result.trades[i].pnl ?? 0);
-        spots.add(FlSpot((i + 1).toDouble(), cumPnl));
+        currentBalance += result.trades[i].pnl;
+        spots.add(FlSpot((i + 1).toDouble(), currentBalance));
       }
     }
+
+    if (spots.isEmpty) spots = [const FlSpot(0, 0), const FlSpot(1, 0)];
 
     return LineChart(
       LineChartData(
-        gridData: const FlGridData(show: false),
-        titlesData: const FlTitlesData(
-          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          getDrawingHorizontalLine: (value) => FlLine(
+            color: Colors.white.withValues(alpha: 0.03),
+            strokeWidth: 1,
+          ),
         ),
+        titlesData: const FlTitlesData(show: false),
         borderData: FlBorderData(show: false),
         lineBarsData: [
           LineChartBarData(
             spots: spots,
             isCurved: true,
-            color: const Color(0xFFF59E0B),
+            color: AppColors.primary,
             barWidth: 3,
             isStrokeCapRound: true,
             dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
-              color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primary.withValues(alpha: 0.2),
+                  AppColors.primary.withValues(alpha: 0),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
             ),
           ),
         ],

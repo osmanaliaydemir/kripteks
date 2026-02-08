@@ -20,9 +20,11 @@ class BacktestRequest {
       'symbol': symbol,
       'strategyId': strategyId,
       'interval': interval,
-      // API expects ISO 8601 strings
-      'startDate': startDate.toIso8601String(),
-      'endDate': endDate.toIso8601String(),
+      // API expects YYYY-MM-DD or ISO 8601
+      'startDate':
+          "${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}",
+      'endDate':
+          "${endDate.year}-${endDate.month.toString().padLeft(2, '0')}-${endDate.day.toString().padLeft(2, '0')}",
       'initialBalance': initialBalance,
     };
   }
@@ -31,87 +33,103 @@ class BacktestRequest {
 class BacktestResult {
   final double totalPnl;
   final double totalPnlPercent;
-  final int tradeCount;
-  final int winCount;
-  final int lossCount;
+  final int totalTrades;
+  final int winningTrades;
+  final int losingTrades;
   final double winRate;
   final double maxDrawdown;
-  final double maxDrawdownPercent;
   final List<BacktestTrade> trades;
-  // Equity curve could be a list of {time, balance}
-  final List<Map<String, dynamic>> equityCurve;
+  final List<BacktestCandle> candles;
 
   BacktestResult({
     required this.totalPnl,
     required this.totalPnlPercent,
-    required this.tradeCount,
-    required this.winCount,
-    required this.lossCount,
+    required this.totalTrades,
+    required this.winningTrades,
+    required this.losingTrades,
     required this.winRate,
     required this.maxDrawdown,
-    required this.maxDrawdownPercent,
     required this.trades,
-    required this.equityCurve,
+    required this.candles,
   });
 
   factory BacktestResult.fromJson(Map<String, dynamic> json) {
     return BacktestResult(
       totalPnl: (json['totalPnl'] as num?)?.toDouble() ?? 0.0,
       totalPnlPercent: (json['totalPnlPercent'] as num?)?.toDouble() ?? 0.0,
-      tradeCount: json['tradeCount'] as int? ?? 0,
-      winCount: json['winCount'] as int? ?? 0,
-      lossCount: json['lossCount'] as int? ?? 0,
+      totalTrades: json['totalTrades'] as int? ?? 0,
+      winningTrades: json['winningTrades'] as int? ?? 0,
+      losingTrades: json['losingTrades'] as int? ?? 0,
       winRate: (json['winRate'] as num?)?.toDouble() ?? 0.0,
       maxDrawdown: (json['maxDrawdown'] as num?)?.toDouble() ?? 0.0,
-      maxDrawdownPercent:
-          (json['maxDrawdownPercent'] as num?)?.toDouble() ?? 0.0,
       trades:
           (json['trades'] as List<dynamic>?)
               ?.map((e) => BacktestTrade.fromJson(e))
               .toList() ??
           [],
-      equityCurve:
-          (json['equityCurve'] as List<dynamic>?)
-              ?.map((e) => e as Map<String, dynamic>)
+      candles:
+          (json['candles'] as List<dynamic>?)
+              ?.map((e) => BacktestCandle.fromJson(e))
               .toList() ??
           [],
     );
   }
 }
 
+class BacktestCandle {
+  final DateTime time;
+  final double open;
+  final double high;
+  final double low;
+  final double close;
+
+  BacktestCandle({
+    required this.time,
+    required this.open,
+    required this.high,
+    required this.low,
+    required this.close,
+  });
+
+  factory BacktestCandle.fromJson(Map<String, dynamic> json) {
+    return BacktestCandle(
+      time: DateTime.parse(json['time']),
+      open: (json['open'] as num).toDouble(),
+      high: (json['high'] as num).toDouble(),
+      low: (json['low'] as num).toDouble(),
+      close: (json['close'] as num).toDouble(),
+    );
+  }
+}
+
 class BacktestTrade {
-  final String symbol;
   final String type; // BUY, SELL
-  final DateTime entryTime;
-  final DateTime? exitTime;
+  final DateTime entryDate;
+  final DateTime exitDate;
   final double entryPrice;
-  final double? exitPrice;
-  final double? pnl;
-  final double? pnlPercent;
+  final double exitPrice;
+  final double pnl;
+  final double commission;
 
   BacktestTrade({
-    required this.symbol,
     required this.type,
-    required this.entryTime,
-    this.exitTime,
+    required this.entryDate,
+    required this.exitDate,
     required this.entryPrice,
-    this.exitPrice,
-    this.pnl,
-    this.pnlPercent,
+    required this.exitPrice,
+    required this.pnl,
+    required this.commission,
   });
 
   factory BacktestTrade.fromJson(Map<String, dynamic> json) {
     return BacktestTrade(
-      symbol: json['symbol'] as String,
-      type: json['type'] as String,
-      entryTime: DateTime.parse(json['entryTime']),
-      exitTime: json['exitTime'] != null
-          ? DateTime.parse(json['exitTime'])
-          : null,
-      entryPrice: (json['entryPrice'] as num).toDouble(),
-      exitPrice: (json['exitPrice'] as num?)?.toDouble(),
-      pnl: (json['pnl'] as num?)?.toDouble(),
-      pnlPercent: (json['pnlPercent'] as num?)?.toDouble(),
+      type: json['type'] as String? ?? 'BUY',
+      entryDate: DateTime.parse(json['entryDate']),
+      exitDate: DateTime.parse(json['exitDate']),
+      entryPrice: (json['entryPrice'] as num?)?.toDouble() ?? 0.0,
+      exitPrice: (json['exitPrice'] as num?)?.toDouble() ?? 0.0,
+      pnl: (json['pnl'] as num?)?.toDouble() ?? 0.0,
+      commission: (json['commission'] as num?)?.toDouble() ?? 0.0,
     );
   }
 }

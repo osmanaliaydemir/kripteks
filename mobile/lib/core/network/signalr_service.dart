@@ -19,10 +19,12 @@ class SignalRService {
       StreamController<SignalRConnectionStatus>.broadcast();
   final _log = Logger('SignalRService');
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  String? _lastError;
 
   SignalRService({String? baseUrl}) : _baseUrl = baseUrl ?? AppConstants.hubUrl;
 
   Stream<SignalRConnectionStatus> get statusStream => _statusController.stream;
+  String? get lastError => _lastError;
 
   Future<void> initConnection() async {
     if (_hubConnection?.state == HubConnectionState.Connected) return;
@@ -36,7 +38,11 @@ class SignalRService {
           .withUrl(
             _baseUrl,
             options: HttpConnectionOptions(
-              accessTokenFactory: () async => token ?? '',
+              accessTokenFactory: () async {
+                return token ?? '';
+              },
+              // Fiziksel cihazlarda ağ gecikmesi nedeniyle bağlantının kopmasını engellemek için timeout süresini artırdık.
+              requestTimeout: 30000,
             ),
           )
           .withAutomaticReconnect()
@@ -44,16 +50,14 @@ class SignalRService {
 
       _hubConnection?.onclose(({Exception? error}) {
         _log.warning('SignalR Connection Closed', error);
-        _updateStatus(SignalRConnectionStatus.disconnected);
+        _updateStatus(SignalRConnectionStatus.disconnected, error?.toString());
       });
 
       _hubConnection?.onreconnecting(({Exception? error}) {
-        _log.info('SignalR Reconnecting...', error);
-        _updateStatus(SignalRConnectionStatus.reconnecting);
+        _updateStatus(SignalRConnectionStatus.reconnecting, error?.toString());
       });
 
       _hubConnection?.onreconnected(({String? connectionId}) {
-        _log.info('SignalR Reconnected: $connectionId');
         _updateStatus(SignalRConnectionStatus.connected);
       });
 
@@ -62,7 +66,7 @@ class SignalRService {
       _updateStatus(SignalRConnectionStatus.connected);
     } catch (e) {
       _log.severe('SignalR Connection Error', e);
-      _updateStatus(SignalRConnectionStatus.error);
+      _updateStatus(SignalRConnectionStatus.error, e.toString());
     }
   }
 
@@ -79,7 +83,12 @@ class SignalRService {
     _updateStatus(SignalRConnectionStatus.disconnected);
   }
 
-  void _updateStatus(SignalRConnectionStatus status) {
+  void _updateStatus(SignalRConnectionStatus status, [String? error]) {
+    if (error != null) {
+      _lastError = error;
+    } else if (status == SignalRConnectionStatus.connected) {
+      _lastError = null;
+    }
     _statusController.add(status);
   }
 }

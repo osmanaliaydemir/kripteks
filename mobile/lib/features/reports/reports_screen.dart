@@ -6,6 +6,7 @@ import 'package:mobile/features/reports/providers/reports_provider.dart';
 import 'package:mobile/features/reports/models/reports_model.dart';
 import 'package:mobile/features/dashboard/models/dashboard_stats.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:mobile/core/theme/app_colors.dart';
 
 class ReportsScreen extends ConsumerWidget {
   const ReportsScreen({super.key});
@@ -17,76 +18,97 @@ class ReportsScreen extends ConsumerWidget {
     final performanceAsync = ref.watch(strategyPerformanceProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: AppColors.background,
       appBar: const AppHeader(title: 'Analiz ve Raporlar'),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(dashboardStatsProvider);
-          ref.invalidate(equityCurveProvider);
-          ref.invalidate(strategyPerformanceProvider);
-        },
-        color: const Color(0xFFF59E0B),
-        backgroundColor: const Color(0xFF1E293B),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Statistics Grid
-              statsAsync.when(
-                data: (stats) => _buildStatsGrid(stats),
-                loading: () => _buildShimmerStats(),
-                error: (e, _) => _buildErrorCard(e.toString()),
+      body: Stack(
+        children: [
+          // Background Gradient (Consistent with other screens)
+          Positioned(
+            top: -100,
+            left: 0,
+            right: 0,
+            height: 400,
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.topCenter,
+                  radius: 0.8,
+                  colors: [AppColors.primaryTransparent, AppColors.transparent],
+                  stops: [0.0, 1.0],
+                ),
               ),
-              const SizedBox(height: 24),
-
-              // Equity Curve Chart
-              _buildSectionHeader(
-                'Sermaye Büyümesi',
-                'Zaman içindeki toplam bakiye değişimi',
-                Icons.trending_up,
-                const Color(0xFFF59E0B),
-              ),
-              const SizedBox(height: 12),
-              equityAsync.when(
-                data: (data) => _buildEquityChart(data),
-                loading: () => _buildLoadingChart(),
-                error: (e, _) => _buildErrorCard(e.toString()),
-              ),
-              const SizedBox(height: 24),
-
-              // Strategy Performance
-              _buildSectionHeader(
-                'Strateji Analizi',
-                'Kullanılan stratejilerin performans verileri',
-                Icons.analytics_outlined,
-                const Color(0xFF8B5CF6),
-              ),
-              const SizedBox(height: 12),
-              performanceAsync.when(
-                data: (data) => _buildPerformanceList(data),
-                loading: () => _buildLoadingList(),
-                error: (e, _) => _buildErrorCard(e.toString()),
-              ),
-              const SizedBox(height: 24),
-
-              // Comparative Performance (Bar Chart)
-              _buildSectionHeader(
-                'Karşılaştırmalı Performans',
-                'Strateji bazlı kazanç ve verimlilik',
-                Icons.bar_chart_rounded,
-                const Color(0xFF10B981),
-              ),
-              const SizedBox(height: 12),
-              performanceAsync.when(
-                data: (data) => _buildPerformanceBarChart(data),
-                loading: () => _buildLoadingChart(),
-                error: (e, _) => _buildErrorCard(e.toString()),
-              ),
-              const SizedBox(height: 32),
-            ],
+            ),
           ),
-        ),
+          RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(dashboardStatsProvider);
+              ref.invalidate(equityCurveProvider);
+              ref.invalidate(strategyPerformanceProvider);
+            },
+            color: const Color(0xFFF59E0B),
+            backgroundColor: const Color(0xFF1E293B),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Statistics Grid
+                  statsAsync.when(
+                    data: (stats) => _buildStatsGrid(stats),
+                    loading: () => _buildShimmerStats(),
+                    error: (e, _) => _buildErrorCard(e.toString()),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Equity Curve Chart
+                  _buildSectionHeader(
+                    'Sermaye Büyümesi',
+                    'Zaman içindeki toplam bakiye değişimi',
+                    Icons.trending_up,
+                    const Color(0xFFF59E0B),
+                  ),
+                  const SizedBox(height: 12),
+                  equityAsync.when(
+                    data: (data) => _buildEquityChart(data),
+                    loading: () => _buildLoadingChart(),
+                    error: (e, _) => _buildErrorCard(e.toString()),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Strategy Performance
+                  _buildSectionHeader(
+                    'Strateji Analizi',
+                    'Kullanılan stratejilerin performans verileri',
+                    Icons.analytics_outlined,
+                    const Color(0xFF8B5CF6),
+                  ),
+                  const SizedBox(height: 12),
+                  performanceAsync.when(
+                    data: (data) => _buildPerformanceList(data),
+                    loading: () => _buildLoadingList(),
+                    error: (e, _) => _buildErrorCard(e.toString()),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Comparative Performance (Bar Chart)
+                  _buildSectionHeader(
+                    'Karşılaştırmalı Performans',
+                    'Strateji bazlı kazanç ve verimlilik',
+                    Icons.bar_chart_rounded,
+                    const Color(0xFF10B981),
+                  ),
+                  const SizedBox(height: 12),
+                  performanceAsync.when(
+                    data: (data) => _buildPerformanceBarChart(data),
+                    loading: () => _buildLoadingChart(),
+                    error: (e, _) => _buildErrorCard(e.toString()),
+                  ),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
