@@ -1,87 +1,78 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/widgets/app_header.dart';
-import 'package:mobile/features/settings/services/profile_service.dart';
 import 'package:mobile/l10n/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'providers/settings_provider.dart';
 
-class ChangePasswordScreen extends ConsumerStatefulWidget {
-  const ChangePasswordScreen({super.key});
+class BinanceApiKeysScreen extends ConsumerStatefulWidget {
+  const BinanceApiKeysScreen({super.key});
 
   @override
-  ConsumerState<ChangePasswordScreen> createState() =>
-      _ChangePasswordScreenState();
+  ConsumerState<BinanceApiKeysScreen> createState() =>
+      _BinanceApiKeysScreenState();
 }
 
-class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
+class _BinanceApiKeysScreenState extends ConsumerState<BinanceApiKeysScreen> {
+  final _apiKeyController = TextEditingController();
+  final _secretKeyController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  final _currentPasswordController = TextEditingController();
-  final _newPasswordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
-  bool _obscureCurrentPassword = true;
-  bool _obscureNewPassword = true;
-  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
-    _currentPasswordController.dispose();
-    _newPasswordController.dispose();
-    _confirmPasswordController.dispose();
+    _apiKeyController.dispose();
+    _secretKeyController.dispose();
     super.dispose();
   }
 
-  Future<void> _changePassword() async {
+  Future<void> _saveKeys() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
       await ref
-          .read(profileServiceProvider)
-          .changePassword(
-            currentPassword: _currentPasswordController.text,
-            newPassword: _newPasswordController.text,
+          .read(settingsServiceProvider)
+          .saveApiKeys(
+            _apiKeyController.text.trim(),
+            _secretKeyController.text.trim(),
           );
+      ref.invalidate(apiKeyStatusProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)!.passwordUpdated),
+            content: Text(AppLocalizations.of(context)!.apiKeysUpdated),
             backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
           ),
         );
-        context.pop();
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              '${AppLocalizations.of(context)!.errorNotifications}: ${e.toString().contains('400') ? AppLocalizations.of(context)!.passwordError : e}',
-            ),
+            content: Text('Hata: $e'),
             backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
           ),
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       extendBodyBehindAppBar: true,
-      appBar: AppHeader(
-        title: AppLocalizations.of(context)!.changePassword,
-        showBackButton: true,
-      ),
+      appBar: AppHeader(title: l10n.updateApiKeys),
       body: Stack(
         children: [
           // Background Gradient
@@ -101,8 +92,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.only(top: kToolbarHeight + 30),
+          SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Form(
@@ -130,7 +120,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                           const SizedBox(width: 16),
                           Expanded(
                             child: Text(
-                              AppLocalizations.of(context)!.passwordInfo,
+                              l10n.apiKeyInfo,
                               style: GoogleFonts.plusJakartaSans(
                                 color: AppColors.textSecondary,
                                 fontSize: 13,
@@ -143,94 +133,58 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                     ),
                     const SizedBox(height: 32),
 
-                    // Current Password
-                    _buildPasswordField(
-                      controller: _currentPasswordController,
-                      label: AppLocalizations.of(context)!.currentPassword,
-                      hintText: AppLocalizations.of(
-                        context,
-                      )!.currentPasswordHint,
-                      obscureText: _obscureCurrentPassword,
-                      onToggleVisibility: () {
-                        setState(
-                          () => _obscureCurrentPassword =
-                              !_obscureCurrentPassword,
-                        );
-                      },
+                    // Binance Logo / Icon
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: AppColors.binance.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.currency_bitcoin_rounded,
+                          color: AppColors.binance,
+                          size: 48,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    // API Key Field
+                    _buildInputField(
+                      controller: _apiKeyController,
+                      label: l10n.apiKey,
+                      hintText: l10n.apiKeyHint,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return AppLocalizations.of(
-                            context,
-                          )!.currentPasswordRequired;
+                          return l10n.apiKeyRequired;
                         }
                         return null;
                       },
                     ),
                     const SizedBox(height: 20),
 
-                    // New Password
-                    _buildPasswordField(
-                      controller: _newPasswordController,
-                      label: AppLocalizations.of(context)!.newPassword,
-                      hintText: AppLocalizations.of(context)!.newPasswordHint,
-                      obscureText: _obscureNewPassword,
-                      onToggleVisibility: () {
-                        setState(
-                          () => _obscureNewPassword = !_obscureNewPassword,
-                        );
-                      },
+                    // Secret Key Field
+                    _buildInputField(
+                      controller: _secretKeyController,
+                      label: l10n.secretKey,
+                      hintText: l10n.secretKeyHint,
+                      obscureText: true,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return AppLocalizations.of(
-                            context,
-                          )!.newPasswordRequired;
-                        }
-                        if (value.length < 6) {
-                          return AppLocalizations.of(
-                            context,
-                          )!.passwordLengthError;
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Confirm Password
-                    _buildPasswordField(
-                      controller: _confirmPasswordController,
-                      label: AppLocalizations.of(context)!.confirmPassword,
-                      hintText: AppLocalizations.of(
-                        context,
-                      )!.confirmPasswordHint,
-                      obscureText: _obscureConfirmPassword,
-                      onToggleVisibility: () {
-                        setState(
-                          () => _obscureConfirmPassword =
-                              !_obscureConfirmPassword,
-                        );
-                      },
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return AppLocalizations.of(
-                            context,
-                          )!.confirmPasswordRequired;
-                        }
-                        if (value != _newPasswordController.text) {
-                          return AppLocalizations.of(
-                            context,
-                          )!.passwordsDoNotMatch;
+                          return l10n.secretKeyRequired;
                         }
                         return null;
                       },
                     ),
                     const SizedBox(height: 40),
 
-                    // Update Button
+                    // Save Button
                     SizedBox(
                       width: double.infinity,
                       height: 56,
                       child: ElevatedButton(
-                        onPressed: _isLoading ? null : _changePassword,
+                        onPressed: _isLoading ? null : _saveKeys,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.black,
@@ -252,7 +206,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                                 ),
                               )
                             : Text(
-                                AppLocalizations.of(context)!.updatePassword,
+                                l10n.save,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -270,12 +224,11 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
     );
   }
 
-  Widget _buildPasswordField({
+  Widget _buildInputField({
     required TextEditingController controller,
     required String label,
     required String hintText,
-    required bool obscureText,
-    required VoidCallback onToggleVisibility,
+    bool obscureText = false,
     required String? Function(String?) validator,
   }) {
     return Column(
@@ -304,19 +257,9 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
               fontSize: 14,
             ),
             prefixIcon: const Icon(
-              Icons.lock_outline_rounded,
+              Icons.vpn_key_outlined,
               color: AppColors.primary,
               size: 20,
-            ),
-            suffixIcon: IconButton(
-              icon: Icon(
-                obscureText
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined,
-                color: AppColors.textSecondary,
-                size: 20,
-              ),
-              onPressed: onToggleVisibility,
             ),
             filled: true,
             fillColor: AppColors.surfaceLight.withValues(alpha: 0.5),

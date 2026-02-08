@@ -93,7 +93,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
                     // Transaction Filter Tabs
                     _buildTransactionTabs(),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
 
                     // Transactions List
                     transactionsAsync.when(
@@ -114,6 +114,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                           );
                         }
                         return ListView.separated(
+                          padding: EdgeInsets.zero,
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: filteredTransactions.length,
@@ -393,7 +394,6 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B).withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),

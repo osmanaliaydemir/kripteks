@@ -643,6 +643,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Login with FaceID or TouchID'**
   String get biometricLoginSubtitle;
+
+  /// Hint text for current password input
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your current password'**
+  String get currentPasswordHint;
+
+  /// Hint text for new password input
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your new password'**
+  String get newPasswordHint;
+
+  /// Hint text for confirm password input
+  ///
+  /// In en, this message translates to:
+  /// **'Re-enter your new password'**
+  String get confirmPasswordHint;
+
+  /// Information text for API key screen
+  ///
+  /// In en, this message translates to:
+  /// **'We need your Binance Spot API keys for transactions. Please ensure the keys have Spot & Margin Trading permissions enabled.'**
+  String get apiKeyInfo;
+
+  /// Hint for API Key input
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your Binance API Key'**
+  String get apiKeyHint;
+
+  /// Hint for Secret Key input
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your Binance Secret Key'**
+  String get secretKeyHint;
+
+  /// Error message for missing API Key
+  ///
+  /// In en, this message translates to:
+  /// **'API Key is required'**
+  String get apiKeyRequired;
+
+  /// Error message for missing Secret Key
+  ///
+  /// In en, this message translates to:
+  /// **'Secret Key is required'**
+  String get secretKeyRequired;
 }
 
 class _AppLocalizationsDelegate

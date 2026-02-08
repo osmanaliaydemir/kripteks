@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/widgets/app_header.dart';
 import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'providers/notification_provider.dart';
 import 'models/notification_model.dart';
 
@@ -13,7 +15,7 @@ class NotificationScreen extends ConsumerWidget {
     final notificationsAsync = ref.watch(notificationsProvider);
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.background,
       extendBodyBehindAppBar: true,
       appBar: AppHeader(
         title: 'Bildirimler',
@@ -21,16 +23,20 @@ class NotificationScreen extends ConsumerWidget {
           TextButton(
             onPressed: () =>
                 ref.read(notificationsProvider.notifier).markAllAsRead(),
-            child: const Text(
+            child: Text(
               'Tümünü Oku',
-              style: TextStyle(color: Color(0xFFF59E0B)),
+              style: GoogleFonts.plusJakartaSans(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
             ),
           ),
         ],
       ),
       body: Stack(
         children: [
-          // Background Gradient (Same as Login)
+          // Background Gradient
           Positioned(
             top: -100,
             left: 0,
@@ -41,10 +47,7 @@ class NotificationScreen extends ConsumerWidget {
                 gradient: RadialGradient(
                   center: Alignment.topCenter,
                   radius: 0.8,
-                  colors: [
-                    Color(0x40F59E0B), // Amber with transparency
-                    Colors.transparent,
-                  ],
+                  colors: [AppColors.primaryTransparent, Colors.transparent],
                   stops: [0.0, 1.0],
                 ),
               ),
@@ -56,8 +59,8 @@ class NotificationScreen extends ConsumerWidget {
               child: RefreshIndicator(
                 onRefresh: () async =>
                     ref.read(notificationsProvider.notifier).refresh(),
-                color: const Color(0xFFF59E0B),
-                backgroundColor: const Color(0xFF1E293B),
+                color: AppColors.primary,
+                backgroundColor: AppColors.surface,
                 child: notificationsAsync.when(
                   data: (notifications) {
                     if (notifications.isEmpty) {
@@ -69,15 +72,17 @@ class NotificationScreen extends ConsumerWidget {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.notifications_none_outlined,
                                     size: 64,
-                                    color: Colors.white10,
+                                    color: AppColors.textDisabled,
                                   ),
                                   const SizedBox(height: 16),
-                                  const Text(
+                                  Text(
                                     'Bildirim bulunmuyor',
-                                    style: TextStyle(color: Colors.white38),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      color: AppColors.textSecondary,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -100,12 +105,12 @@ class NotificationScreen extends ConsumerWidget {
                     );
                   },
                   loading: () => const Center(
-                    child: CircularProgressIndicator(color: Color(0xFFF59E0B)),
+                    child: CircularProgressIndicator(color: AppColors.primary),
                   ),
                   error: (err, stack) => Center(
                     child: Text(
                       'Hata: $err',
-                      style: const TextStyle(color: Colors.redAccent),
+                      style: const TextStyle(color: AppColors.error),
                     ),
                   ),
                 ),
@@ -128,35 +133,35 @@ class NotificationScreen extends ConsumerWidget {
     switch (notification.type) {
       case NotificationType.Trade:
         icon = Icons.swap_horiz_rounded;
-        color = const Color(0xFF10B981);
+        color = AppColors.success;
         break;
       case NotificationType.Info:
         icon = Icons.info_outline;
-        color = const Color(0xFF6366F1);
+        color = AppColors.info;
         break;
       case NotificationType.Warning:
         icon = Icons.warning_amber_outlined;
-        color = const Color(0xFFF59E0B);
+        color = AppColors.primary;
         break;
       case NotificationType.Error:
         icon = Icons.error_outline;
-        color = const Color(0xFFF43F5E);
+        color = AppColors.error;
         break;
       default:
         icon = Icons.notifications_outlined;
-        color = Colors.grey;
+        color = AppColors.textSecondary;
     }
 
     return Dismissible(
       key: Key(notification.id),
       background: Container(
         decoration: BoxDecoration(
-          color: Colors.redAccent.withValues(alpha: 0.1),
+          color: AppColors.error.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
         ),
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        child: const Icon(Icons.delete_outline, color: Colors.redAccent),
+        child: const Icon(Icons.delete_outline, color: AppColors.error),
       ),
       direction: DismissDirection.endToStart,
       onDismissed: (_) {
@@ -166,13 +171,13 @@ class NotificationScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: notification.isRead
-              ? const Color(0xFF1E293B).withValues(alpha: 0.3)
-              : const Color(0xFFF59E0B).withValues(alpha: 0.05),
+              ? AppColors.surface.withValues(alpha: 0.3)
+              : AppColors.primary.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: notification.isRead
-                ? Colors.white.withValues(alpha: 0.05)
-                : const Color(0xFFF59E0B).withValues(alpha: 0.2),
+                ? AppColors.white05
+                : AppColors.primary.withValues(alpha: 0.2),
           ),
         ),
         child: Row(
@@ -197,31 +202,31 @@ class NotificationScreen extends ConsumerWidget {
                       Expanded(
                         child: Text(
                           notification.title,
-                          style: TextStyle(
-                            color: Colors.white,
+                          style: GoogleFonts.plusJakartaSans(
+                            color: AppColors.textPrimary,
                             fontSize: 15,
                             fontWeight: notification.isRead
-                                ? FontWeight.normal
+                                ? FontWeight.w500
                                 : FontWeight.bold,
                           ),
                         ),
                       ),
                       Text(
                         DateFormat('HH:mm').format(notification.createdAt),
-                        style: const TextStyle(
-                          color: Colors.white38,
+                        style: GoogleFonts.plusJakartaSans(
+                          color: AppColors.textDisabled,
                           fontSize: 11,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
                     notification.message,
-                    style: const TextStyle(
-                      color: Colors.white60,
+                    style: GoogleFonts.plusJakartaSans(
+                      color: AppColors.textSecondary,
                       fontSize: 13,
-                      height: 1.4,
+                      height: 1.5,
                     ),
                   ),
                 ],

@@ -363,5 +363,37 @@
     "biometricLoginSubtitle": "Login with FaceID or TouchID",
     "@biometricLoginSubtitle": {
         "description": "Description for biometric login toggle"
+    },
+    "currentPasswordHint": "Enter your current password",
+    "@currentPasswordHint": {
+        "description": "Hint text for current password input"
+    },
+    "newPasswordHint": "Enter your new password",
+    "@newPasswordHint": {
+        "description": "Hint text for new password input"
+    },
+    "confirmPasswordHint": "Re-enter your new password",
+    "@confirmPasswordHint": {
+        "description": "Hint text for confirm password input"
+    },
+    "apiKeyInfo": "We need your Binance Spot API keys for transactions. Please ensure the keys have Spot & Margin Trading permissions enabled.",
+    "@apiKeyInfo": {
+        "description": "Information text for API key screen"
+    },
+    "apiKeyHint": "Enter your Binance API Key",
+    "@apiKeyHint": {
+        "description": "Hint for API Key input"
+    },
+    "secretKeyHint": "Enter your Binance Secret Key",
+    "@secretKeyHint": {
+        "description": "Hint for Secret Key input"
+    },
+    "apiKeyRequired": "API Key is required",
+    "@apiKeyRequired": {
+        "description": "Error message for missing API Key"
+    },
+    "secretKeyRequired": "Secret Key is required",
+    "@secretKeyRequired": {
+        "description": "Error message for missing Secret Key"
     }
 }

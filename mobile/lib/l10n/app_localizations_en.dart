@@ -284,4 +284,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get biometricLoginSubtitle => 'Login with FaceID or TouchID';
+
+  @override
+  String get currentPasswordHint => 'Enter your current password';
+
+  @override
+  String get newPasswordHint => 'Enter your new password';
+
+  @override
+  String get confirmPasswordHint => 'Re-enter your new password';
+
+  @override
+  String get apiKeyInfo =>
+      'We need your Binance Spot API keys for transactions. Please ensure the keys have Spot & Margin Trading permissions enabled.';
+
+  @override
+  String get apiKeyHint => 'Enter your Binance API Key';
+
+  @override
+  String get secretKeyHint => 'Enter your Binance Secret Key';
+
+  @override
+  String get apiKeyRequired => 'API Key is required';
+
+  @override
+  String get secretKeyRequired => 'Secret Key is required';
 }

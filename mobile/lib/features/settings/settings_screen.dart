@@ -5,6 +5,7 @@ import 'package:mobile/core/widgets/app_header.dart';
 import 'package:mobile/l10n/app_localizations.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/auth/biometric_service.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'package:mobile/features/auth/providers/auth_provider.dart';
 import 'package:mobile/features/settings/services/profile_service.dart';
@@ -19,216 +20,289 @@ class SettingsScreen extends ConsumerWidget {
     final profileAsync = ref.watch(userProfileProvider);
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.background,
+      extendBodyBehindAppBar: true,
       appBar: AppHeader(
         title: AppLocalizations.of(context)!.settings,
         showBackButton: false,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Profile Section
-            _buildSectionHeader(AppLocalizations.of(context)!.profile),
-            profileAsync.when(
-              data: (profile) => Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceLight,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white10),
+      body: Stack(
+        children: [
+          // Background Gradient
+          Positioned(
+            top: -100,
+            left: 0,
+            right: 0,
+            height: 400,
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.topCenter,
+                  radius: 0.8,
+                  colors: [AppColors.primaryTransparent, Colors.transparent],
+                  stops: [0.0, 1.0],
                 ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 24,
-                      backgroundColor: AppColors.info,
-                      child: Text(
-                        '${profile.firstName.isNotEmpty ? profile.firstName[0] : ''}${profile.lastName.isNotEmpty ? profile.lastName[0] : ''}',
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Profile Section
+                  _buildSectionHeader(AppLocalizations.of(context)!.profile),
+                  profileAsync.when(
+                    data: (profile) => Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceLight.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.white10),
+                      ),
+                      child: InkWell(
+                        onTap: () => context.push('/settings/profile-edit'),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.2,
+                                    ),
+                                    width: 2,
+                                  ),
+                                ),
+                                child: CircleAvatar(
+                                  radius: 28,
+                                  backgroundColor: AppColors.primary.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  child: Text(
+                                    '${profile.firstName.isNotEmpty ? profile.firstName[0] : ''}${profile.lastName.isNotEmpty ? profile.lastName[0] : ''}',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      color: AppColors.primary,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '${profile.firstName} ${profile.lastName}',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        color: AppColors.textPrimary,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      profile.email,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceLight,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.edit_rounded,
+                                  color: AppColors.primary,
+                                  size: 20,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${profile.firstName} ${profile.lastName}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          Text(
-                            profile.email,
-                            style: const TextStyle(
-                              color: Colors.white54,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.edit, color: AppColors.primary),
-                      onPressed: () => context.push('/settings/profile-edit'),
-                    ),
-                  ],
-                ),
-              ),
-              loading: () => Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceLight,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white10),
-                ),
-                child: const Center(
-                  child: CircularProgressIndicator(color: AppColors.primary),
-                ),
-              ),
-              error: (err, stack) => Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceLight,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white10),
-                ),
-                child: Text(
-                  AppLocalizations.of(context)!.profileLoadError,
-                  style: const TextStyle(color: AppColors.error),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
+                    loading: () => _buildLoadingCard(),
+                    error: (err, stack) => _buildErrorCard(context, err),
+                  ),
+                  const SizedBox(height: 32),
 
-            // API Keys Section
-            _buildSectionHeader(
-              AppLocalizations.of(context)!.exchangeConnection,
-            ),
-            apiStatusAsync.when(
-              data: (status) => _buildApiKeyCard(context, ref, status),
-              loading: () => const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
-              ),
-              error: (err, stack) => Text(
-                'Hata: $err',
-                style: const TextStyle(color: AppColors.error),
-              ),
-            ),
-            const SizedBox(height: 24),
+                  // API Keys Section
+                  _buildSectionHeader(
+                    AppLocalizations.of(context)!.exchangeConnection,
+                  ),
+                  apiStatusAsync.when(
+                    data: (status) => _buildApiKeyCard(context, ref, status),
+                    loading: () => _buildLoadingCard(),
+                    error: (err, stack) => _buildErrorCard(context, err),
+                  ),
+                  const SizedBox(height: 32),
 
-            // App Settings
-            _buildSectionHeader(AppLocalizations.of(context)!.app),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.surfaceLight,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white10),
-              ),
-              child: Column(
-                children: [
-                  Consumer(
-                    builder: (context, ref, child) {
-                      final biometricState = ref.watch(biometricStateProvider);
-                      return biometricState.when(
-                        data: (state) {
-                          if (!state.isSupported) {
-                            return const SizedBox.shrink();
-                          }
-                          return Column(
-                            children: [
-                              SwitchListTile(
-                                secondary: const Icon(
-                                  Icons.fingerprint,
-                                  color: Colors.white70,
+                  // App Settings
+                  _buildSectionHeader(AppLocalizations.of(context)!.app),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceLight.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.white10),
+                    ),
+                    child: Column(
+                      children: [
+                        Consumer(
+                          builder: (context, ref, child) {
+                            final biometricState = ref.watch(
+                              biometricStateProvider,
+                            );
+                            return biometricState.when(
+                              data: (state) {
+                                if (!state.isSupported) {
+                                  return const SizedBox.shrink();
+                                }
+                                return Column(
+                                  children: [
+                                    _buildSwitchTile(
+                                      context,
+                                      icon: Icons.fingerprint_rounded,
+                                      title: AppLocalizations.of(
+                                        context,
+                                      )!.biometricLogin,
+                                      subtitle: AppLocalizations.of(
+                                        context,
+                                      )!.biometricLoginSubtitle,
+                                      value: state.isEnabled,
+                                      onChanged: (value) async {
+                                        await ref
+                                            .read(biometricServiceProvider)
+                                            .setBiometricEnabled(value);
+                                        ref.invalidate(biometricStateProvider);
+                                      },
+                                    ),
+                                    const Divider(
+                                      color: AppColors.white05,
+                                      height: 1,
+                                      indent: 64,
+                                    ),
+                                  ],
+                                );
+                              },
+                              loading: () => const SizedBox.shrink(),
+                              error: (_, _) => const SizedBox.shrink(),
+                            );
+                          },
+                        ),
+                        _buildListTile(
+                          icon: Icons.notifications_none_rounded,
+                          title: AppLocalizations.of(context)!.notifications,
+                          subtitle: AppLocalizations.of(
+                            context,
+                          )!.notificationsSubtitle,
+                          onTap: () => context.push('/settings/notifications'),
+                        ),
+                        const Divider(
+                          color: AppColors.white05,
+                          height: 1,
+                          indent: 64,
+                        ),
+                        _buildListTile(
+                          icon: Icons.lock_outline_rounded,
+                          title: AppLocalizations.of(context)!.updatePassword,
+                          subtitle: AppLocalizations.of(
+                            context,
+                          )!.updatePasswordSubtitle,
+                          onTap: () =>
+                              context.push('/settings/change-password'),
+                        ),
+                        const Divider(
+                          color: AppColors.white05,
+                          height: 1,
+                          indent: 64,
+                        ),
+                        _buildListTile(
+                          icon: Icons.logout_rounded,
+                          title: AppLocalizations.of(context)!.logout,
+                          color: AppColors.error,
+                          onTap: () async {
+                            final confirmed = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                backgroundColor: AppColors.surface,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
                                 title: Text(
-                                  AppLocalizations.of(context)!.biometricLogin,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w500,
+                                  AppLocalizations.of(context)!.logout,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    color: AppColors.textPrimary,
                                   ),
                                 ),
-                                subtitle: Text(
-                                  AppLocalizations.of(
-                                    context,
-                                  )!.biometricLoginSubtitle,
-                                  style: const TextStyle(color: Colors.white38),
+                                content: Text(
+                                  'Hesaptan çıkış yapmak istediğinize emin misiniz?',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    color: AppColors.textSecondary,
+                                  ),
                                 ),
-                                value: state.isEnabled,
-                                activeThumbColor: AppColors.primary,
-                                onChanged: (value) async {
-                                  await ref
-                                      .read(biometricServiceProvider)
-                                      .setBiometricEnabled(value);
-                                  ref.invalidate(biometricStateProvider);
-                                },
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, false),
+                                    child: const Text('İptal'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, true),
+                                    child: const Text(
+                                      'Çıkış',
+                                      style: TextStyle(color: AppColors.error),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const Divider(color: Colors.white10, height: 1),
-                            ],
-                          );
-                        },
-                        loading: () => const SizedBox.shrink(),
-                        error: (_, _) => const SizedBox.shrink(),
-                      );
-                    },
+                            );
+
+                            if (confirmed == true) {
+                              await ref
+                                  .read(authControllerProvider.notifier)
+                                  .logout();
+                              if (context.mounted) {
+                                context.go('/login');
+                              }
+                            }
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                  _buildListTile(
-                    icon: Icons.notifications,
-                    title: AppLocalizations.of(context)!.notifications,
-                    subtitle: AppLocalizations.of(
-                      context,
-                    )!.notificationsSubtitle,
-                    onTap: () => context.push('/settings/notifications'),
-                  ),
-                  const Divider(color: Colors.white10, height: 1),
-                  _buildListTile(
-                    icon: Icons.lock_outline,
-                    title: AppLocalizations.of(context)!.updatePassword,
-                    subtitle: AppLocalizations.of(
-                      context,
-                    )!.updatePasswordSubtitle,
-                    onTap: () => context.push('/settings/change-password'),
-                  ),
-                  const Divider(color: Colors.white10, height: 1),
-                  _buildListTile(
-                    icon: Icons.logout,
-                    title: AppLocalizations.of(context)!.logout,
-                    color: Colors.redAccent,
-                    onTap: () async {
-                      await ref.read(authControllerProvider.notifier).logout();
-                      if (context.mounted) {
-                        context.go('/login');
-                      }
-                    },
-                  ),
+                  const SizedBox(height: 32),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12, left: 4),
+      padding: const EdgeInsets.only(left: 4, bottom: 12),
       child: Text(
-        title,
-        style: const TextStyle(
-          color: Colors.white54,
-          fontSize: 13,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1,
+        title.toUpperCase(),
+        style: GoogleFonts.plusJakartaSans(
+          color: AppColors.textDisabled,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.2,
         ),
       ),
     );
@@ -238,24 +312,26 @@ class SettingsScreen extends ConsumerWidget {
     final bool isConnected = status.hasKeys;
 
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        color: AppColors.surfaceLight.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.white10),
       ),
-      child: Column(
-        children: [
-          Row(
+      child: InkWell(
+        onTap: () => context.push('/settings/api-keys'),
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.binance.withValues(alpha: 0.2),
+                  color: AppColors.binance.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
-                  Icons.currency_bitcoin,
+                  Icons.currency_bitcoin_rounded,
                   color: AppColors.binance,
                   size: 24,
                 ),
@@ -265,35 +341,44 @@ class SettingsScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Binance',
-                      style: TextStyle(
+                    Text(
+                      'Binance Global',
+                      style: GoogleFonts.plusJakartaSans(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontSize: 15,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       isConnected
-                          ? '${AppLocalizations.of(context)!.connected} (${status.apiKey})'
+                          ? '${AppLocalizations.of(context)!.connected} (${status.apiKey.substring(0, 4)}***)'
                           : AppLocalizations.of(context)!.notConnected,
-                      style: TextStyle(
+                      style: GoogleFonts.plusJakartaSans(
                         color: isConnected
                             ? AppColors.success
-                            : AppColors.textSecondary,
-                        fontSize: 13,
+                            : AppColors.textDisabled,
+                        fontSize: 12,
                       ),
                     ),
                   ],
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.edit, color: Colors.white70),
-                onPressed: () => _showApiKeyDialog(context, ref),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceLight,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.settings_input_component_rounded,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -306,113 +391,110 @@ class SettingsScreen extends ConsumerWidget {
     required VoidCallback onTap,
   }) {
     return ListTile(
-      leading: Icon(icon, color: color ?? Colors.white70),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: (color ?? AppColors.primary).withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: color ?? AppColors.primary, size: 20),
+      ),
       title: Text(
         title,
-        style: TextStyle(
-          color: color ?? Colors.white,
-          fontWeight: FontWeight.w500,
+        style: GoogleFonts.plusJakartaSans(
+          color: color ?? AppColors.textPrimary,
+          fontWeight: FontWeight.w600,
+          fontSize: 15,
         ),
       ),
       subtitle: subtitle != null
-          ? Text(subtitle, style: const TextStyle(color: Colors.white38))
+          ? Text(
+              subtitle,
+              style: GoogleFonts.plusJakartaSans(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+              ),
+            )
           : null,
-      trailing: const Icon(Icons.chevron_right, color: Colors.white24),
+      trailing: const Icon(
+        Icons.chevron_right_rounded,
+        color: AppColors.textDisabled,
+        size: 20,
+      ),
       onTap: onTap,
     );
   }
 
-  void _showApiKeyDialog(BuildContext context, WidgetRef ref) {
-    final apiKeyController = TextEditingController();
-    final secretKeyController = TextEditingController();
-    bool isLoading = false;
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          backgroundColor: AppColors.surfaceLight,
-          title: Text(
-            AppLocalizations.of(context)!.updateApiKeys,
-            style: const TextStyle(color: AppColors.textPrimary),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: apiKeyController,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: InputDecoration(
-                  labelText: AppLocalizations.of(context)!.apiKey,
-                  labelStyle: const TextStyle(color: AppColors.textSecondary),
-                  enabledBorder: const UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white24),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: secretKeyController,
-                obscureText: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: AppLocalizations.of(context)!.secretKey,
-                  labelStyle: const TextStyle(color: Colors.white54),
-                  enabledBorder: const UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white24),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(AppLocalizations.of(context)!.cancel),
-            ),
-            if (isLoading)
-              const CircularProgressIndicator(color: Color(0xFFF59E0B))
-            else
-              TextButton(
-                onPressed: () async {
-                  setState(() => isLoading = true);
-                  try {
-                    await ref
-                        .read(settingsServiceProvider)
-                        .saveApiKeys(
-                          apiKeyController.text.trim(),
-                          secretKeyController.text.trim(),
-                        );
-                    ref.invalidate(apiKeyStatusProvider);
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            AppLocalizations.of(context)!.apiKeysUpdated,
-                          ),
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    setState(() => isLoading = false);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Hata: $e'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  }
-                },
-                child: Text(
-                  AppLocalizations.of(context)!.save,
-                  style: const TextStyle(color: Color(0xFFF59E0B)),
-                ),
-              ),
-          ],
+  Widget _buildSwitchTile(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
         ),
+        child: Icon(icon, color: AppColors.primary, size: 20),
+      ),
+      title: Text(
+        title,
+        style: GoogleFonts.plusJakartaSans(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w600,
+          fontSize: 15,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: GoogleFonts.plusJakartaSans(
+          color: AppColors.textSecondary,
+          fontSize: 12,
+        ),
+      ),
+      trailing: Switch.adaptive(
+        value: value,
+        onChanged: onChanged,
+        activeThumbColor: AppColors.success,
+        activeTrackColor: AppColors.success.withValues(alpha: 0.2),
+        inactiveThumbColor: AppColors.textDisabled,
+        inactiveTrackColor: AppColors.white05,
+      ),
+    );
+  }
+
+  Widget _buildLoadingCard() {
+    return Container(
+      height: 80,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.white10),
+      ),
+      child: const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      ),
+    );
+  }
+
+  Widget _buildErrorCard(BuildContext context, Object err) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
+      ),
+      child: Text(
+        '${AppLocalizations.of(context)!.profileLoadError}: $err',
+        style: const TextStyle(color: AppColors.error),
       ),
     );
   }

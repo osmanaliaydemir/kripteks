@@ -90,5 +90,13 @@
     "alreadyHaveAccount": "Hesabın var mı?",
     "registrationDisabled": "Kayıt olma işlemi henüz aktif değil.",
     "biometricLogin": "Biyometrik Giriş",
-    "biometricLoginSubtitle": "FaceID veya TouchID ile giriş yap"
+    "biometricLoginSubtitle": "FaceID veya TouchID ile giriş",
+    "currentPasswordHint": "Mevcut şifrenizi girin",
+    "newPasswordHint": "Yeni şifrenizi girin",
+    "confirmPasswordHint": "Yeni şifrenizi tekrar girin",
+    "apiKeyInfo": "İşlemlerin gerçekleşebilmesi için Binance Spot API anahtarlarınıza ihtiyacımız var. Lütfen anahtarların Spot & Margin Trading yetkisi olduğundan emin olun.",
+    "apiKeyHint": "Binance API anahtarınızı girin",
+    "secretKeyHint": "Binance gizli anahtarınızı girin",
+    "apiKeyRequired": "API anahtarı gereklidir",
+    "secretKeyRequired": "Gizli anahtar gereklidir"
 }

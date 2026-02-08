@@ -397,43 +397,37 @@ class _BotCardItemState extends State<_BotCardItem> {
                     ],
                   ),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${isPositive ? '+' : ''}${bot.pnl.toStringAsFixed(2)}\$',
-                      style: GoogleFonts.inter(
-                        color: isPositive ? AppColors.success : AppColors.error,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
+                if (bot.status != 'WaitingForEntry')
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '${isPositive ? '+' : ''}${bot.pnl.toStringAsFixed(2)}\$',
+                        style: GoogleFonts.inter(
+                          color: isPositive
+                              ? AppColors.success
+                              : AppColors.error,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '${bot.pnlPercent < 0 ? '-' : ''}%${bot.pnlPercent.abs().toStringAsFixed(2)}',
-                          style: GoogleFonts.inter(
-                            color: isPositive
-                                ? AppColors.success
-                                : AppColors.error,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${bot.pnlPercent < 0 ? '-' : ''}%${bot.pnlPercent.abs().toStringAsFixed(2)}',
+                            style: GoogleFonts.inter(
+                              color: isPositive
+                                  ? AppColors.success
+                                  : AppColors.error,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Text(
-                          'ROI',
-                          style: TextStyle(
-                            color: Colors.white24,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                        ],
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),

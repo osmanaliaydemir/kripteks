@@ -14,6 +14,7 @@ import 'package:mobile/features/market_analysis/market_analysis_screen.dart';
 import 'package:mobile/features/settings/profile_edit_screen.dart';
 import 'package:mobile/features/settings/change_password_screen.dart';
 import 'package:mobile/features/settings/notifications_settings_screen.dart';
+import 'package:mobile/features/settings/binance_api_keys_screen.dart';
 
 import 'package:mobile/core/network/auth_state_provider.dart';
 
@@ -88,6 +89,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings/notifications',
         builder: (context, state) => const NotificationsSettingsScreen(),
+      ),
+      GoRoute(
+        path: '/settings/api-keys',
+        builder: (context, state) => const BinanceApiKeysScreen(),
       ),
     ],
   );

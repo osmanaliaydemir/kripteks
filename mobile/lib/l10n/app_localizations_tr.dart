@@ -285,5 +285,30 @@ class AppLocalizationsTr extends AppLocalizations {
   String get biometricLogin => 'Biyometrik Giriş';
 
   @override
-  String get biometricLoginSubtitle => 'FaceID veya TouchID ile giriş yap';
+  String get biometricLoginSubtitle => 'FaceID veya TouchID ile giriş';
+
+  @override
+  String get currentPasswordHint => 'Mevcut şifrenizi girin';
+
+  @override
+  String get newPasswordHint => 'Yeni şifrenizi girin';
+
+  @override
+  String get confirmPasswordHint => 'Yeni şifrenizi tekrar girin';
+
+  @override
+  String get apiKeyInfo =>
+      'İşlemlerin gerçekleşebilmesi için Binance Spot API anahtarlarınıza ihtiyacımız var. Lütfen anahtarların Spot & Margin Trading yetkisi olduğundan emin olun.';
+
+  @override
+  String get apiKeyHint => 'Binance API anahtarınızı girin';
+
+  @override
+  String get secretKeyHint => 'Binance gizli anahtarınızı girin';
+
+  @override
+  String get apiKeyRequired => 'API anahtarı gereklidir';
+
+  @override
+  String get secretKeyRequired => 'Gizli anahtar gereklidir';
 }
