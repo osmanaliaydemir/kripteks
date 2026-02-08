@@ -233,41 +233,184 @@ class SettingsScreen extends ConsumerWidget {
                           title: AppLocalizations.of(context)!.logout,
                           color: AppColors.error,
                           onTap: () async {
-                            final confirmed = await showDialog<bool>(
+                            final confirmed = await showGeneralDialog<bool>(
                               context: context,
-                              builder: (context) => AlertDialog(
-                                backgroundColor: AppColors.surface,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                title: Text(
-                                  AppLocalizations.of(context)!.logout,
-                                  style: GoogleFonts.plusJakartaSans(
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                content: Text(
-                                  'Hesaptan çıkış yapmak istediğinize emin misiniz?',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, false),
-                                    child: const Text('İptal'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, true),
-                                    child: const Text(
-                                      'Çıkış',
-                                      style: TextStyle(color: AppColors.error),
+                              barrierDismissible: true,
+                              barrierLabel: '',
+                              barrierColor: Colors.black54,
+                              transitionDuration: const Duration(
+                                milliseconds: 300,
+                              ),
+                              pageBuilder: (context, anim1, anim2) =>
+                                  const SizedBox.shrink(),
+                              transitionBuilder: (context, anim1, anim2, child) {
+                                return FadeTransition(
+                                  opacity: anim1,
+                                  child: ScaleTransition(
+                                    scale: Tween<double>(begin: 0.8, end: 1.0)
+                                        .animate(
+                                          CurvedAnimation(
+                                            parent: anim1,
+                                            curve: Curves.easeOutBack,
+                                          ),
+                                        ),
+                                    child: Center(
+                                      child: Material(
+                                        color: Colors.transparent,
+                                        child: Container(
+                                          width:
+                                              MediaQuery.of(
+                                                context,
+                                              ).size.width *
+                                              0.85,
+                                          padding: const EdgeInsets.all(24),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.surface,
+                                            borderRadius: BorderRadius.circular(
+                                              30,
+                                            ),
+                                            border: Border.all(
+                                              color: AppColors.white10,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withValues(
+                                                  alpha: 0.4,
+                                                ),
+                                                blurRadius: 20,
+                                                offset: const Offset(0, 10),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.all(
+                                                  16,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.error
+                                                      .withValues(alpha: 0.1),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: const Icon(
+                                                  Icons.logout_rounded,
+                                                  color: AppColors.error,
+                                                  size: 32,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 24),
+                                              Text(
+                                                AppLocalizations.of(
+                                                  context,
+                                                )!.logout,
+                                                style:
+                                                    GoogleFonts.plusJakartaSans(
+                                                      color: Colors.white,
+                                                      fontSize: 20,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                              ),
+                                              const SizedBox(height: 12),
+                                              Text(
+                                                AppLocalizations.of(
+                                                  context,
+                                                )!.logoutConfirmMessage,
+                                                textAlign: TextAlign.center,
+                                                style:
+                                                    GoogleFonts.plusJakartaSans(
+                                                      color: Colors.white60,
+                                                      fontSize: 14,
+                                                      height: 1.5,
+                                                    ),
+                                              ),
+                                              const SizedBox(height: 32),
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                            context,
+                                                            false,
+                                                          ),
+                                                      style: TextButton.styleFrom(
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                              vertical: 16,
+                                                            ),
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                16,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                      child: Text(
+                                                        AppLocalizations.of(
+                                                          context,
+                                                        )!.cancel,
+                                                        style:
+                                                            GoogleFonts.plusJakartaSans(
+                                                              color: Colors
+                                                                  .white38,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 12),
+                                                  Expanded(
+                                                    child: ElevatedButton(
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                            context,
+                                                            true,
+                                                          ),
+                                                      style: ElevatedButton.styleFrom(
+                                                        backgroundColor:
+                                                            AppColors.error,
+                                                        foregroundColor:
+                                                            Colors.white,
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                              vertical: 16,
+                                                            ),
+                                                        elevation: 0,
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                16,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                      child: Text(
+                                                        AppLocalizations.of(
+                                                          context,
+                                                        )!.logout,
+                                                        style:
+                                                            GoogleFonts.plusJakartaSans(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ],
-                              ),
+                                );
+                              },
                             );
 
                             if (confirmed == true) {

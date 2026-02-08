@@ -45,6 +45,7 @@
     "updatePassword": "Şifre Güncelle",
     "updatePasswordSubtitle": "Hesap şifrenizi değiştirin",
     "logout": "Çıkış Yap",
+    "logoutConfirmMessage": "Hesaptan çıkış yapmak istediğinize emin misiniz?",
     "profileEdit": "Profil Düzenle",
     "firstName": "Ad",
     "firstNameRequired": "Ad gerekli",

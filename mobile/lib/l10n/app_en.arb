@@ -180,6 +180,10 @@
     "@logout": {
         "description": "Label for logout button"
     },
+    "logoutConfirmMessage": "Are you sure you want to log out?",
+    "@logoutConfirmMessage": {
+        "description": "Message for logout confirmation"
+    },
     "profileEdit": "Edit Profile",
     "@profileEdit": {
         "description": "Title for profile edit screen"
