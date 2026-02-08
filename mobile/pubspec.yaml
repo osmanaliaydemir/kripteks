@@ -53,6 +53,7 @@ dependencies:
   firebase_core: ^4.4.0
   firebase_crashlytics: ^5.0.7
   local_auth: ^3.0.0
+  toastification: ^3.0.3
 
 dev_dependencies:
   flutter_test:

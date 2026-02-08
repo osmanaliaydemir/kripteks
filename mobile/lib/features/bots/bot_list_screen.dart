@@ -26,7 +26,49 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: const AppHeader(title: 'Botlarım', showBackButton: false),
+      appBar: AppHeader(
+        title: 'Botlarım',
+        showBackButton: false,
+        actions: [
+          GestureDetector(
+            onTap: () => context.push('/bots/create'),
+            child: Container(
+              margin: const EdgeInsets.only(right: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppColors.primary, Color(0xFFE6C200)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.add_rounded, color: Colors.black, size: 18),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Yeni Bot',
+                    style: GoogleFonts.inter(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
       body: botListAsync.when(
         data: (bots) {
           final activeBots = bots

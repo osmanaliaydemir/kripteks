@@ -40,6 +40,19 @@ class ToolsScreen extends StatelessWidget {
             const SizedBox(height: 20),
             _buildToolCard(
                   context,
+                  title: 'Finansal Raporlar',
+                  description:
+                      'Detaylı performans analizi, kazanç/kayıp grafikleri ve strateji karşılaştırmaları.',
+                  icon: Icons.description_outlined,
+                  color: Colors.blueAccent,
+                  onTap: () => context.push('/reports'),
+                )
+                .animate()
+                .fadeIn(duration: 400.ms, delay: 200.ms)
+                .slideX(begin: -0.1, end: 0),
+            const SizedBox(height: 20),
+            _buildToolCard(
+                  context,
                   title: 'Piyasa Analizi',
                   description:
                       'Trend analizleri, hacim takibi ve teknik göstergelerle piyasayı yorumlayın.',
@@ -48,7 +61,7 @@ class ToolsScreen extends StatelessWidget {
                   onTap: () => context.push('/market-analysis'),
                 )
                 .animate()
-                .fadeIn(duration: 400.ms, delay: 200.ms)
+                .fadeIn(duration: 400.ms, delay: 300.ms)
                 .slideX(begin: -0.1, end: 0),
             const SizedBox(height: 20),
             _buildToolCard(
@@ -61,7 +74,7 @@ class ToolsScreen extends StatelessWidget {
                   onTap: () => context.push('/market-intelligence'),
                 )
                 .animate()
-                .fadeIn(duration: 400.ms, delay: 300.ms)
+                .fadeIn(duration: 400.ms, delay: 400.ms)
                 .slideX(begin: -0.1, end: 0),
             const SizedBox(height: 20),
             _buildToolCard(
@@ -72,19 +85,6 @@ class ToolsScreen extends StatelessWidget {
                   icon: Icons.school_outlined,
                   color: Colors.orangeAccent,
                   onTap: () => context.push('/academy'),
-                )
-                .animate()
-                .fadeIn(duration: 400.ms, delay: 400.ms)
-                .slideX(begin: -0.1, end: 0),
-            const SizedBox(height: 20),
-            _buildToolCard(
-                  context,
-                  title: 'Finansal Raporlar',
-                  description:
-                      'Detaylı performans analizi, kazanç/kayıp grafikleri ve strateji karşılaştırmaları.',
-                  icon: Icons.description_outlined,
-                  color: Colors.blueAccent,
-                  onTap: () => context.push('/reports'),
                 )
                 .animate()
                 .fadeIn(duration: 400.ms, delay: 500.ms)
@@ -100,20 +100,7 @@ class ToolsScreen extends StatelessWidget {
                   onTap: () => context.push('/calculators'),
                 )
                 .animate()
-                .fadeIn(duration: 400.ms, delay: 400.ms)
-                .slideX(begin: -0.1, end: 0),
-            const SizedBox(height: 20),
-            _buildToolCard(
-                  context,
-                  title: 'Piyasa İstihbaratı',
-                  description:
-                      'Haber duyarlılığı, balina hareketleri ve arbitraj fırsatlarını izleyin.',
-                  icon: Icons.auto_awesome_outlined,
-                  color: const Color(0xFFEC4899),
-                  onTap: () => context.push('/market-intelligence'),
-                )
-                .animate()
-                .fadeIn(duration: 400.ms, delay: 500.ms)
+                .fadeIn(duration: 400.ms, delay: 600.ms)
                 .slideX(begin: -0.1, end: 0),
           ],
         ),

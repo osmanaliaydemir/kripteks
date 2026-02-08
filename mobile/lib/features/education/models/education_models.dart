@@ -17,6 +17,8 @@ class EducationTopic {
   final String? videoUrl;
   final String? imageUrl;
 
+  final String? subCategory;
+
   EducationTopic({
     required this.id,
     required this.title,
@@ -26,6 +28,7 @@ class EducationTopic {
     required this.icon,
     this.videoUrl,
     this.imageUrl,
+    this.subCategory,
   });
 }
 

@@ -15,14 +15,21 @@ class AcademyScreen extends StatefulWidget {
 
 class _AcademyScreenState extends State<AcademyScreen> {
   EducationTopicCategory? _selectedCategory;
+  String? _selectedSubCategory;
 
   @override
   Widget build(BuildContext context) {
-    final filteredTopics = _selectedCategory == null
+    var filteredTopics = _selectedCategory == null
         ? AcademyData.topics
         : AcademyData.topics
               .where((t) => t.category == _selectedCategory)
               .toList();
+
+    if (_selectedSubCategory != null) {
+      filteredTopics = filteredTopics
+          .where((t) => t.subCategory == _selectedSubCategory)
+          .toList();
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -70,12 +77,15 @@ class _AcademyScreenState extends State<AcademyScreen> {
                       ),
                       if (_selectedCategory != null)
                         TextButton(
-                          onPressed: () =>
-                              setState(() => _selectedCategory = null),
+                          onPressed: () => setState(() {
+                            _selectedCategory = null;
+                            _selectedSubCategory = null;
+                          }),
                           child: const Text('Temizle'),
                         ),
                     ],
                   ),
+                  _buildSubCategoryList(),
                 ],
               ),
             ),
@@ -105,9 +115,15 @@ class _AcademyScreenState extends State<AcademyScreen> {
           return Padding(
             padding: const EdgeInsets.only(right: 12, bottom: 4),
             child: InkWell(
-              onTap: () => setState(
-                () => _selectedCategory = isSelected ? null : cat.type,
-              ),
+              onTap: () => setState(() {
+                if (_selectedCategory == cat.type) {
+                  _selectedCategory = null;
+                  _selectedSubCategory = null;
+                } else {
+                  _selectedCategory = cat.type;
+                  _selectedSubCategory = null;
+                }
+              }),
               borderRadius: BorderRadius.circular(20),
               child: AnimatedContainer(
                 duration: 300.ms,
@@ -215,17 +231,57 @@ class _AcademyScreenState extends State<AcademyScreen> {
               fontSize: 16,
             ),
           ),
-          subtitle: Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(
-              topic.description,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
-                fontSize: 13,
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  topic.description,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: 13,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color:
+                      (AcademyData.categories
+                              .firstWhere((c) => c.type == topic.category)
+                              .color)
+                          .withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color:
+                        (AcademyData.categories
+                                .firstWhere((c) => c.type == topic.category)
+                                .color)
+                            .withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Text(
+                  topic.subCategory ??
+                      AcademyData.categories
+                          .firstWhere((c) => c.type == topic.category)
+                          .title,
+                  style: TextStyle(
+                    color: AcademyData.categories
+                        .firstWhere((c) => c.type == topic.category)
+                        .color,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
           trailing: Container(
             padding: const EdgeInsets.all(4),
@@ -242,5 +298,80 @@ class _AcademyScreenState extends State<AcademyScreen> {
         ),
       ),
     ).animate().fadeIn(delay: (index * 40).ms).slideY(begin: 0.1, end: 0);
+  }
+
+  Widget _buildSubCategoryList() {
+    if (_selectedCategory == null) return const SizedBox.shrink();
+
+    final subCategories = AcademyData.topics
+        .where((t) => t.category == _selectedCategory)
+        .map((t) => t.subCategory)
+        .where((s) => s != null)
+        .cast<String>()
+        .toSet()
+        .toList();
+
+    if (subCategories.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Row(
+          children: [
+            _buildSubFilterChip(
+              title: 'Tümü',
+              isSelected: _selectedSubCategory == null,
+              onTap: () => setState(() => _selectedSubCategory = null),
+            ),
+            ...subCategories.map((sub) {
+              return _buildSubFilterChip(
+                title: sub,
+                isSelected: _selectedSubCategory == sub,
+                onTap: () => setState(() => _selectedSubCategory = sub),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubFilterChip({
+    required String title,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: 200.ms,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppColors.primary.withValues(alpha: 0.2)
+                : AppColors.surface.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.primary
+                  : Colors.white.withValues(alpha: 0.1),
+            ),
+          ),
+          child: Text(
+            title,
+            style: TextStyle(
+              color: isSelected ? AppColors.primary : Colors.white60,
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

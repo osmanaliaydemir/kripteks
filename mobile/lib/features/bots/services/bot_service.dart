@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../models/bot_model.dart';
+import '../models/bot_create_request_model.dart';
 
 class BotService {
   final Dio _dio;
@@ -38,6 +39,14 @@ class BotService {
       await _dio.post('/bots/$id/clear-logs');
     } catch (e) {
       throw Exception('Failed to clear logs: $e');
+    }
+  }
+
+  Future<void> createBot(BotCreateRequest request) async {
+    try {
+      await _dio.post('/bots', data: request.toJson());
+    } catch (e) {
+      throw Exception('Failed to create bot: $e');
     }
   }
 }

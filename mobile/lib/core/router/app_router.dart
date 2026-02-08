@@ -6,6 +6,7 @@ import 'package:mobile/features/auth/forgot_password_screen.dart';
 import 'package:mobile/features/auth/splash_screen.dart';
 import 'package:mobile/features/dashboard/dashboard_screen.dart';
 import 'package:mobile/features/bots/bot_detail_screen.dart';
+import 'package:mobile/features/bots/screens/bot_create_wizard_screen.dart';
 import 'package:mobile/features/scanner/scanner_screen.dart';
 import 'package:mobile/features/backtest/backtest_config_screen.dart';
 import 'package:mobile/features/wallet/wallet_screen.dart';
@@ -58,6 +59,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/dashboard',
         builder: (context, state) => const DashboardScreen(),
+      ),
+      GoRoute(
+        path: '/bots/create',
+        builder: (context, state) => const BotCreateWizardScreen(),
       ),
       GoRoute(
         path: '/bots/:id',
