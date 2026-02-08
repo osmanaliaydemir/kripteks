@@ -100,6 +100,8 @@ builder.Services.AddTransient<IMailService, GmailMailService>(); // Eski referan
 builder.Services.AddScoped<INotificationService, Kripteks.Api.Services.NotificationService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IMarketAnalysisService, MarketAnalysisService>();
+builder.Services.AddScoped<IWhaleTrackerService, WhaleTrackerService>();
+builder.Services.AddScoped<IArbitrageScannerService, ArbitrageScannerService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddSingleton<ILogService, LogService>(); // Singleton olabilir çünkü scope factory kullanıyor
 builder.Services.AddSingleton<IAuditLogService, AuditLogService>();

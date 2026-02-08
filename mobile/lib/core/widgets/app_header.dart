@@ -9,6 +9,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
   final bool centerTitle;
   final Color backgroundColor;
   final VoidCallback? onBackPressed;
+  final PreferredSizeWidget? bottom;
 
   const AppHeader({
     super.key,
@@ -19,6 +20,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
     this.centerTitle = true,
     this.backgroundColor = Colors.transparent,
     this.onBackPressed,
+    this.bottom,
   });
 
   @override
@@ -46,9 +48,11 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
             )
           : null,
       actions: actions != null ? [...actions!, const SizedBox(width: 8)] : null,
+      bottom: bottom,
     );
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize =>
+      Size.fromHeight(kToolbarHeight + (bottom?.preferredSize.height ?? 0));
 }

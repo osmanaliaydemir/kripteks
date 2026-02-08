@@ -15,6 +15,14 @@ import 'package:mobile/features/settings/profile_edit_screen.dart';
 import 'package:mobile/features/settings/change_password_screen.dart';
 import 'package:mobile/features/settings/notifications_settings_screen.dart';
 import 'package:mobile/features/settings/binance_api_keys_screen.dart';
+import 'package:mobile/features/tools/calculators_screen.dart';
+import 'package:mobile/features/tools/screens/pnl_calculator_screen.dart';
+import 'package:mobile/features/tools/screens/position_size_calculator_screen.dart';
+import 'package:mobile/features/tools/screens/dca_calculator_screen.dart';
+import 'package:mobile/features/tools/market_intelligence_screen.dart';
+import 'package:mobile/features/education/screens/academy_screen.dart';
+import 'package:mobile/features/education/screens/topic_detail_screen.dart';
+import 'package:mobile/features/education/models/education_models.dart';
 
 import 'package:mobile/core/network/auth_state_provider.dart';
 
@@ -93,6 +101,41 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings/api-keys',
         builder: (context, state) => const BinanceApiKeysScreen(),
+      ),
+      GoRoute(
+        path: '/calculators',
+        builder: (context, state) => const CalculatorsScreen(),
+        routes: [
+          GoRoute(
+            path: 'pnl',
+            builder: (context, state) => const PnlCalculatorScreen(),
+          ),
+          GoRoute(
+            path: 'position-size',
+            builder: (context, state) => const PositionSizeCalculatorScreen(),
+          ),
+          GoRoute(
+            path: 'dca',
+            builder: (context, state) => const DcaCalculatorScreen(),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/market-intelligence',
+        builder: (context, state) => const MarketIntelligenceScreen(),
+      ),
+      GoRoute(
+        path: '/academy',
+        builder: (context, state) => const AcademyScreen(),
+        routes: [
+          GoRoute(
+            path: 'topic',
+            builder: (context, state) {
+              final topic = state.extra as EducationTopic;
+              return TopicDetailScreen(topic: topic);
+            },
+          ),
+        ],
       ),
     ],
   );

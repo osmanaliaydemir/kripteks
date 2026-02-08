@@ -53,15 +53,67 @@ class ToolsScreen extends StatelessWidget {
             const SizedBox(height: 20),
             _buildToolCard(
                   context,
-                  title: 'Raporlar',
+                  title: 'Piyasa İstihbaratı',
                   description:
-                      'Detaylı performans analizi, kazanç/kayıp grafikleri ve strateji karşılaştırmaları.',
-                  icon: Icons.assessment_outlined,
-                  color: const Color(0xFFEC4899),
-                  onTap: () => context.push('/reports'),
+                      'Haber duyarlılığı, balina hareketleri ve arbitraj fırsatlarını izleyin.',
+                  icon: Icons.psychology_outlined,
+                  color: Colors.purpleAccent,
+                  onTap: () => context.push('/market-intelligence'),
                 )
                 .animate()
                 .fadeIn(duration: 400.ms, delay: 300.ms)
+                .slideX(begin: -0.1, end: 0),
+            const SizedBox(height: 20),
+            _buildToolCard(
+                  context,
+                  title: 'Kripto Akademi',
+                  description:
+                      'Eğitimler, indikatör rehberleri ve piyasa analiz teknikleri.',
+                  icon: Icons.school_outlined,
+                  color: Colors.orangeAccent,
+                  onTap: () => context.push('/academy'),
+                )
+                .animate()
+                .fadeIn(duration: 400.ms, delay: 400.ms)
+                .slideX(begin: -0.1, end: 0),
+            const SizedBox(height: 20),
+            _buildToolCard(
+                  context,
+                  title: 'Finansal Raporlar',
+                  description:
+                      'Detaylı performans analizi, kazanç/kayıp grafikleri ve strateji karşılaştırmaları.',
+                  icon: Icons.description_outlined,
+                  color: Colors.blueAccent,
+                  onTap: () => context.push('/reports'),
+                )
+                .animate()
+                .fadeIn(duration: 400.ms, delay: 500.ms)
+                .slideX(begin: -0.1, end: 0),
+            const SizedBox(height: 20),
+            _buildToolCard(
+                  context,
+                  title: 'Hesaplayıcılar',
+                  description:
+                      'P&L, Pozisyon Büyüklüğü ve DCA hesaplamaları ile riskinizi yönetin.',
+                  icon: Icons.calculate_outlined,
+                  color: const Color(0xFF8B5CF6),
+                  onTap: () => context.push('/calculators'),
+                )
+                .animate()
+                .fadeIn(duration: 400.ms, delay: 400.ms)
+                .slideX(begin: -0.1, end: 0),
+            const SizedBox(height: 20),
+            _buildToolCard(
+                  context,
+                  title: 'Piyasa İstihbaratı',
+                  description:
+                      'Haber duyarlılığı, balina hareketleri ve arbitraj fırsatlarını izleyin.',
+                  icon: Icons.auto_awesome_outlined,
+                  color: const Color(0xFFEC4899),
+                  onTap: () => context.push('/market-intelligence'),
+                )
+                .animate()
+                .fadeIn(duration: 400.ms, delay: 500.ms)
                 .slideX(begin: -0.1, end: 0),
           ],
         ),
