@@ -76,6 +76,28 @@ public class AnalyticsController : ControllerBase
     public async Task<IActionResult> GetNews([FromQuery] string symbol = "BTC")
     {
         var news = await _newsService.GetLatestNewsAsync(symbol);
+
+        // AI aktifse ve haber varsa Türkçe'ye çevir
+        if (news.Any())
+        {
+            var tasks = news.Select(async item =>
+            {
+                try
+                {
+                    // Şimdilik sadece başlıkları çeviriyoruz (Hız için)
+                    item.Title = await _aiService.TranslateAsync(item.Title);
+                    // İsterseniz özeti de çevirebilirsiniz ama maliyeti artırır
+                    // item.Summary = await _aiService.TranslateAsync(item.Summary);
+                }
+                catch
+                {
+                    // Çeviri hatası olursa orijinal kalsın
+                }
+            });
+
+            await Task.WhenAll(tasks);
+        }
+
         return Ok(news);
     }
 

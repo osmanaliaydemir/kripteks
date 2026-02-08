@@ -97,4 +97,26 @@ public class AiOrchestratorService : IAiService
     {
         return await AnalyzeTextAsync($"Piyasa analizi: {symbol}");
     }
+
+    public async Task<string> TranslateAsync(string text, string targetLanguage = "Turkish")
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+
+        // Çeviri için tercihen Gemini veya OpenAI kullanıyoruz
+        var provider = _providers.FirstOrDefault(p => p.ProviderName.Contains("Gemini"))
+                       ?? _providers.FirstOrDefault(p => p.ProviderName.Contains("GPT"))
+                       ?? _providers.FirstOrDefault();
+
+        if (provider == null) return text;
+
+        try
+        {
+            return await provider.TranslateTextAsync(text, targetLanguage);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Çeviri sırasında hata oluştu, orijinal metin döndürülüyor.");
+            return text;
+        }
+    }
 }

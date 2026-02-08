@@ -114,10 +114,43 @@ public class DeepSeekAiService : IAiProvider
         public string? Summary { get; set; }
     }
 
-    public async Task<AiAnalysisResult> GetMarketSentimentAsync(string symbol = "BTC")
+    public async Task<string> TranslateTextAsync(string text, string targetLanguage)
     {
-        throw new NotImplementedException(
-            "Market sentiment direct call is not supported. Use orchestrator with news text.");
+        if (string.IsNullOrEmpty(_apiKey)) return text;
+
+        try
+        {
+            var requestBody = new
+            {
+                model = "deepseek-chat",
+                messages = new[]
+                {
+                    new
+                    {
+                        role = "system",
+                        content =
+                            $"Sen profesyonel bir çevirmensin. Verilen metni {targetLanguage} diline çevir. SADECE çevrilmiş metni döndür, başka hiçbir şey ekleme."
+                    },
+                    new { role = "user", content = text }
+                },
+                temperature = 0.3
+            };
+
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _apiKey);
+            var response =
+                await _httpClient.PostAsJsonAsync("https://api.deepseek.com/v1/chat/completions", requestBody);
+
+            if (!response.IsSuccessStatusCode) return text;
+
+            var result = await response.Content.ReadFromJsonAsync<DeepSeekResponse>();
+            return result?.Choices?.FirstOrDefault()?.Message?.Content?.Trim() ?? text;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "DeepSeek çeviri hatası");
+            return text;
+        }
     }
 }
 

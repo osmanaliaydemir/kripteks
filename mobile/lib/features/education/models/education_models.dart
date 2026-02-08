@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 
-enum EducationTopicCategory { indicators, strategies, fundamentals }
+enum EducationTopicCategory {
+  indicators,
+  strategies,
+  fundamentals,
+  appTraining,
+}
 
 class EducationTopic {
   final String id;

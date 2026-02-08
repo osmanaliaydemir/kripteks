@@ -125,5 +125,45 @@ Analiz edilecek haberler: {text}";
         public string? Action { get; set; }
         public string? Summary { get; set; }
     }
+
+    public async Task<string> TranslateTextAsync(string text, string targetLanguage)
+    {
+        if (string.IsNullOrEmpty(_apiKey)) return text;
+
+        try
+        {
+            var prompt =
+                $@"Aşağıdaki metni {targetLanguage} diline çevir. SADECE çevrilmiş metni döndür, başka açıklama ekleme: 
+
+{text}";
+
+            var requestBody = new
+            {
+                contents = new[]
+                {
+                    new
+                    {
+                        parts = new[] { new { text = prompt } }
+                    }
+                }
+            };
+
+            var url =
+                $"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={_apiKey}";
+            var response = await _httpClient.PostAsJsonAsync(url, requestBody);
+
+            if (!response.IsSuccessStatusCode) return text;
+
+            var result = await response.Content.ReadFromJsonAsync<GeminiNativeResponse>();
+            var translated = result?.Candidates?.FirstOrDefault()?.Content?.Parts?.FirstOrDefault()?.Text;
+
+            return string.IsNullOrEmpty(translated) ? text : translated.Trim();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Gemini çeviri hatası");
+            return text;
+        }
+    }
 }
 

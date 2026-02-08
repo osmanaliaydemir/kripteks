@@ -102,5 +102,48 @@ public class OpenAiService : IAiProvider
             throw;
         }
     }
+
+    public async Task<string> TranslateTextAsync(string text, string targetLanguage)
+    {
+        if (string.IsNullOrEmpty(_apiKey)) return text;
+
+        try
+        {
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+
+            var requestBody = new
+            {
+                model = "gpt-4o-mini",
+                messages = new[]
+                {
+                    new
+                    {
+                        role = "system",
+                        content =
+                            $"Sen profesyonel bir çevirmensin. Verilen metni {targetLanguage} diline çevir. SADECE çevrilmiş metni döndür, başka hiçbir şey ekleme."
+                    },
+                    new { role = "user", content = text }
+                },
+                temperature = 0.3
+            };
+
+            var json = JsonSerializer.Serialize(requestBody);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync("https://api.openai.com/v1/chat/completions", content);
+
+            if (!response.IsSuccessStatusCode) return text;
+
+            var responseJson = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(responseJson);
+            return doc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString()
+                ?.Trim() ?? text;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "OpenAI çeviri hatası");
+            return text;
+        }
+    }
 }
 
