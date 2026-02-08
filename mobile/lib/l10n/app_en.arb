@@ -1,0 +1,367 @@
+{
+    "@@locale": "en",
+    "appName": "Kripteks",
+    "@appName": {
+        "description": "The name of the application"
+    },
+    "dashboard": "Dashboard",
+    "@dashboard": {
+        "description": "Label for the dashboard tab"
+    },
+    "bots": "Bots",
+    "@bots": {
+        "description": "Label for the bots tab"
+    },
+    "tools": "Tools",
+    "@tools": {
+        "description": "Label for the tools tab"
+    },
+    "wallet": "Wallet",
+    "@wallet": {
+        "description": "Label for the wallet tab"
+    },
+    "settings": "Settings",
+    "@settings": {
+        "description": "Label for the settings tab"
+    },
+    "totalBalance": "Total Balance",
+    "@totalBalance": {
+        "description": "Label for total balance"
+    },
+    "available": "Available",
+    "@available": {
+        "description": "Label for available balance"
+    },
+    "locked": "Locked",
+    "@locked": {
+        "description": "Label for locked balance"
+    },
+    "activePnl": "Active PNL",
+    "@activePnl": {
+        "description": "Label for active profit and loss"
+    },
+    "transactionHistory": "Transaction History",
+    "@transactionHistory": {
+        "description": "Title for transaction history section"
+    },
+    "all": "All",
+    "@all": {
+        "description": "Filter option for all items"
+    },
+    "deposit": "Deposit",
+    "@deposit": {
+        "description": "Label for deposit action"
+    },
+    "withdraw": "Withdraw",
+    "@withdraw": {
+        "description": "Label for withdraw action"
+    },
+    "online": "Online",
+    "@online": {
+        "description": "Status label for online"
+    },
+    "offline": "Offline",
+    "@offline": {
+        "description": "Status label for offline"
+    },
+    "login": "Login",
+    "@login": {
+        "description": "Label for login button"
+    },
+    "signup": "Sign Up",
+    "@signup": {
+        "description": "Label for sign up button"
+    },
+    "email": "Email",
+    "@email": {
+        "description": "Label for email field"
+    },
+    "password": "Password",
+    "@password": {
+        "description": "Label for password field"
+    },
+    "forgotPassword": "Forgot Password?",
+    "@forgotPassword": {
+        "description": "Label for forgot password link"
+    },
+    "dontHaveAccount": "Don't have an account?",
+    "@dontHaveAccount": {
+        "description": "Text for account creation prompt"
+    },
+    "networkError": "Network Error",
+    "@networkError": {
+        "description": "Title for network error"
+    },
+    "networkErrorDescription": "Please check your internet connection.",
+    "@networkErrorDescription": {
+        "description": "Description for network error"
+    },
+    "noTransactions": "No transactions yet",
+    "@noTransactions": {
+        "description": "Message when no transactions are found"
+    },
+    "botInvestment": "Bot Investment",
+    "@botInvestment": {
+        "description": "Label for bot investment"
+    },
+    "botReturn": "Bot Return",
+    "@botReturn": {
+        "description": "Label for bot return"
+    },
+    "fee": "Transaction Fee",
+    "@fee": {
+        "description": "Label for transaction fee"
+    },
+    "profile": "Profile",
+    "@profile": {
+        "description": "Title for profile screen"
+    },
+    "profileLoadError": "Could not load profile",
+    "@profileLoadError": {
+        "description": "Error message when profile fails to load"
+    },
+    "exchangeConnection": "Exchange Connection",
+    "@exchangeConnection": {
+        "description": "Label for exchange connection"
+    },
+    "connected": "Connected",
+    "@connected": {
+        "description": "Status label for connected state"
+    },
+    "notConnected": "Not Connected",
+    "@notConnected": {
+        "description": "Status label for not connected state"
+    },
+    "updateApiKeys": "Update API Keys",
+    "@updateApiKeys": {
+        "description": "Label for updating API keys"
+    },
+    "apiKey": "API Key",
+    "@apiKey": {
+        "description": "Label for API key field"
+    },
+    "secretKey": "Secret Key",
+    "@secretKey": {
+        "description": "Label for secret key field"
+    },
+    "cancel": "Cancel",
+    "@cancel": {
+        "description": "Label for cancel button"
+    },
+    "save": "Save",
+    "@save": {
+        "description": "Label for save button"
+    },
+    "apiKeysUpdated": "API keys updated",
+    "@apiKeysUpdated": {
+        "description": "Message when API keys are updated"
+    },
+    "app": "Application",
+    "@app": {
+        "description": "Label for application"
+    },
+    "notifications": "Notifications",
+    "@notifications": {
+        "description": "Title for notifications screen"
+    },
+    "notificationsSubtitle": "Manage notification preferences",
+    "@notificationsSubtitle": {
+        "description": "Subtitle for notifications screen"
+    },
+    "updatePassword": "Update Password",
+    "@updatePassword": {
+        "description": "Title for update password screen"
+    },
+    "updatePasswordSubtitle": "Change account password",
+    "@updatePasswordSubtitle": {
+        "description": "Subtitle for update password screen"
+    },
+    "logout": "Log Out",
+    "@logout": {
+        "description": "Label for logout button"
+    },
+    "profileEdit": "Edit Profile",
+    "@profileEdit": {
+        "description": "Title for profile edit screen"
+    },
+    "firstName": "First Name",
+    "@firstName": {
+        "description": "Label for first name field"
+    },
+    "firstNameRequired": "First name is required",
+    "@firstNameRequired": {
+        "description": "Error message when first name is missing"
+    },
+    "lastName": "Last Name",
+    "@lastName": {
+        "description": "Label for last name field"
+    },
+    "lastNameRequired": "Last name is required",
+    "@lastNameRequired": {
+        "description": "Error message when last name is missing"
+    },
+    "profileUpdated": "Profile updated successfully",
+    "@profileUpdated": {
+        "description": "Message when profile is updated"
+    },
+    "changePassword": "Change Password",
+    "@changePassword": {
+        "description": "Title for change password screen"
+    },
+    "currentPassword": "Current Password",
+    "@currentPassword": {
+        "description": "Label for current password field"
+    },
+    "currentPasswordRequired": "Current password is required",
+    "@currentPasswordRequired": {
+        "description": "Error message when current password is missing"
+    },
+    "newPassword": "New Password",
+    "@newPassword": {
+        "description": "Label for new password field"
+    },
+    "newPasswordRequired": "New password is required",
+    "@newPasswordRequired": {
+        "description": "Error message when new password is missing"
+    },
+    "passwordLengthError": "Password must be at least 6 characters",
+    "@passwordLengthError": {
+        "description": "Error message for password length"
+    },
+    "confirmPassword": "Confirm New Password",
+    "@confirmPassword": {
+        "description": "Label for confirm password field"
+    },
+    "confirmPasswordRequired": "Please confirm your password",
+    "@confirmPasswordRequired": {
+        "description": "Error message when confirmation is missing"
+    },
+    "passwordsDoNotMatch": "Passwords do not match",
+    "@passwordsDoNotMatch": {
+        "description": "Error message when passwords do not match"
+    },
+    "passwordUpdated": "Password updated successfully",
+    "@passwordUpdated": {
+        "description": "Message when password is updated"
+    },
+    "passwordError": "Incorrect current password",
+    "@passwordError": {
+        "description": "Error message for incorrect password"
+    },
+    "passwordInfo": "Your new password must be at least 6 characters long.",
+    "@passwordInfo": {
+        "description": "Helper text for password requirements"
+    },
+    "notificationSettings": "Notification Settings",
+    "@notificationSettings": {
+        "description": "Title for notification settings"
+    },
+    "notificationsInfo": "Get notified about bot activities and important updates.",
+    "@notificationsInfo": {
+        "description": "Info text for notifications"
+    },
+    "botNotifications": "Bot Notifications",
+    "@botNotifications": {
+        "description": "Header for bot notifications section"
+    },
+    "buySignals": "Buy Signals",
+    "@buySignals": {
+        "description": "Label for buy signals toggle"
+    },
+    "buySignalsSubtitle": "Get notified when bot buys",
+    "@buySignalsSubtitle": {
+        "description": "Description for buy signals toggle"
+    },
+    "sellSignals": "Sell Signals",
+    "@sellSignals": {
+        "description": "Label for sell signals toggle"
+    },
+    "sellSignalsSubtitle": "Get notified when bot sells",
+    "@sellSignalsSubtitle": {
+        "description": "Description for sell signals toggle"
+    },
+    "stopLoss": "Stop Loss",
+    "@stopLoss": {
+        "description": "Label for stop loss toggle"
+    },
+    "stopLossSubtitle": "Get notified when stop loss triggers",
+    "@stopLossSubtitle": {
+        "description": "Description for stop loss toggle"
+    },
+    "takeProfit": "Take Profit",
+    "@takeProfit": {
+        "description": "Label for take profit toggle"
+    },
+    "takeProfitSubtitle": "Get notified when take profit target reached",
+    "@takeProfitSubtitle": {
+        "description": "Description for take profit toggle"
+    },
+    "systemNotifications": "System Notifications",
+    "@systemNotifications": {
+        "description": "Header for system notifications section"
+    },
+    "generalNotifications": "General Notifications",
+    "@generalNotifications": {
+        "description": "Label for general notifications toggle"
+    },
+    "generalNotificationsSubtitle": "System updates and announcements",
+    "@generalNotificationsSubtitle": {
+        "description": "Description for general notifications toggle"
+    },
+    "errorNotifications": "Error Notifications",
+    "@errorNotifications": {
+        "description": "Label for error notifications toggle"
+    },
+    "errorNotificationsSubtitle": "Get notified about critical errors",
+    "@errorNotificationsSubtitle": {
+        "description": "Description for error notifications toggle"
+    },
+    "loginTitle": "Login to Kripteks",
+    "@loginTitle": {
+        "description": "Title for the login screen"
+    },
+    "emailHint": "example@mail.com",
+    "@emailHint": {
+        "description": "Hint text for email input"
+    },
+    "emailRequired": "Email is required",
+    "@emailRequired": {
+        "description": "Error message when email is missing"
+    },
+    "passwordRequired": "Password is required",
+    "@passwordRequired": {
+        "description": "Error message when password is missing"
+    },
+    "signupTitle": "Sign up for Kripteks",
+    "@signupTitle": {
+        "description": "Title for the signup screen"
+    },
+    "fullName": "Full Name",
+    "@fullName": {
+        "description": "Label for full name input"
+    },
+    "fullNameHint": "Enter your name",
+    "@fullNameHint": {
+        "description": "Hint text for full name input"
+    },
+    "fullNameRequired": "Full name is required",
+    "@fullNameRequired": {
+        "description": "Error message when full name is missing"
+    },
+    "alreadyHaveAccount": "Already have an account?",
+    "@alreadyHaveAccount": {
+        "description": "Link text for existing users"
+    },
+    "registrationDisabled": "Registration is not active yet.",
+    "@registrationDisabled": {
+        "description": "Message displayed when registration is disabled"
+    },
+    "biometricLogin": "Biometric Login",
+    "@biometricLogin": {
+        "description": "Label for biometric login toggle"
+    },
+    "biometricLoginSubtitle": "Login with FaceID or TouchID",
+    "@biometricLoginSubtitle": {
+        "description": "Description for biometric login toggle"
+    }
+}

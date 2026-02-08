@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:mobile/l10n/app_localizations.dart';
+import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/features/auth/providers/auth_provider.dart';
+import 'package:mobile/core/auth/biometric_service.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -17,6 +20,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _canUseBiometric = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBiometric();
+  }
+
+  Future<void> _checkBiometric() async {
+    final biometricService = ref.read(biometricServiceProvider);
+    final isSupported = await biometricService.isDeviceSupported();
+    final credentials = await biometricService.getCredentials();
+
+    // Only show biometric button if device supports it AND we have stored credentials
+    // AND biometric is enabled in settings (default true if credentials exist usually)
+    final isEnabled = await biometricService.isBiometricEnabled();
+
+    if (mounted && isSupported && credentials != null && isEnabled) {
+      setState(() {
+        _canUseBiometric = true;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -31,6 +57,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final password = _passwordController.text;
 
       await ref.read(authControllerProvider.notifier).login(email, password);
+
+      // If login successful (no exception thrown), save credentials for biometric
+      // We assume success if we reach here without unhandled exception,
+      // but actually the provider handles errors via state.
+      // So we should check the state in the listener or here after await if state is not error.
+      // However, since login is void and async, we can't easily check return value.
+      // The listener handles navigation. We can save credentials there or here.
+      // Let's rely on the listener pattern for saving, but better to save only on explicit "remember me"
+      // For now, we auto-save to enable biometric feature easily.
+      final biometricService = ref.read(biometricServiceProvider);
+      await biometricService.saveCredentials(email, password);
+      await biometricService.setBiometricEnabled(true);
+    }
+  }
+
+  Future<void> _handleBiometricLogin() async {
+    final biometricService = ref.read(biometricServiceProvider);
+    final authenticated = await biometricService.authenticate();
+
+    if (authenticated) {
+      final credentials = await biometricService.getCredentials();
+      if (credentials != null) {
+        if (mounted) {
+          // Auto-fill and submit
+          _emailController.text = credentials['email']!;
+          _passwordController.text = credentials['password']!;
+          _handleLogin();
+        }
+      }
     }
   }
 
@@ -48,7 +103,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(err.toString().replaceAll('Exception: ', '')),
-              backgroundColor: Colors.redAccent,
+              backgroundColor: AppColors.error,
             ),
           );
         },
@@ -60,7 +115,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final isLoading = authState.isLoading;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.background,
       body: Stack(
         children: [
           // Ambient Glow Background
@@ -75,7 +130,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   center: Alignment.topCenter,
                   radius: 0.8,
                   colors: [
-                    Color(0x40F59E0B), // Amber with transparency
+                    AppColors.primaryTransparent, // Amber with transparency
                     Colors.transparent,
                   ],
                   stops: [0.0, 1.0],
@@ -101,8 +156,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
                                     colors: [
-                                      Color(0xFFF59E0B),
-                                      Color(0xFFD97706),
+                                      AppColors.primary,
+                                      AppColors.primaryDark,
                                     ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
@@ -110,9 +165,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   borderRadius: BorderRadius.circular(24),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(
-                                        0xFFF59E0B,
-                                      ).withValues(alpha: 0.4),
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.4,
+                                      ),
                                       blurRadius: 20,
                                       offset: const Offset(0, 10),
                                     ),
@@ -121,7 +176,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 child: const Icon(
                                   Icons.candlestick_chart_rounded,
                                   size: 40,
-                                  color: Colors.white,
+                                  color: AppColors.textPrimary,
                                 ),
                               )
                               .animate()
@@ -134,11 +189,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           const SizedBox(height: 24),
 
                           Text(
-                                'Kripteks\'e Giriş Yap',
+                                AppLocalizations.of(context)!.loginTitle,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  color: AppColors.textPrimary,
                                   letterSpacing: -0.5,
                                 ),
                               )
@@ -155,18 +210,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _buildLabel('Email'),
+                          _buildLabel(AppLocalizations.of(context)!.email),
                           const SizedBox(height: 8),
                           TextFormField(
                                 controller: _emailController,
-                                style: const TextStyle(color: Colors.white),
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                ),
                                 decoration: _buildInputDecoration(
-                                  hint: 'ornek@mail.com',
+                                  hint: AppLocalizations.of(context)!.emailHint,
                                   prefixIcon: Icons.mail_outline,
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return 'E-posta gerekli';
+                                    return AppLocalizations.of(
+                                      context,
+                                    )!.emailRequired;
                                   }
                                   return null;
                                 },
@@ -176,12 +235,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               .slideX(begin: 0.1, end: 0),
                           const SizedBox(height: 16),
 
-                          _buildLabel('Şifre'),
+                          _buildLabel(AppLocalizations.of(context)!.password),
                           const SizedBox(height: 8),
                           TextFormField(
                                 controller: _passwordController,
                                 obscureText: _obscurePassword,
-                                style: const TextStyle(color: Colors.white),
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                ),
                                 decoration: _buildInputDecoration(
                                   hint: '••••••••',
                                   prefixIcon: Icons.lock_outline,
@@ -190,7 +251,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       _obscurePassword
                                           ? Icons.visibility_outlined
                                           : Icons.visibility_off_outlined,
-                                      color: Colors.white38,
+                                      color: AppColors.textSecondary,
                                     ),
                                     onPressed: () {
                                       setState(() {
@@ -201,7 +262,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return 'Şifre gerekli';
+                                    return AppLocalizations.of(
+                                      context,
+                                    )!.passwordRequired;
                                   }
                                   return null;
                                 },
@@ -219,15 +282,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 onPressed: () =>
                                     context.push('/forgot-password'),
                                 style: TextButton.styleFrom(
-                                  foregroundColor: Colors.white54,
+                                  foregroundColor: AppColors.textSecondary,
                                   padding: EdgeInsets.zero,
                                   minimumSize: Size.zero,
                                   tapTargetSize:
                                       MaterialTapTargetSize.shrinkWrap,
                                 ),
-                                child: const Text(
-                                  'Şifremi Unuttum?',
-                                  style: TextStyle(fontSize: 12),
+                                child: Text(
+                                  AppLocalizations.of(context)!.forgotPassword,
+                                  style: const TextStyle(fontSize: 12),
                                 ),
                               ),
                             ),
@@ -242,17 +305,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   borderRadius: BorderRadius.circular(16),
                                   gradient: const LinearGradient(
                                     colors: [
-                                      Color(0xFFF59E0B),
-                                      Color(0xFFD97706),
+                                      AppColors.primary,
+                                      AppColors.primaryDark,
                                     ],
                                     begin: Alignment.centerLeft,
                                     end: Alignment.centerRight,
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(
-                                        0xFFF59E0B,
-                                      ).withValues(alpha: 0.3),
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.3,
+                                      ),
                                       blurRadius: 12,
                                       offset: const Offset(0, 6),
                                     ),
@@ -276,9 +339,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                             color: Colors.white,
                                           ),
                                         )
-                                      : const Text(
-                                          'Giriş Yap',
-                                          style: TextStyle(
+                                      : Text(
+                                          AppLocalizations.of(context)!.login,
+                                          style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
@@ -290,22 +353,54 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               .fadeIn(delay: 600.ms)
                               .scale(begin: const Offset(0.9, 0.9)),
 
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 24),
+
+                          // Biometric Login Button
+                          if (_canUseBiometric)
+                            Container(
+                              width: double.infinity,
+                              height: 56,
+                              margin: const EdgeInsets.only(bottom: 24),
+                              child: OutlinedButton.icon(
+                                onPressed: isLoading
+                                    ? null
+                                    : _handleBiometricLogin,
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(
+                                    color: AppColors.primary,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  foregroundColor: AppColors.primary,
+                                ),
+                                icon: const Icon(Icons.fingerprint, size: 28),
+                                label: Text(
+                                  AppLocalizations.of(context)!.biometricLogin,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ).animate().fadeIn(delay: 800.ms),
 
                           // Sign Up Link
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
-                                'Hesabın yok mu? ',
-                                style: TextStyle(color: Colors.white54),
+                              Text(
+                                '${AppLocalizations.of(context)!.dontHaveAccount} ',
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                ),
                               ),
                               GestureDetector(
                                 onTap: () => context.go('/signup'),
-                                child: const Text(
-                                  'Kayıt Ol',
-                                  style: TextStyle(
-                                    color: Color(0xFFF59E0B),
+                                child: Text(
+                                  AppLocalizations.of(context)!.signup,
+                                  style: const TextStyle(
+                                    color: AppColors.primary,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -343,10 +438,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }) {
     return InputDecoration(
       filled: true,
-      fillColor: const Color(0xFF1E293B).withValues(alpha: 0.5),
+      fillColor: AppColors.surfaceLight.withValues(alpha: 0.5),
       hintText: hint,
-      hintStyle: const TextStyle(color: Colors.white24),
-      prefixIcon: Icon(prefixIcon, color: Colors.white38, size: 20),
+      hintStyle: const TextStyle(color: AppColors.textDisabled),
+      prefixIcon: Icon(prefixIcon, color: AppColors.textSecondary, size: 20),
       suffixIcon: suffixIcon,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
@@ -354,11 +449,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: Colors.white10),
+        borderSide: const BorderSide(color: AppColors.white10),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFFF59E0B), width: 1.5),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
       ),
       contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
     );

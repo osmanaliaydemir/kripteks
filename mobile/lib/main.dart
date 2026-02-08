@@ -2,9 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/router/app_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/error/global_error_handler.dart';
+import 'package:mobile/core/error/error_service.dart';
+import 'package:mobile/core/widgets/network_status_banner.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 
-void main() {
-  runApp(const ProviderScope(child: MyApp()));
+Future<void> main() async {
+  final errorHandler = GlobalErrorHandler(errorService);
+
+  await errorHandler.handle(() async {
+    runApp(const ProviderScope(child: MyApp()));
+  });
 }
 
 class MyApp extends ConsumerWidget {
@@ -29,6 +38,19 @@ class MyApp extends ConsumerWidget {
         ).apply(bodyColor: Colors.white, displayColor: Colors.white),
       ),
       routerConfig: router,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('en'), Locale('tr')],
+      builder: (context, widget) {
+        ErrorWidget.builder = (FlutterErrorDetails details) {
+          return GlobalErrorHandler.errorWidgetBuilder(details)(context);
+        };
+        return NetworkStatusBanner(child: widget!);
+      },
     );
   }
 }

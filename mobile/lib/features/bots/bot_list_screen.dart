@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/widgets/app_header.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:mobile/core/theme/app_colors.dart';
 
 import 'providers/bot_provider.dart';
 import 'models/bot_model.dart';
@@ -230,10 +231,10 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
                     BoxShadow(
                       color:
                           (label == 'Pozisyonda'
-                                  ? const Color(0xFF10B981)
+                                  ? AppColors.success
                                   : label == 'Sinyal Bekleniyor'
-                                  ? const Color(0xFFF59E0B)
-                                  : Colors.white38)
+                                  ? AppColors.primary
+                                  : AppColors.textSecondary)
                               .withValues(alpha: 0.5),
                       blurRadius: 4,
                     ),
@@ -244,7 +245,9 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.white : Colors.white38,
+                color: isSelected
+                    ? AppColors.textPrimary
+                    : AppColors.textSecondary,
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
@@ -254,8 +257,8 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
               '($count)',
               style: TextStyle(
                 color: isSelected
-                    ? const Color(0xFFF59E0B).withValues(alpha: 0.7)
-                    : Colors.white24,
+                    ? AppColors.primary.withValues(alpha: 0.7)
+                    : AppColors.white10,
                 fontSize: 11,
               ),
             ),
@@ -269,15 +272,18 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: AppColors.surfaceLight,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           'Botu Durdur',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: Text(
           '${bot.symbol} botunu durdurmak istediğinize emin misiniz? Açık pozisyonlar piyasa fiyatından kapatılacaktır.',
-          style: const TextStyle(color: Colors.white70),
+          style: const TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
@@ -290,8 +296,8 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
               ref.read(botServiceProvider).stopBot(bot.id);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.error,
+              foregroundColor: AppColors.textPrimary,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -328,7 +334,7 @@ class _BotCardItemState extends State<_BotCardItem> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A).withValues(alpha: 0.7),
+        color: AppColors.surface.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         boxShadow: [

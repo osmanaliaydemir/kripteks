@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:mobile/l10n/app_localizations.dart';
+import 'package:mobile/core/theme/app_colors.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -30,7 +32,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     if (_formKey.currentState!.validate()) {
       // Mock signup for now
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kayıt olma işlemi henüz aktif değil.')),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.registrationDisabled),
+        ),
       );
     }
   }
@@ -79,8 +83,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
                                     colors: [
-                                      Color(0xFFF59E0B),
-                                      Color(0xFFD97706),
+                                      AppColors.primary,
+                                      AppColors.primaryDark,
                                     ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
@@ -88,9 +92,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                                   borderRadius: BorderRadius.circular(24),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(
-                                        0xFFF59E0B,
-                                      ).withValues(alpha: 0.4),
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.4,
+                                      ),
                                       blurRadius: 20,
                                       offset: const Offset(0, 10),
                                     ),
@@ -99,7 +103,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                                 child: const Icon(
                                   Icons.candlestick_chart_rounded,
                                   size: 40,
-                                  color: Colors.white,
+                                  color: AppColors.textPrimary,
                                 ),
                               )
                               .animate()
@@ -112,11 +116,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                           const SizedBox(height: 24),
 
                           Text(
-                                'Kripteks\'e Kayıt Ol',
+                                AppLocalizations.of(context)!.signupTitle,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  color: AppColors.textPrimary,
                                   letterSpacing: -0.5,
                                 ),
                               )
@@ -133,18 +137,22 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _buildLabel('Ad Soyad'),
+                          _buildLabel(AppLocalizations.of(context)!.fullName),
                           const SizedBox(height: 8),
                           TextFormField(
                                 controller: _nameController,
                                 style: const TextStyle(color: Colors.white),
                                 decoration: _buildInputDecoration(
-                                  hint: 'Adınızı girin',
+                                  hint: AppLocalizations.of(
+                                    context,
+                                  )!.fullNameHint,
                                   prefixIcon: Icons.person_outline,
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return 'Ad Soyad gerekli';
+                                    return AppLocalizations.of(
+                                      context,
+                                    )!.fullNameRequired;
                                   }
                                   return null;
                                 },
@@ -154,18 +162,20 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                               .slideX(begin: 0.1, end: 0),
                           const SizedBox(height: 16),
 
-                          _buildLabel('Email'),
+                          _buildLabel(AppLocalizations.of(context)!.email),
                           const SizedBox(height: 8),
                           TextFormField(
                                 controller: _emailController,
                                 style: const TextStyle(color: Colors.white),
                                 decoration: _buildInputDecoration(
-                                  hint: 'ornek@mail.com',
+                                  hint: AppLocalizations.of(context)!.emailHint,
                                   prefixIcon: Icons.mail_outline,
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return 'E-posta gerekli';
+                                    return AppLocalizations.of(
+                                      context,
+                                    )!.emailRequired;
                                   }
                                   return null;
                                 },
@@ -175,7 +185,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                               .slideX(begin: 0.1, end: 0),
                           const SizedBox(height: 16),
 
-                          _buildLabel('Şifre'),
+                          _buildLabel(AppLocalizations.of(context)!.password),
                           const SizedBox(height: 8),
                           TextFormField(
                                 controller: _passwordController,
@@ -200,7 +210,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return 'Şifre gerekli';
+                                    return AppLocalizations.of(
+                                      context,
+                                    )!.passwordRequired;
                                   }
                                   return null;
                                 },
@@ -242,9 +254,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                                       borderRadius: BorderRadius.circular(16),
                                     ),
                                   ),
-                                  child: const Text(
-                                    'Kayıt Ol',
-                                    style: TextStyle(
+                                  child: Text(
+                                    AppLocalizations.of(context)!.signup,
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
@@ -262,15 +274,15 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
-                                'Hesabın var mı? ',
-                                style: TextStyle(color: Colors.white54),
+                              Text(
+                                '${AppLocalizations.of(context)!.alreadyHaveAccount} ',
+                                style: const TextStyle(color: Colors.white54),
                               ),
                               GestureDetector(
                                 onTap: () => context.go('/login'),
-                                child: const Text(
-                                  'Giriş Yap',
-                                  style: TextStyle(
+                                child: Text(
+                                  AppLocalizations.of(context)!.login,
+                                  style: const TextStyle(
                                     color: Color(0xFFF59E0B),
                                     fontWeight: FontWeight.bold,
                                   ),

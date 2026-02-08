@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/features/settings/services/profile_service.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 
 class ChangePasswordScreen extends ConsumerStatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -44,9 +45,9 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Şifre başarıyla güncellendi'),
-            backgroundColor: Color(0xFF10B981),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.passwordUpdated),
+            backgroundColor: const Color(0xFF10B981),
           ),
         );
         context.pop();
@@ -56,7 +57,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Hata: ${e.toString().contains('400') ? 'Mevcut şifre yanlış' : e}',
+              '${AppLocalizations.of(context)!.errorNotifications}: ${e.toString().contains('400') ? AppLocalizations.of(context)!.passwordError : e}',
             ),
             backgroundColor: Colors.red,
           ),
@@ -76,9 +77,12 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E293B),
         elevation: 0,
-        title: const Text(
-          'Şifre Güncelle',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Text(
+          AppLocalizations.of(context)!.changePassword,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -104,15 +108,15 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.info_outline,
-                      color: const Color(0xFFF59E0B),
+                      color: Color(0xFFF59E0B),
                       size: 24,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Yeni şifreniz en az 6 karakter uzunluğunda olmalıdır.',
+                        AppLocalizations.of(context)!.passwordInfo,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.7),
                           fontSize: 13,
@@ -127,7 +131,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
               // Current Password
               _buildPasswordField(
                 controller: _currentPasswordController,
-                label: 'Mevcut Şifre',
+                label: AppLocalizations.of(context)!.currentPassword,
                 obscureText: _obscureCurrentPassword,
                 onToggleVisibility: () {
                   setState(
@@ -136,7 +140,9 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                 },
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Mevcut şifre gerekli';
+                    return AppLocalizations.of(
+                      context,
+                    )!.currentPasswordRequired;
                   }
                   return null;
                 },
@@ -146,17 +152,17 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
               // New Password
               _buildPasswordField(
                 controller: _newPasswordController,
-                label: 'Yeni Şifre',
+                label: AppLocalizations.of(context)!.newPassword,
                 obscureText: _obscureNewPassword,
                 onToggleVisibility: () {
                   setState(() => _obscureNewPassword = !_obscureNewPassword);
                 },
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Yeni şifre gerekli';
+                    return AppLocalizations.of(context)!.newPasswordRequired;
                   }
                   if (value.length < 6) {
-                    return 'Şifre en az 6 karakter olmalı';
+                    return AppLocalizations.of(context)!.passwordLengthError;
                   }
                   return null;
                 },
@@ -166,7 +172,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
               // Confirm Password
               _buildPasswordField(
                 controller: _confirmPasswordController,
-                label: 'Yeni Şifre (Tekrar)',
+                label: AppLocalizations.of(context)!.confirmPassword,
                 obscureText: _obscureConfirmPassword,
                 onToggleVisibility: () {
                   setState(
@@ -175,10 +181,12 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                 },
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Şifre tekrarı gerekli';
+                    return AppLocalizations.of(
+                      context,
+                    )!.confirmPasswordRequired;
                   }
                   if (value != _newPasswordController.text) {
-                    return 'Şifreler eşleşmiyor';
+                    return AppLocalizations.of(context)!.passwordsDoNotMatch;
                   }
                   return null;
                 },
@@ -209,9 +217,9 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text(
-                          'Şifreyi Güncelle',
-                          style: TextStyle(
+                      : Text(
+                          AppLocalizations.of(context)!.updatePassword,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

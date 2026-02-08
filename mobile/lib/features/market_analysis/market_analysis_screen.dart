@@ -9,6 +9,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 class MarketAnalysisScreen extends ConsumerWidget {
   const MarketAnalysisScreen({super.key});
 
+  @override
   Widget build(BuildContext context, WidgetRef ref) {
     final gainersAsync = ref.watch(topGainersProvider);
     final losersAsync = ref.watch(topLosersProvider);

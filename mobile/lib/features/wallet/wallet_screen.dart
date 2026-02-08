@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 import 'package:mobile/core/widgets/app_header.dart';
+import 'package:mobile/core/theme/app_colors.dart';
 import 'providers/wallet_provider.dart';
 import 'models/wallet_model.dart';
 
@@ -25,7 +27,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       extendBodyBehindAppBar: true,
-      appBar: const AppHeader(title: 'Cüzdan', showBackButton: false),
+      appBar: AppHeader(
+        title: AppLocalizations.of(context)!.wallet,
+        showBackButton: false,
+      ),
       body: Stack(
         children: [
           // Background Gradient (Same as Login)
@@ -77,7 +82,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
                     // Transactions Title
                     Text(
-                      'İşlem Geçmişi',
+                      AppLocalizations.of(context)!.transactionHistory,
                       style: GoogleFonts.inter(
                         color: Colors.white70,
                         fontSize: 16,
@@ -98,12 +103,12 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         );
 
                         if (filteredTransactions.isEmpty) {
-                          return const Center(
+                          return Center(
                             child: Padding(
-                              padding: EdgeInsets.all(32.0),
+                              padding: const EdgeInsets.all(32.0),
                               child: Text(
-                                'Henüz işlem yok',
-                                style: TextStyle(color: Colors.white38),
+                                AppLocalizations.of(context)!.noTransactions,
+                                style: const TextStyle(color: Colors.white38),
                               ),
                             ),
                           );
@@ -159,11 +164,11 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       ),
       child: Row(
         children: [
-          _buildTabButton('Hepsi', 0),
+          _buildTabButton(AppLocalizations.of(context)!.all, 0),
           const SizedBox(width: 4),
-          _buildTabButton('Yatırma', 1),
+          _buildTabButton(AppLocalizations.of(context)!.deposit, 1),
           const SizedBox(width: 4),
-          _buildTabButton('Çekim', 2),
+          _buildTabButton(AppLocalizations.of(context)!.withdraw, 2),
         ],
       ),
     );
@@ -245,9 +250,9 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       ),
       child: Column(
         children: [
-          const Text(
-            'Toplam Varlık',
-            style: TextStyle(color: Colors.white54, fontSize: 14),
+          Text(
+            AppLocalizations.of(context)!.totalBalance,
+            style: const TextStyle(color: Colors.white54, fontSize: 14),
           ),
           const SizedBox(height: 8),
           Text(
@@ -263,7 +268,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             children: [
               Expanded(
                 child: _buildBalanceItem(
-                  'Kullanılabilir',
+                  AppLocalizations.of(context)!.available,
                   wallet.availableBalance,
                   const Color(0xFF10B981),
                 ),
@@ -271,7 +276,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
               Container(width: 1, height: 40, color: Colors.white10),
               Expanded(
                 child: _buildBalanceItem(
-                  'Bloke (Botlarda)',
+                  AppLocalizations.of(context)!.locked,
                   wallet.lockedBalance,
                   Colors.blueAccent,
                 ),
@@ -280,7 +285,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
           ),
           const SizedBox(height: 16),
           _buildBalanceItem(
-            'Aktif PNL',
+            AppLocalizations.of(context)!.activePnl,
             wallet.totalPnl,
             wallet.totalPnl >= 0
                 ? const Color(0xFF10B981)
@@ -331,14 +336,14 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
         color = const Color(0xFF10B981);
         iconBgColor = const Color(0xFF10B981).withValues(alpha: 0.1);
         prefix = '+';
-        defaultTitle = 'Yatırma';
+        defaultTitle = AppLocalizations.of(context)!.deposit;
         break;
       case TransactionType.Withdraw:
         icon = Icons.arrow_upward;
         color = const Color(0xFFEF4444);
         iconBgColor = const Color(0xFFEF4444).withValues(alpha: 0.1);
         prefix = '-';
-        defaultTitle = 'Çekme';
+        defaultTitle = AppLocalizations.of(context)!.withdraw;
         break;
       case TransactionType.BotInvestment:
         // Red/Pinkish for Investment (Money Out)
@@ -348,7 +353,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
           0xFFF43F5E,
         ).withValues(alpha: 0.1); // Rose-500 bg
         prefix = '';
-        defaultTitle = 'Otomatik Alım';
+        defaultTitle = AppLocalizations.of(context)!.botInvestment;
         break;
       case TransactionType.BotReturn:
         // Green for Return (Money In)
@@ -356,14 +361,14 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
         color = const Color(0xFF10B981); // Emerald
         iconBgColor = const Color(0xFF10B981).withValues(alpha: 0.1);
         prefix = '+';
-        defaultTitle = 'Bot Kapatıldı';
+        defaultTitle = AppLocalizations.of(context)!.botReturn;
         break;
       case TransactionType.Fee:
         icon = Icons.remove;
         color = Colors.white70;
         iconBgColor = Colors.white10;
         prefix = '-';
-        defaultTitle = 'İşlem Ücreti';
+        defaultTitle = AppLocalizations.of(context)!.fee;
         break;
     }
 
@@ -415,7 +420,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 Text(
                   title,
                   style: GoogleFonts.inter(
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
                     height: 1.3,
@@ -424,7 +429,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                 const SizedBox(height: 4),
                 Text(
                   DateFormat('dd.MM.yyyy HH:mm:ss').format(tx.createdAt),
-                  style: GoogleFonts.inter(color: Colors.white38, fontSize: 11),
+                  style: GoogleFonts.inter(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),
@@ -460,21 +468,16 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+        color: AppColors.error.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFEF4444).withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline, color: Color(0xFFEF4444)),
+          const Icon(Icons.error_outline, color: AppColors.error),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              error,
-              style: const TextStyle(color: Color(0xFFEF4444)),
-            ),
+            child: Text(error, style: const TextStyle(color: AppColors.error)),
           ),
         ],
       ),

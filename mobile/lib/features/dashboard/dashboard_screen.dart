@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/l10n/app_localizations.dart';
+import 'package:mobile/core/theme/app_colors.dart';
 
 import 'package:mobile/features/dashboard/dashboard_panel.dart';
 import 'package:mobile/features/bots/bot_list_screen.dart';
@@ -35,7 +37,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, // Dark base
+      backgroundColor: AppColors.background, // Dark base
       body: Stack(
         children: [
           // Background Gradient (Same as Login)
@@ -50,8 +52,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   center: Alignment.topCenter,
                   radius: 0.8,
                   colors: [
-                    Color(0x40F59E0B), // Amber with transparency
-                    Colors.transparent,
+                    AppColors.primaryTransparent, // Amber with transparency
+                    AppColors.transparent,
                   ],
                   stops: [0.0, 1.0],
                 ),
@@ -74,24 +76,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       ),
       appBar: _currentIndex == 0 ? _buildDashboardAppBar() : null,
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(
-          0xFF0F172A,
-        ).withValues(alpha: 0.8), // Slightly transparent
-        selectedItemColor: const Color(0xFFF59E0B),
-        unselectedItemColor: Colors.white38,
+        backgroundColor: AppColors.surface.withValues(
+          alpha: 0.8,
+        ), // Slightly transparent
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.textSecondary,
         type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Panel'),
-          BottomNavigationBarItem(icon: Icon(Icons.smart_toy), label: 'Botlar'),
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view_rounded),
-            label: 'Araçlar',
+            icon: const Icon(Icons.dashboard),
+            label: AppLocalizations.of(context)!.dashboard,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance_wallet_rounded),
-            label: 'Cüzdanım',
+            icon: const Icon(Icons.smart_toy),
+            label: AppLocalizations.of(context)!.bots,
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Ayarlar'),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.grid_view_rounded),
+            label: AppLocalizations.of(context)!.tools,
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.account_balance_wallet_rounded),
+            label: AppLocalizations.of(context)!.wallet,
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.settings),
+            label: AppLocalizations.of(context)!.settings,
+          ),
         ],
         currentIndex: _currentIndex,
         onTap: (index) {
@@ -114,7 +125,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         children: [
           const Icon(
             Icons.candlestick_chart_rounded,
-            color: Color(0xFFF59E0B),
+            color: AppColors.primary,
             size: 28,
           ),
           const SizedBox(width: 12),
@@ -122,7 +133,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             'KRIPTEKS',
             style: GoogleFonts.inter(
               fontWeight: FontWeight.w800,
-              color: Colors.white,
+              color: AppColors.textPrimary,
               fontSize: 22,
               letterSpacing: 1.0,
             ),
@@ -149,7 +160,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 IconButton(
                   icon: const Icon(
                     Icons.notifications_outlined,
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     size: 26,
                   ),
                   onPressed: () => Navigator.push(
@@ -166,7 +177,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: const BoxDecoration(
-                        color: Color(0xFFEF4444),
+                        color: AppColors.error,
                         shape: BoxShape.circle,
                       ),
                       constraints: const BoxConstraints(
@@ -176,7 +187,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       child: Text(
                         '$unreadCount',
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppColors.textPrimary,
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                         ),
@@ -198,13 +209,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: isOnline
-            ? const Color(0xFF10B981).withValues(alpha: 0.1)
-            : const Color(0xFFEF4444).withValues(alpha: 0.1),
+            ? AppColors.success.withValues(alpha: 0.1)
+            : AppColors.error.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isOnline
-              ? const Color(0xFF10B981).withValues(alpha: 0.2)
-              : const Color(0xFFEF4444).withValues(alpha: 0.2),
+              ? AppColors.success.withValues(alpha: 0.2)
+              : AppColors.error.withValues(alpha: 0.2),
         ),
       ),
       child: Row(
@@ -214,17 +225,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             width: 8,
             height: 8,
             decoration: BoxDecoration(
-              color: isOnline
-                  ? const Color(0xFF10B981)
-                  : const Color(0xFFEF4444),
+              color: isOnline ? AppColors.success : AppColors.error,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color:
-                      (isOnline
-                              ? const Color(0xFF10B981)
-                              : const Color(0xFFEF4444))
-                          .withValues(alpha: 0.5),
+                  color: (isOnline ? AppColors.success : AppColors.error)
+                      .withValues(alpha: 0.5),
                   blurRadius: 4,
                 ),
               ],
@@ -232,11 +238,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
           const SizedBox(width: 8),
           Text(
-            isOnline ? 'Çevrimiçi' : 'Çevrimdışı',
+            isOnline
+                ? AppLocalizations.of(context)!.online
+                : AppLocalizations.of(context)!.offline,
             style: TextStyle(
-              color: isOnline
-                  ? const Color(0xFF10B981)
-                  : const Color(0xFFEF4444),
+              color: isOnline ? AppColors.success : AppColors.error,
               fontSize: 12,
               fontWeight: FontWeight.bold,
             ),

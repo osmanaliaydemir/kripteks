@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:mobile/core/theme/app_colors.dart';
 import 'models/dashboard_stats.dart';
 import 'providers/dashboard_provider.dart';
 import '../wallet/providers/wallet_provider.dart';
@@ -211,7 +212,7 @@ class DashboardPanel extends ConsumerWidget {
                 title: 'En İyi Parite',
                 value: stats.bestPair.isEmpty ? '-' : stats.bestPair,
                 icon: Icons.star,
-                color: const Color(0xFFF59E0B), // Amber
+                color: AppColors.primary, // Amber
               ),
             ),
           ],
@@ -237,12 +238,12 @@ class DashboardPanel extends ConsumerWidget {
       final isPositive = !value.contains('-');
       final gradientColors = isPositive
           ? [
-              const Color(0xFF064E3B), // Dark Emerald
-              const Color(0xFF1E293B), // Slate-800
+              AppColors.successDark.withValues(alpha: 0.8),
+              AppColors.successDark.withValues(alpha: 0.0),
             ]
           : [
-              const Color(0xFF7F1D1D), // Dark Red
-              const Color(0xFF1E293B), // Slate-800
+              AppColors.errorDark.withValues(alpha: 0.8),
+              AppColors.errorDark.withValues(alpha: 0.0),
             ];
 
       decoration = BoxDecoration(
@@ -263,9 +264,9 @@ class DashboardPanel extends ConsumerWidget {
       );
     } else {
       decoration = BoxDecoration(
-        color: const Color(0xFF1E293B).withValues(alpha: 0.7),
+        color: AppColors.surfaceLight.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: AppColors.white10),
       );
     }
 
@@ -282,7 +283,7 @@ class DashboardPanel extends ConsumerWidget {
                 child: Text(
                   title,
                   style: GoogleFonts.inter(
-                    color: Colors.white54,
+                    color: AppColors.textSecondary,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
@@ -308,7 +309,7 @@ class DashboardPanel extends ConsumerWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: isLarge ? 32 : (value.contains('adet') ? 14 : 20),
               fontWeight: FontWeight.bold,
-              color: isPnlCard ? Colors.white : Colors.white,
+              color: isPnlCard ? AppColors.textPrimary : AppColors.textPrimary,
             ),
           ),
           if (isPnlCard) ...[
@@ -316,7 +317,7 @@ class DashboardPanel extends ConsumerWidget {
             Text(
               'Toplam bakiye değişimi',
               style: GoogleFonts.plusJakartaSans(
-                color: Colors.white38,
+                color: AppColors.textSecondary,
                 fontSize: 12,
               ),
             ),

@@ -57,3 +57,10 @@ class SystemSetting {
     };
   }
 }
+
+class BiometricState {
+  final bool isSupported;
+  final bool isEnabled;
+
+  BiometricState({required this.isSupported, required this.isEnabled});
+}

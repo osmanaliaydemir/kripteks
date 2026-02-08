@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/core/widgets/app_header.dart';
+import 'package:mobile/l10n/app_localizations.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/auth/biometric_service.dart';
 
 import 'package:mobile/features/auth/providers/auth_provider.dart';
 import 'package:mobile/features/settings/services/profile_service.dart';
@@ -17,19 +20,22 @@ class SettingsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: const AppHeader(title: 'Ayarlar', showBackButton: false),
+      appBar: AppHeader(
+        title: AppLocalizations.of(context)!.settings,
+        showBackButton: false,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Profile Section
-            _buildSectionHeader('Profil'),
+            _buildSectionHeader(AppLocalizations.of(context)!.profile),
             profileAsync.when(
               data: (profile) => Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
+                  color: AppColors.surfaceLight,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: Colors.white10),
                 ),
@@ -37,11 +43,11 @@ class SettingsScreen extends ConsumerWidget {
                   children: [
                     CircleAvatar(
                       radius: 24,
-                      backgroundColor: const Color(0xFF3B82F6),
+                      backgroundColor: AppColors.info,
                       child: Text(
                         '${profile.firstName.isNotEmpty ? profile.firstName[0] : ''}${profile.lastName.isNotEmpty ? profile.lastName[0] : ''}',
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppColors.textPrimary,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -71,7 +77,7 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.edit, color: Color(0xFFF59E0B)),
+                      icon: const Icon(Icons.edit, color: AppColors.primary),
                       onPressed: () => context.push('/settings/profile-edit'),
                     ),
                   ],
@@ -80,68 +86,121 @@ class SettingsScreen extends ConsumerWidget {
               loading: () => Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
+                  color: AppColors.surfaceLight,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: Colors.white10),
                 ),
                 child: const Center(
-                  child: CircularProgressIndicator(color: Color(0xFFF59E0B)),
+                  child: CircularProgressIndicator(color: AppColors.primary),
                 ),
               ),
               error: (err, stack) => Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
+                  color: AppColors.surfaceLight,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: Colors.white10),
                 ),
                 child: Text(
-                  'Profil yüklenemedi',
-                  style: const TextStyle(color: Colors.red),
+                  AppLocalizations.of(context)!.profileLoadError,
+                  style: const TextStyle(color: AppColors.error),
                 ),
               ),
             ),
             const SizedBox(height: 24),
 
             // API Keys Section
-            _buildSectionHeader('Borsa Bağlantısı'),
+            _buildSectionHeader(
+              AppLocalizations.of(context)!.exchangeConnection,
+            ),
             apiStatusAsync.when(
               data: (status) => _buildApiKeyCard(context, ref, status),
               loading: () => const Center(
-                child: CircularProgressIndicator(color: Color(0xFFF59E0B)),
+                child: CircularProgressIndicator(color: AppColors.primary),
               ),
-              error: (err, stack) =>
-                  Text('Hata: $err', style: const TextStyle(color: Colors.red)),
+              error: (err, stack) => Text(
+                'Hata: $err',
+                style: const TextStyle(color: AppColors.error),
+              ),
             ),
             const SizedBox(height: 24),
 
             // App Settings
-            _buildSectionHeader('Uygulama'),
+            _buildSectionHeader(AppLocalizations.of(context)!.app),
             Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
+                color: AppColors.surfaceLight,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.white10),
               ),
               child: Column(
                 children: [
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final biometricState = ref.watch(biometricStateProvider);
+                      return biometricState.when(
+                        data: (state) {
+                          if (!state.isSupported)
+                            return const SizedBox.shrink();
+                          return Column(
+                            children: [
+                              SwitchListTile(
+                                secondary: const Icon(
+                                  Icons.fingerprint,
+                                  color: Colors.white70,
+                                ),
+                                title: Text(
+                                  AppLocalizations.of(context)!.biometricLogin,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.biometricLoginSubtitle,
+                                  style: const TextStyle(color: Colors.white38),
+                                ),
+                                value: state.isEnabled,
+                                activeColor: AppColors.primary,
+                                onChanged: (value) async {
+                                  await ref
+                                      .read(biometricServiceProvider)
+                                      .setBiometricEnabled(value);
+                                  ref.invalidate(biometricStateProvider);
+                                },
+                              ),
+                              const Divider(color: Colors.white10, height: 1),
+                            ],
+                          );
+                        },
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, __) => const SizedBox.shrink(),
+                      );
+                    },
+                  ),
                   _buildListTile(
                     icon: Icons.notifications,
-                    title: 'Bildirimler',
-                    subtitle: 'Bildirim tercihlerini yönet',
+                    title: AppLocalizations.of(context)!.notifications,
+                    subtitle: AppLocalizations.of(
+                      context,
+                    )!.notificationsSubtitle,
                     onTap: () => context.push('/settings/notifications'),
                   ),
                   const Divider(color: Colors.white10, height: 1),
                   _buildListTile(
                     icon: Icons.lock_outline,
-                    title: 'Şifre Güncelle',
-                    subtitle: 'Hesap şifrenizi değiştirin',
+                    title: AppLocalizations.of(context)!.updatePassword,
+                    subtitle: AppLocalizations.of(
+                      context,
+                    )!.updatePasswordSubtitle,
                     onTap: () => context.push('/settings/change-password'),
                   ),
                   const Divider(color: Colors.white10, height: 1),
                   _buildListTile(
                     icon: Icons.logout,
-                    title: 'Çıkış Yap',
+                    title: AppLocalizations.of(context)!.logout,
                     color: Colors.redAccent,
                     onTap: () async {
                       await ref.read(authControllerProvider.notifier).logout();
@@ -180,7 +239,7 @@ class SettingsScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white10),
       ),
@@ -191,12 +250,12 @@ class SettingsScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF3BA2F).withValues(alpha: 0.2),
+                  color: AppColors.binance.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
                   Icons.currency_bitcoin,
-                  color: Color(0xFFF3BA2F),
+                  color: AppColors.binance,
                   size: 24,
                 ),
               ),
@@ -208,17 +267,19 @@ class SettingsScreen extends ConsumerWidget {
                     const Text(
                       'Binance',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
                     ),
                     Text(
-                      isConnected ? 'Bağlı (${status.apiKey})' : 'Bağlı Değil',
+                      isConnected
+                          ? '${AppLocalizations.of(context)!.connected} (${status.apiKey})'
+                          : AppLocalizations.of(context)!.notConnected,
                       style: TextStyle(
                         color: isConnected
-                            ? const Color(0xFF10B981)
-                            : Colors.white54,
+                            ? AppColors.success
+                            : AppColors.textSecondary,
                         fontSize: 13,
                       ),
                     ),
@@ -269,21 +330,21 @@ class SettingsScreen extends ConsumerWidget {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          backgroundColor: const Color(0xFF1E293B),
-          title: const Text(
-            'API Anahtarlarını Güncelle',
-            style: TextStyle(color: Colors.white),
+          backgroundColor: AppColors.surfaceLight,
+          title: Text(
+            AppLocalizations.of(context)!.updateApiKeys,
+            style: const TextStyle(color: AppColors.textPrimary),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: apiKeyController,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'API Key',
-                  labelStyle: TextStyle(color: Colors.white54),
-                  enabledBorder: UnderlineInputBorder(
+                style: const TextStyle(color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.apiKey,
+                  labelStyle: const TextStyle(color: AppColors.textSecondary),
+                  enabledBorder: const UnderlineInputBorder(
                     borderSide: BorderSide(color: Colors.white24),
                   ),
                 ),
@@ -293,10 +354,10 @@ class SettingsScreen extends ConsumerWidget {
                 controller: secretKeyController,
                 obscureText: true,
                 style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Secret Key',
-                  labelStyle: TextStyle(color: Colors.white54),
-                  enabledBorder: UnderlineInputBorder(
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.secretKey,
+                  labelStyle: const TextStyle(color: Colors.white54),
+                  enabledBorder: const UnderlineInputBorder(
                     borderSide: BorderSide(color: Colors.white24),
                   ),
                 ),
@@ -306,7 +367,7 @@ class SettingsScreen extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('İptal'),
+              child: Text(AppLocalizations.of(context)!.cancel),
             ),
             if (isLoading)
               const CircularProgressIndicator(color: Color(0xFFF59E0B))
@@ -325,8 +386,10 @@ class SettingsScreen extends ConsumerWidget {
                     if (context.mounted) {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('API anahtarları güncellendi'),
+                        SnackBar(
+                          content: Text(
+                            AppLocalizations.of(context)!.apiKeysUpdated,
+                          ),
                         ),
                       );
                     }
@@ -342,9 +405,9 @@ class SettingsScreen extends ConsumerWidget {
                     }
                   }
                 },
-                child: const Text(
-                  'Kaydet',
-                  style: TextStyle(color: Color(0xFFF59E0B)),
+                child: Text(
+                  AppLocalizations.of(context)!.save,
+                  style: const TextStyle(color: Color(0xFFF59E0B)),
                 ),
               ),
           ],

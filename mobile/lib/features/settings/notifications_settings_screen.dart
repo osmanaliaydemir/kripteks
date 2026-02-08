@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 
 class NotificationsSettingsScreen extends ConsumerWidget {
   const NotificationsSettingsScreen({super.key});
@@ -12,9 +13,12 @@ class NotificationsSettingsScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E293B),
         elevation: 0,
-        title: const Text(
-          'Bildirim Ayarları',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Text(
+          AppLocalizations.of(context)!.notificationSettings,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -49,7 +53,7 @@ class NotificationsSettingsScreen extends ConsumerWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Bot işlemleriniz ve önemli güncellemeler hakkında bildirim alın.',
+                    AppLocalizations.of(context)!.notificationsInfo,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.7),
                       fontSize: 13,
@@ -62,56 +66,60 @@ class NotificationsSettingsScreen extends ConsumerWidget {
           const SizedBox(height: 24),
 
           // Notification Settings
-          _buildSection('Bot Bildirimleri', [
+          _buildSection(AppLocalizations.of(context)!.botNotifications, [
             _buildSwitchTile(
               context,
               icon: Icons.trending_up,
-              title: 'Alış Sinyalleri',
-              subtitle: 'Bot alış işlemi yaptığında bildirim al',
+              title: AppLocalizations.of(context)!.buySignals,
+              subtitle: AppLocalizations.of(context)!.buySignalsSubtitle,
               value: true,
               onChanged: (value) {},
             ),
             _buildSwitchTile(
               context,
               icon: Icons.trending_down,
-              title: 'Satış Sinyalleri',
-              subtitle: 'Bot satış işlemi yaptığında bildirim al',
+              title: AppLocalizations.of(context)!.sellSignals,
+              subtitle: AppLocalizations.of(context)!.sellSignalsSubtitle,
               value: true,
               onChanged: (value) {},
             ),
             _buildSwitchTile(
               context,
               icon: Icons.warning_amber,
-              title: 'Stop Loss',
-              subtitle: 'Stop loss tetiklendiğinde bildirim al',
+              title: AppLocalizations.of(context)!.stopLoss,
+              subtitle: AppLocalizations.of(context)!.stopLossSubtitle,
               value: true,
               onChanged: (value) {},
             ),
             _buildSwitchTile(
               context,
               icon: Icons.check_circle_outline,
-              title: 'Take Profit',
-              subtitle: 'Take profit hedefine ulaşıldığında bildirim al',
+              title: AppLocalizations.of(context)!.takeProfit,
+              subtitle: AppLocalizations.of(context)!.takeProfitSubtitle,
               value: true,
               onChanged: (value) {},
             ),
           ]),
           const SizedBox(height: 24),
 
-          _buildSection('Sistem Bildirimleri', [
+          _buildSection(AppLocalizations.of(context)!.systemNotifications, [
             _buildSwitchTile(
               context,
               icon: Icons.notifications_active,
-              title: 'Genel Bildirimler',
-              subtitle: 'Sistem güncellemeleri ve duyurular',
+              title: AppLocalizations.of(context)!.generalNotifications,
+              subtitle: AppLocalizations.of(
+                context,
+              )!.generalNotificationsSubtitle,
               value: true,
               onChanged: (value) {},
             ),
             _buildSwitchTile(
               context,
               icon: Icons.error_outline,
-              title: 'Hata Bildirimleri',
-              subtitle: 'Kritik hatalar hakkında bildirim al',
+              title: AppLocalizations.of(context)!.errorNotifications,
+              subtitle: AppLocalizations.of(
+                context,
+              )!.errorNotificationsSubtitle,
               value: true,
               onChanged: (value) {},
             ),
@@ -182,7 +190,7 @@ class NotificationsSettingsScreen extends ConsumerWidget {
           trailing: Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: const Color(0xFF10B981),
+            activeThumbColor: const Color(0xFF10B981),
             inactiveThumbColor: Colors.white54,
             inactiveTrackColor: Colors.white10,
           ),

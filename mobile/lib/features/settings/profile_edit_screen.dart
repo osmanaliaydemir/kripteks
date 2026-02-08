@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/features/settings/services/profile_service.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 
 class ProfileEditScreen extends ConsumerStatefulWidget {
   const ProfileEditScreen({super.key});
@@ -30,7 +31,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
         _lastNameController.text = profile.lastName;
       },
       loading: () {},
-      error: (_, __) {},
+      error: (_, _) {},
     );
   }
 
@@ -58,9 +59,9 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profil başarıyla güncellendi'),
-            backgroundColor: Color(0xFF10B981),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.profileUpdated),
+            backgroundColor: const Color(0xFF10B981),
           ),
         );
         context.pop();
@@ -87,9 +88,12 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E293B),
         elevation: 0,
-        title: const Text(
-          'Profil Düzenle',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Text(
+          AppLocalizations.of(context)!.profileEdit,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -111,7 +115,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                         radius: 50,
                         backgroundColor: const Color(0xFF3B82F6),
                         child: Text(
-                          '${profile.firstName[0]}${profile.lastName[0]}',
+                          '${profile.firstName.isNotEmpty ? profile.firstName[0] : ''}${profile.lastName.isNotEmpty ? profile.lastName[0] : ''}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 32,
@@ -143,11 +147,11 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                 // First Name
                 _buildTextField(
                   controller: _firstNameController,
-                  label: 'Ad',
+                  label: AppLocalizations.of(context)!.firstName,
                   icon: Icons.person_outline,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Ad gerekli';
+                      return AppLocalizations.of(context)!.firstNameRequired;
                     }
                     return null;
                   },
@@ -157,11 +161,11 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                 // Last Name
                 _buildTextField(
                   controller: _lastNameController,
-                  label: 'Soyad',
+                  label: AppLocalizations.of(context)!.lastName,
                   icon: Icons.person_outline,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Soyad gerekli';
+                      return AppLocalizations.of(context)!.lastNameRequired;
                     }
                     return null;
                   },
@@ -171,7 +175,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                 // Email (read-only)
                 _buildTextField(
                   initialValue: profile.email,
-                  label: 'E-posta',
+                  label: AppLocalizations.of(context)!.email,
                   icon: Icons.email_outlined,
                   enabled: false,
                 ),
@@ -201,9 +205,9 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                               strokeWidth: 2,
                             ),
                           )
-                        : const Text(
-                            'Kaydet',
-                            style: TextStyle(
+                        : Text(
+                            AppLocalizations.of(context)!.save,
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
