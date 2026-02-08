@@ -1,5 +1,5 @@
 using Binance.Net.Interfaces.Clients;
-using Kripteks.Api.Hubs;
+using Kripteks.Infrastructure.Hubs;
 using Kripteks.Core.DTOs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
@@ -117,13 +117,9 @@ public class BinanceWebSocketService : BackgroundService
             if (usdtPairs.Count == 0) return;
 
             // Calculate market overview
+            // Calculate market overview
             var totalVolume = usdtPairs.Sum(t => t.QuoteVolume);
             var avgChange = usdtPairs.Average(t => t.PriceChangePercent);
-            var gainers = usdtPairs.Count(t => t.PriceChangePercent > 0);
-            var losers = usdtPairs.Count(t => t.PriceChangePercent < 0);
-
-            var btcData = usdtPairs.FirstOrDefault(t => t.Symbol == "BTCUSDT");
-            var ethData = usdtPairs.FirstOrDefault(t => t.Symbol == "ETHUSDT");
 
             var marketOverview = new MarketOverviewDto
             {

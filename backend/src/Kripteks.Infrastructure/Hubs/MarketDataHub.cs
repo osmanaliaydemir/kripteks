@@ -1,8 +1,8 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Kripteks.Core.DTOs;
+using Microsoft.Extensions.Logging;
 
-namespace Kripteks.Api.Hubs;
+namespace Kripteks.Infrastructure.Hubs;
 
 /// <summary>
 /// Hub interface defining client-side methods for market data updates
@@ -18,7 +18,6 @@ public interface IMarketDataHubClient
 /// <summary>
 /// SignalR Hub for real-time market data streaming to mobile clients
 /// </summary>
-[Authorize]
 public class MarketDataHub : Hub<IMarketDataHubClient>
 {
     private readonly ILogger<MarketDataHub> _logger;

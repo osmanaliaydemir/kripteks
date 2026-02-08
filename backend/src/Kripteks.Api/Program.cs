@@ -207,7 +207,7 @@ using (var scope = app.Services.CreateScope())
 app.MapControllers();
 app.MapHub<Kripteks.Api.Hubs.BotHub>("/bot-hub");
 app.MapHub<Kripteks.Api.Hubs.BacktestHub>("/backtest-hub");
-app.MapHub<Kripteks.Api.Hubs.MarketDataHub>("/market-hub");
+app.MapHub<Kripteks.Infrastructure.Hubs.MarketDataHub>("/market-hub");
 
 // Ana sayfaya gelenleri dökümantasyona yönlendir
 app.MapGet("/", () => Results.Redirect("/scalar/v1"));
