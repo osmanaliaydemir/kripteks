@@ -21,7 +21,7 @@ public class CryptoPanicNewsService : INewsService
         _apiKey = configuration["NewsSettings:CryptoPanicApiKey"] ?? "";
     }
 
-    public async Task<List<NewsItem>> GetLatestNewsAsync(string symbol = "BTC")
+    public async Task<List<NewsItem>> GetLatestNewsAsync(string symbol = "")
     {
         if (string.IsNullOrEmpty(_apiKey))
         {
@@ -31,8 +31,14 @@ public class CryptoPanicNewsService : INewsService
 
         try
         {
+            var currencyFilter =
+                string.IsNullOrEmpty(symbol) || symbol.Equals("ALL", StringComparison.OrdinalIgnoreCase)
+                    ? ""
+                    : $"&currencies={symbol}";
+
             var url =
-                $"https://cryptopanic.com/api/developer/v2/posts/?auth_token={_apiKey}&currencies={symbol}&kind=news&public=true";
+                $"https://cryptopanic.com/api/developer/v2/posts/?auth_token={_apiKey}{currencyFilter}&kind=news&public=true";
+
             var response = await _httpClient.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
@@ -50,7 +56,8 @@ public class CryptoPanicNewsService : INewsService
                 return new List<NewsItem>();
             }
 
-            var news = result.Results.Take(10).Select(r => new NewsItem
+            // Daha fazla haber alalım (10 yerine 20)
+            var news = result.Results.Take(20).Select(r => new NewsItem
             {
                 Id = r.Id?.ToString() ?? Guid.NewGuid().ToString(),
                 Title = r.Title ?? "",
@@ -62,12 +69,13 @@ public class CryptoPanicNewsService : INewsService
                 IsAnalyzed = false
             }).ToList();
 
-            _logger.LogInformation("CryptoPanic V2'den {Count} haber alındı: {Symbol}", news.Count, symbol);
+            _logger.LogInformation("CryptoPanic'ten {Count} haber alındı. Filtre: {Symbol}", news.Count,
+                string.IsNullOrEmpty(symbol) ? "Tümü" : symbol);
             return news;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "CryptoPanic API çağrısı sırasında hata oluştu.");
+            _logger.LogError(ex, "CryptoPanic API çağrısı sırasında hata oluştu. Filtre: {Symbol}", symbol);
             throw;
         }
     }

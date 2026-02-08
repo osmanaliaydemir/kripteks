@@ -73,12 +73,12 @@ class _MarketIntelligenceScreenState
 class _NewsSentimentTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final newsAsync = ref.watch(newsFeedProvider('BTC'));
+    final newsAsync = ref.watch(newsFeedProvider('ALL'));
     final sentimentAsync = ref.watch(currentSentimentProvider);
 
     return RefreshIndicator(
       onRefresh: () async {
-        ref.invalidate(newsFeedProvider('BTC'));
+        ref.invalidate(newsFeedProvider('ALL'));
         ref.invalidate(currentSentimentProvider);
       },
       child: SingleChildScrollView(
@@ -302,7 +302,7 @@ class _NewsCard extends StatelessWidget {
                   ),
                   const Spacer(),
                   Text(
-                    DateFormat('HH:mm').format(item.publishedAt),
+                    DateFormat('HH:mm').format(item.publishedAt.toLocal()),
                     style: const TextStyle(color: Colors.white38, fontSize: 11),
                   ),
                 ],
