@@ -91,8 +91,6 @@ builder.Services.AddScoped<BacktestService>();
 builder.Services.AddScoped<ScannerService>();
 builder.Services.AddScoped<IBacktestRepository, Kripteks.Infrastructure.Repositories.BacktestRepository>();
 // Binance Client Ayarları (SSL bypass dahil)
-// Binance Client Ayarları (Mac SSL Bypass)
-// Binance Client Ayarları (Mac SSL Bypass için Global Çözüm yukarida HttpClientFactory ile yapildi)
 builder.Services.AddSingleton<IBinanceRestClient>(sp => new BinanceRestClient());
 builder.Services.AddSingleton<IBinanceSocketClient>(sp => new BinanceSocketClient());
 

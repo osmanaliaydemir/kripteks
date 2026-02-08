@@ -17,7 +17,7 @@ public class WhaleTrackerController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetWhaleTrades([FromQuery] int minUsdValue = 500000, [FromQuery] int count = 20)
+    public async Task<IActionResult> GetWhaleTrades([FromQuery] int minUsdValue = 100000, [FromQuery] int count = 20)
     {
         var trades = await _whaleTrackerService.GetRecentWhaleTradesAsync(minUsdValue, count);
         return Ok(trades);

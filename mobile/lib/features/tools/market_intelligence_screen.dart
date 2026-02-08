@@ -362,10 +362,10 @@ class _NewsCard extends StatelessWidget {
 class _WhaleTrackerTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final whaleAsync = ref.watch(whaleTradesProvider(500000));
+    final whaleAsync = ref.watch(whaleTradesProvider(100000));
 
     return RefreshIndicator(
-      onRefresh: () async => ref.invalidate(whaleTradesProvider(500000)),
+      onRefresh: () async => ref.invalidate(whaleTradesProvider(100000)),
       child: whaleAsync.when(
         data: (trades) => _buildWhaleList(context, trades),
         loading: () => _buildWhaleShimmer(),
