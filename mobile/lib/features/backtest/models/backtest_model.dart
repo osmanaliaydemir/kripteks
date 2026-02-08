@@ -5,6 +5,9 @@ class BacktestRequest {
   final DateTime startDate;
   final DateTime endDate;
   final double initialBalance;
+  final Map<String, dynamic>? strategyParameters;
+  final double commissionRate;
+  final double slippageRate;
 
   BacktestRequest({
     required this.symbol,
@@ -13,6 +16,9 @@ class BacktestRequest {
     required this.startDate,
     required this.endDate,
     required this.initialBalance,
+    this.strategyParameters,
+    this.commissionRate = 0.001,
+    this.slippageRate = 0.0005,
   });
 
   Map<String, dynamic> toJson() {
@@ -20,12 +26,13 @@ class BacktestRequest {
       'symbol': symbol,
       'strategyId': strategyId,
       'interval': interval,
-      // API expects YYYY-MM-DD or ISO 8601
-      'startDate':
-          "${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}",
-      'endDate':
-          "${endDate.year}-${endDate.month.toString().padLeft(2, '0')}-${endDate.day.toString().padLeft(2, '0')}",
+      // API expects ISO 8601
+      'startDate': startDate.toIso8601String(),
+      'endDate': endDate.toIso8601String(),
       'initialBalance': initialBalance,
+      'strategyParameters': strategyParameters,
+      'commissionRate': commissionRate,
+      'slippageRate': slippageRate,
     };
   }
 }

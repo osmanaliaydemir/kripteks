@@ -3,6 +3,8 @@ class AppConstants {
   // For iOS, use your machine's IP address or 'localhost' if running on macOS simulator
   static const String baseUrl = 'https://api-kripteks.runasp.net/api';
   static const String hubUrl = 'https://api-kripteks.runasp.net/bot-hub';
+  static const String marketHubUrl =
+      'https://api-kripteks.runasp.net/market-hub';
 
   static const String appName = 'Kripteks';
 }

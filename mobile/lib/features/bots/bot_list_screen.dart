@@ -479,7 +479,7 @@ class _BotCardItemState extends State<_BotCardItem> {
                   children: [
                     _buildMinimalAction(
                       icon: Icons.show_chart_rounded,
-                      onTap: () => _openTradingView(bot.symbol),
+                      onTap: () => _openTradingView(bot.symbol, bot.interval),
                     ),
                     const SizedBox(width: 6),
                     _buildMinimalAction(
@@ -640,10 +640,14 @@ class _BotCardItemState extends State<_BotCardItem> {
     );
   }
 
-  Future<void> _openTradingView(String symbol) async {
+  Future<void> _openTradingView(String symbol, String interval) async {
     try {
-      // 1. Try to open directly in the TradingView App using custom scheme
-      final appUrl = Uri.parse('tradingview://chart?symbol=BINANCE:$symbol');
+      final tvInterval = _mapIntervalToTradingView(interval);
+      // 1. Try to open directly in the TradingView App using custom scheme with path-based symbol
+      // Format: tradingview://chart/EXCHANGE:SYMBOL?interval=INTERVAL
+      final appUrl = Uri.parse(
+        'tradingview://chart/BINANCE:$symbol?interval=$tvInterval',
+      );
 
       // Attempt to launch the app scheme
       final bool launchedApp = await launchUrl(
@@ -654,15 +658,16 @@ class _BotCardItemState extends State<_BotCardItem> {
       if (!launchedApp) {
         // 2. Fallback to Browser if app is not installed or doesn't support the scheme
         final webUrl = Uri.parse(
-          'https://tr.tradingview.com/chart/RbphTzbt/?symbol=BINANCE:$symbol',
+          'https://tr.tradingview.com/chart/RbphTzbt/?symbol=BINANCE:$symbol&interval=$tvInterval',
         );
         await launchUrl(webUrl, mode: LaunchMode.externalApplication);
       }
     } catch (e) {
       // 3. Last fallback: try browser directly if first attempt threw error
       try {
+        final tvInterval = _mapIntervalToTradingView(interval);
         final webUrl = Uri.parse(
-          'https://tr.tradingview.com/chart/RbphTzbt/?symbol=BINANCE:$symbol',
+          'https://tr.tradingview.com/chart/RbphTzbt/?symbol=BINANCE:$symbol&interval=$tvInterval',
         );
         await launchUrl(webUrl, mode: LaunchMode.externalNonBrowserApplication);
       } catch (innerError) {
@@ -673,6 +678,28 @@ class _BotCardItemState extends State<_BotCardItem> {
         }
       }
     }
+  }
+
+  String _mapIntervalToTradingView(String interval) {
+    // interval formats like "1m", "15m", "1h", "4h", "1d"
+    final clean = interval.toLowerCase().trim();
+    if (clean.endsWith('m')) {
+      // "15m" -> "15"
+      return clean.replaceAll('m', '');
+    } else if (clean.endsWith('h')) {
+      // "1h" -> "60", "4h" -> "240"
+      final hours = int.tryParse(clean.replaceAll('h', '')) ?? 1;
+      return (hours * 60).toString();
+    } else if (clean.endsWith('d')) {
+      // "1d" -> "1D" or just "D"
+      // TradingView often uses "1D", "1W", "1M" for daily/weekly/monthly
+      return clean.toUpperCase();
+    } else if (clean.endsWith('w')) {
+      return clean.toUpperCase(); // "1w" -> "1W"
+    } else if (clean.endsWith('M')) {
+      return clean.toUpperCase(); // "1M" -> "1M"
+    }
+    return '60'; // default to 1h
   }
 
   String _getStatusLabel(String status) {

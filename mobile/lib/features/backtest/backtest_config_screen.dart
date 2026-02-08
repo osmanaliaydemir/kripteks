@@ -5,8 +5,10 @@ import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/providers/market_data_provider.dart';
 import 'providers/backtest_provider.dart';
 import 'models/backtest_model.dart';
+import 'models/strategy_model.dart';
 import 'backtest_result_screen.dart';
 
 class BacktestConfigScreen extends ConsumerStatefulWidget {
@@ -19,7 +21,7 @@ class BacktestConfigScreen extends ConsumerStatefulWidget {
 
 class _BacktestConfigScreenState extends ConsumerState<BacktestConfigScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _symbolController = TextEditingController(text: 'BTCUSDT');
+  String? _selectedSymbol = 'BTCUSDT';
   String? _selectedStrategyId;
   String _selectedInterval = '1h';
   final _initialBalanceController = TextEditingController(text: '1000');
@@ -33,6 +35,7 @@ class _BacktestConfigScreenState extends ConsumerState<BacktestConfigScreen> {
   Widget build(BuildContext context) {
     final strategiesAsync = ref.watch(strategiesProvider);
     final backtestRunState = ref.watch(backtestRunProvider);
+    final availablePairsAsync = ref.watch(availablePairsProvider);
     final isLoading = backtestRunState.isLoading;
 
     // Listen for success to navigate
@@ -87,128 +90,49 @@ class _BacktestConfigScreenState extends ConsumerState<BacktestConfigScreen> {
                   _buildSectionTitle('PARİTE VE STRATEJİ'),
                   const SizedBox(height: 12),
 
-                  // Symbol Input
-                  TextFormField(
-                    controller: _symbolController,
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                  // Symbol Input (Autocomplete)
+                  // Symbol Input (Dropdown)
+                  // Symbol Selector
+                  availablePairsAsync.when(
+                    data: (pairs) {
+                      // Ensure selected symbol is valid
+                      if (_selectedSymbol != null &&
+                          !pairs.contains(_selectedSymbol)) {
+                        _selectedSymbol = pairs.isNotEmpty ? pairs.first : null;
+                      } else if (_selectedSymbol == null && pairs.isNotEmpty) {
+                        _selectedSymbol = pairs.first;
+                      }
+
+                      return _buildSymbolSelector(pairs);
+                    },
+                    loading: () => const Center(
+                      child: LinearProgressIndicator(color: AppColors.primary),
                     ),
-                    decoration: _inputDecoration(
-                      'Parite (Örn: BTCUSDT)',
-                      Icons.currency_bitcoin_rounded,
+                    error: (err, stack) => TextFormField(
+                      initialValue: _selectedSymbol,
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      decoration: _inputDecoration(
+                        'Parite (Örn: BTCUSDT)',
+                        Icons.currency_bitcoin_rounded,
+                      ).copyWith(errorText: 'Pariteler yüklenemedi'),
+                      enabled: true,
+                      onChanged: (value) => _selectedSymbol = value,
                     ),
-                    validator: (value) =>
-                        value!.isEmpty ? 'Parite gereklidir' : null,
                   ),
                   const SizedBox(height: 16),
 
-                  // Strategy Dropdown
-                  strategiesAsync.when(
-                    data: (strategies) {
-                      final simulationStrategies = strategies
-                          .where(
-                            (s) =>
-                                s.category == 'simulation' ||
-                                s.category == 'both',
-                          )
-                          .toList();
-                      if (_selectedStrategyId == null &&
-                          simulationStrategies.isNotEmpty) {
-                        _selectedStrategyId = simulationStrategies.first.id;
-                      }
+                  // Strategy Selector
+                  _buildStrategySelector(strategiesAsync),
 
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface.withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white10),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _selectedStrategyId,
-                            dropdownColor: AppColors.surfaceLight,
-                            style: GoogleFonts.inter(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            isExpanded: true,
-                            icon: const Icon(
-                              Icons.keyboard_arrow_down_rounded,
-                              color: AppColors.primary,
-                            ),
-                            items: simulationStrategies
-                                .map(
-                                  (s) => DropdownMenuItem(
-                                    value: s.id,
-                                    child: Text(
-                                      s.name,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (val) =>
-                                setState(() => _selectedStrategyId = val),
-                          ),
-                        ),
-                      );
-                    },
-                    loading: () =>
-                        const LinearProgressIndicator(color: AppColors.primary),
-                    error: (err, stack) => Text(
-                      'Stratejiler yüklenemedi',
-                      style: TextStyle(color: AppColors.error),
-                    ),
-                  ),
                   const SizedBox(height: 16),
 
                   // Interval & Balance Row
                   Row(
                     children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface.withValues(alpha: 0.6),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white10),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _selectedInterval,
-                              dropdownColor: AppColors.surfaceLight,
-                              style: GoogleFonts.inter(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              isExpanded: true,
-                              icon: const Icon(
-                                Icons.timer_outlined,
-                                color: AppColors.primary,
-                                size: 18,
-                              ),
-                              items: _intervals
-                                  .map(
-                                    (i) => DropdownMenuItem(
-                                      value: i,
-                                      child: Text(i),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (val) =>
-                                  setState(() => _selectedInterval = val!),
-                            ),
-                          ),
-                        ),
-                      ),
+                      Expanded(child: _buildIntervalSelector()),
                       const SizedBox(width: 12),
                       Expanded(
                         child: TextFormField(
@@ -278,13 +202,33 @@ class _BacktestConfigScreenState extends ConsumerState<BacktestConfigScreen> {
                                 color: Colors.black,
                               ),
                             )
-                          : const Text(
-                              'Simülasyonu Başlat',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1,
-                              ),
+                          : Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                      Icons.rocket_launch_rounded,
+                                      size: 20,
+                                    )
+                                    .animate(
+                                      onPlay: (controller) =>
+                                          controller.repeat(reverse: true),
+                                    )
+                                    .scaleXY(
+                                      end: 1.2,
+                                      duration: 800.ms,
+                                      curve: Curves.easeInOut,
+                                    )
+                                    .tint(color: Colors.orangeAccent),
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'Simülasyonu Başlat',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                              ],
                             ),
                     ),
                   ),
@@ -299,16 +243,19 @@ class _BacktestConfigScreenState extends ConsumerState<BacktestConfigScreen> {
 
   void _runBacktest() {
     print(
-      'Backtest: Running with strategy $_selectedStrategyId on ${_symbolController.text}',
+      'Backtest: Running with strategy $_selectedStrategyId on $_selectedSymbol',
     );
     if (_formKey.currentState!.validate() && _selectedStrategyId != null) {
       final request = BacktestRequest(
-        symbol: _symbolController.text.toUpperCase(),
+        symbol: _selectedSymbol!.toUpperCase(),
         strategyId: _selectedStrategyId!,
         interval: _selectedInterval,
         startDate: _startDate,
         endDate: _endDate,
-        initialBalance: double.parse(_initialBalanceController.text),
+        initialBalance: double.tryParse(_initialBalanceController.text) ?? 1000,
+        strategyParameters: {}, // Default parameters
+        commissionRate: 0.001,
+        slippageRate: 0.0005,
       );
 
       ref.read(backtestRunProvider.notifier).runBacktest(request);
@@ -432,6 +379,684 @@ class _BacktestConfigScreenState extends ConsumerState<BacktestConfigScreen> {
         borderSide: const BorderSide(color: AppColors.primary),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    );
+  }
+
+  Widget _buildStrategySelector(AsyncValue<List<Strategy>> strategiesAsync) {
+    return strategiesAsync.when(
+      data: (strategies) {
+        final simulationStrategies = strategies
+            .where((s) => s.category == 'simulation' || s.category == 'both')
+            .toList();
+
+        if (simulationStrategies.isEmpty) {
+          return const SizedBox();
+        }
+
+        if (_selectedStrategyId == null && simulationStrategies.isNotEmpty) {
+          // Defer state update
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() {
+                _selectedStrategyId = simulationStrategies.first.id;
+              });
+            }
+          });
+        }
+
+        Strategy? selectedStrategy;
+        if (_selectedStrategyId != null) {
+          try {
+            selectedStrategy = simulationStrategies.firstWhere(
+              (s) => s.id == _selectedStrategyId,
+            );
+          } catch (_) {}
+        }
+
+        selectedStrategy ??= simulationStrategies.isNotEmpty
+            ? simulationStrategies.first
+            : null;
+
+        return InkWell(
+          onTap: () =>
+              _showStrategySelectionSheet(context, simulationStrategies),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surface.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.psychology_rounded,
+                    color: AppColors.primary,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Strateji',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        selectedStrategy?.name ?? 'Strateji Seçiniz',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: Colors.white54,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+      loading: () => const LinearProgressIndicator(color: AppColors.primary),
+      error: (err, stack) => Text(
+        'Stratejiler yüklenemedi',
+        style: TextStyle(color: AppColors.error),
+      ),
+    );
+  }
+
+  Widget _buildIntervalSelector() {
+    return InkWell(
+      onTap: () => _showIntervalSelectionSheet(context),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        height: 56, // Fixed height for alignment
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          color: AppColors.surface.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.timer_outlined,
+                color: AppColors.primary,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Periyot',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    _selectedInterval,
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: Colors.white54,
+              size: 18,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showIntervalSelectionSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: EdgeInsets.only(
+          top: 12,
+          bottom: MediaQuery.of(context).padding.bottom + 12,
+        ),
+        child: Wrap(
+          children: [
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 24),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  Text(
+                    'Zaman Dilimi Seçiniz',
+                    style: GoogleFonts.inter(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white54),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _intervals.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final interval = _intervals[index];
+                final isSelected = interval == _selectedInterval;
+
+                return InkWell(
+                  onTap: () {
+                    setState(() => _selectedInterval = interval);
+                    Navigator.pop(context);
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.primary.withValues(alpha: 0.1)
+                          : Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.primary
+                            : Colors.transparent,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 4,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.primary
+                                : Colors.white10,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Text(
+                          interval,
+                          style: GoogleFonts.inter(
+                            color: isSelected
+                                ? AppColors.primary
+                                : Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (isSelected)
+                          const Icon(
+                            Icons.check_circle_rounded,
+                            color: AppColors.primary,
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSymbolSelector(List<String> pairs) {
+    return InkWell(
+      onTap: () => _showSymbolSelectionSheet(context, pairs),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.currency_bitcoin_rounded,
+                color: AppColors.primary,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Parite',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _selectedSymbol ?? 'Parite Seçiniz',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: Colors.white54,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSymbolSelectionSheet(BuildContext context, List<String> pairs) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: EdgeInsets.only(
+          top: 12,
+          bottom: MediaQuery.of(context).padding.bottom + 12,
+        ),
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            String searchQuery = '';
+
+            return StatefulBuilder(
+              builder: (context, setStateSheet) {
+                final filteredPairs = pairs
+                    .where(
+                      (pair) => pair.toLowerCase().contains(
+                        searchQuery.toLowerCase(),
+                      ),
+                    )
+                    .toList();
+
+                return Column(
+                  children: [
+                    // Handle Bar
+                    Center(
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 24),
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+
+                    // Header & Close
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Row(
+                        children: [
+                          Text(
+                            'Parite Seçiniz',
+                            style: GoogleFonts.inter(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.close,
+                              color: Colors.white54,
+                            ),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Search Bar
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: TextField(
+                        onChanged: (value) {
+                          setStateSheet(() {
+                            searchQuery = value;
+                          });
+                        },
+                        style: GoogleFonts.inter(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: 'Parite Ara...',
+                          hintStyle: GoogleFonts.inter(color: Colors.white38),
+                          prefixIcon: const Icon(
+                            Icons.search,
+                            color: Colors.white54,
+                          ),
+                          filled: true,
+                          fillColor: Colors.white.withValues(alpha: 0.05),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // List
+                    Expanded(
+                      child: ListView.separated(
+                        controller: scrollController,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: filteredPairs.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final symbol = filteredPairs[index];
+                          final isSelected = symbol == _selectedSymbol;
+
+                          return InkWell(
+                            onTap: () {
+                              setState(() => _selectedSymbol = symbol);
+                              Navigator.pop(context);
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppColors.primary.withValues(alpha: 0.1)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(12),
+                                border: isSelected
+                                    ? Border.all(
+                                        color: AppColors.primary.withValues(
+                                          alpha: 0.3,
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    symbol,
+                                    style: GoogleFonts.inter(
+                                      color: isSelected
+                                          ? AppColors.primary
+                                          : Colors.white,
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  if (isSelected)
+                                    const Icon(
+                                      Icons.check_circle_rounded,
+                                      color: AppColors.primary,
+                                      size: 18,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showStrategySelectionSheet(
+    BuildContext context,
+    List<Strategy> strategies,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent, // Transparent for custom shape
+      isScrollControlled: true,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: EdgeInsets.only(
+          top: 12,
+          bottom: MediaQuery.of(context).padding.bottom + 12,
+        ),
+        // DraggableScrollableSheet for flexible height
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.5,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                // Handle Bar
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 24),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Strateji Seçiniz',
+                        style: GoogleFonts.inter(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white54),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: ListView.separated(
+                    controller: scrollController,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: strategies.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final strategy = strategies[index];
+                      final isSelected = strategy.id == _selectedStrategyId;
+
+                      return InkWell(
+                        onTap: () {
+                          setState(() => _selectedStrategyId = strategy.id);
+                          Navigator.pop(context);
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.primary.withValues(alpha: 0.1)
+                                : Colors.white.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : Colors.transparent,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              // Selection Indicator
+                              Container(
+                                width: 4,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : Colors.white10,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      strategy.name,
+                                      style: GoogleFonts.inter(
+                                        color: isSelected
+                                            ? AppColors.primary
+                                            : Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    if (strategy.description.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        strategy.description,
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          fontSize: 12,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              if (isSelected)
+                                const Icon(
+                                  Icons.check_circle_rounded,
+                                  color: AppColors.primary,
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 }

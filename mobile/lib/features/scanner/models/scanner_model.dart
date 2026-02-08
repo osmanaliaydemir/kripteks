@@ -62,10 +62,29 @@ class ScannerResultItem {
   });
 
   factory ScannerResultItem.fromJson(Map<String, dynamic> json) {
+    // Backend sends suggestedAction as TradeAction enum (string: "None", "Buy", "Sell")
+    // We need to convert to int: None=0, Buy=1, Sell=2
+    int parseSuggestedAction(dynamic value) {
+      if (value is int) return value;
+      if (value is String) {
+        switch (value) {
+          case 'None':
+            return 2; // Wait/Neutral
+          case 'Buy':
+            return 0; // Buy
+          case 'Sell':
+            return 1; // Sell
+          default:
+            return 2; // Default to Wait/Neutral
+        }
+      }
+      return 2; // Default fallback
+    }
+
     return ScannerResultItem(
       symbol: json['symbol'] as String,
       signalScore: (json['signalScore'] as num).toDouble(),
-      suggestedAction: json['suggestedAction'] as int,
+      suggestedAction: parseSuggestedAction(json['suggestedAction']),
       comment: json['comment'] as String? ?? '',
       lastPrice: (json['lastPrice'] as num).toDouble(),
     );

@@ -75,6 +75,28 @@ class BacktestResultScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard(
+                        'Toplam İşlem',
+                        '${result.totalTrades}',
+                        Colors.white,
+                        '${result.losingTrades} Kayıp',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildStatCard(
+                        'Maks. Düşüş',
+                        '%${result.maxDrawdown.toStringAsFixed(2)}',
+                        AppColors.error,
+                        'Risk',
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 24),
 
                 // Chart Section

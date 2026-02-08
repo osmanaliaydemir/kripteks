@@ -32,7 +32,7 @@ class ToolsScreen extends StatelessWidget {
                       'Stratejilerinizi geçmiş verilerle test edin ve performansını analiz edin.',
                   icon: Icons.history_edu,
                   color: const Color(0xFF6366F1),
-                  onTap: () => context.push('/backtest'),
+                  onTap: () => context.push('/simulation'),
                 )
                 .animate()
                 .fadeIn(duration: 400.ms, delay: 100.ms)

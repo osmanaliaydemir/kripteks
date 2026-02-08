@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/network/connectivity_service.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 
+import 'package:mobile/core/network/signalr_service.dart';
+import 'package:mobile/core/providers/signalr_provider.dart';
+
 class NetworkStatusBanner extends ConsumerStatefulWidget {
   final Widget child;
 
@@ -28,11 +31,22 @@ class _NetworkStatusBannerState extends ConsumerState<NetworkStatusBanner> {
   @override
   Widget build(BuildContext context) {
     final statusAsync = ref.watch(connectionStatusProvider);
+    final signalRStatusAsync = ref.watch(signalRStatusProvider);
+
+    // Determines if we are truly offline
+    // We are offline ONLY if connectivity says offline AND SignalR is disconnected
+    // If SignalR is connected, we definitely have internet, so ignore connectivity errors
+    bool isActuallyOffline(ConnectionStatus status) {
+      final signalRConnected =
+          signalRStatusAsync.value == SignalRConnectionStatus.connected;
+      if (signalRConnected) return false;
+      return status == ConnectionStatus.offline;
+    }
 
     // Listen for status changes to trigger animations/timers
     ref.listen(connectionStatusProvider, (previous, next) {
       next.whenData((status) {
-        if (status == ConnectionStatus.offline) {
+        if (isActuallyOffline(status)) {
           setState(() {
             _wasOffline = true;
             _showOnlineBanner = false;
@@ -60,7 +74,7 @@ class _NetworkStatusBannerState extends ConsumerState<NetworkStatusBanner> {
         widget.child,
         statusAsync.when(
           data: (status) {
-            if (status == ConnectionStatus.offline) {
+            if (isActuallyOffline(status)) {
               return _buildBanner(
                 context,
                 color: AppColors.error,

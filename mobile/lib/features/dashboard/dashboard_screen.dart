@@ -11,9 +11,10 @@ import 'package:mobile/features/tools/tools_screen.dart';
 import 'package:mobile/features/wallet/wallet_screen.dart';
 import 'package:mobile/features/notifications/notification_screen.dart';
 import 'package:mobile/features/notifications/providers/notification_provider.dart';
-import 'package:mobile/features/dashboard/providers/dashboard_provider.dart';
+
 import 'package:mobile/core/network/signalr_service.dart';
 import 'package:mobile/core/widgets/app_header.dart';
+import 'package:mobile/core/providers/signalr_provider.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});

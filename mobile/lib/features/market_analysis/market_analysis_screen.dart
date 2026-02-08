@@ -5,20 +5,86 @@ import 'package:mobile/features/market_analysis/providers/market_analysis_provid
 import 'package:mobile/features/market_analysis/models/market_data.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:signalr_netcore/hub_connection.dart';
 
-class MarketAnalysisScreen extends ConsumerWidget {
+class MarketAnalysisScreen extends ConsumerStatefulWidget {
   const MarketAnalysisScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MarketAnalysisScreen> createState() =>
+      _MarketAnalysisScreenState();
+}
+
+class _MarketAnalysisScreenState extends ConsumerState<MarketAnalysisScreen> {
+  int _selectedTabIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    // Watch connection state
+    final connectionState =
+        ref.watch(marketDataConnectionStateProvider).asData?.value ??
+        HubConnectionState.Disconnected;
+    final isConnected = connectionState == HubConnectionState.Connected;
+
+    // Watch live streams for real-time updates
+    final liveGainers = ref.watch(topGainersStreamProvider).asData?.value;
+    final liveLosers = ref.watch(topLosersStreamProvider).asData?.value;
+    final liveOverview = ref.watch(marketOverviewStreamProvider).asData?.value;
+
+    // Watch initial data fetch (with manual refresh support)
     final gainersAsync = ref.watch(topGainersProvider);
     final losersAsync = ref.watch(topLosersProvider);
     final volumeAsync = ref.watch(volumeHistoryProvider);
     final metricsAsync = ref.watch(marketMetricsProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      appBar: const AppHeader(title: 'Piyasa Analizi'),
+      backgroundColor: AppColors.background,
+      appBar: AppHeader(
+        title: 'Piyasa Analizi',
+        actions: [
+          // Real-time connection indicator
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: isConnected
+                        ? const Color(0xFF10B981)
+                        : Colors.orange,
+                    shape: BoxShape.circle,
+                    boxShadow: isConnected
+                        ? [
+                            BoxShadow(
+                              color: const Color(
+                                0xFF10B981,
+                              ).withValues(alpha: 0.5),
+                              blurRadius: 4,
+                              spreadRadius: 2,
+                            ),
+                          ]
+                        : [],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  isConnected ? 'Canlı' : 'Bağlanıyor...',
+                  style: TextStyle(
+                    color: isConnected
+                        ? const Color(0xFF10B981)
+                        : Colors.orange,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(marketOverviewProvider);
@@ -26,6 +92,12 @@ class MarketAnalysisScreen extends ConsumerWidget {
           ref.invalidate(topLosersProvider);
           ref.invalidate(volumeHistoryProvider);
           ref.invalidate(marketMetricsProvider);
+
+          // Reconnect SignalR if needed
+          final signalR = ref.read(marketDataSignalRProvider);
+          if (!signalR.isConnected) {
+            await signalR.connect();
+          }
         },
         color: const Color(0xFF10B981),
         backgroundColor: const Color(0xFF1E293B),
@@ -37,7 +109,22 @@ class MarketAnalysisScreen extends ConsumerWidget {
               // Market Overview Cards
               metricsAsync
                   .when(
-                    data: (metrics) => _buildMetricsGrid(context, metrics),
+                    data: (metrics) {
+                      // Update specific metrics with live data if available
+                      final displayMetrics = liveOverview != null
+                          ? MarketMetrics(
+                              fearGreedIndex: metrics.fearGreedIndex,
+                              fearGreedLabel: metrics.fearGreedLabel,
+                              totalVolume24h: liveOverview.volume24h,
+                              btcPrice: metrics
+                                  .btcPrice, // Could be updated too if we add it to Hub
+                              ethPrice: metrics.ethPrice,
+                              tradingPairs: liveOverview.activeCryptos,
+                            )
+                          : metrics;
+
+                      return _buildMetricsGrid(context, displayMetrics);
+                    },
                     loading: () => _buildLoadingCards(),
                     error: (e, _) => _buildErrorCard(e.toString()),
                   )
@@ -65,41 +152,51 @@ class MarketAnalysisScreen extends ConsumerWidget {
 
               const SizedBox(height: 24),
 
-              // Top Gainers
-              _buildSectionHeader(
-                'En Çok Kazananlar',
-                '24 saatte en yüksek artış gösteren coinler',
-                Icons.trending_up,
-                const Color(0xFF10B981),
+              // Tabs for Gainers & Losers
+              Container(
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.surface.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white10),
+                ),
+                padding: const EdgeInsets.all(4),
+                child: Row(
+                  children: [
+                    _buildTab(
+                      'En Çok Kazananlar',
+                      Icons.trending_up,
+                      const Color(0xFF10B981),
+                      0,
+                    ),
+                    _buildTab(
+                      'En Çok Kaybedenler',
+                      Icons.trending_down,
+                      const Color(0xFFF43F5E),
+                      1,
+                    ),
+                  ],
+                ),
               ).animate().fadeIn(delay: 200.ms),
-              const SizedBox(height: 12),
-              gainersAsync
-                  .when(
-                    data: (data) => _buildMoversList(data, true),
-                    loading: () => _buildLoadingList(),
-                    error: (e, _) => _buildErrorCard(e.toString()),
-                  )
-                  .animate()
-                  .fadeIn(delay: 250.ms),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
-              // Top Losers
-              _buildSectionHeader(
-                'En Çok Kaybedenler',
-                '24 saatte en düşük performans gösteren coinler',
-                Icons.trending_down,
-                const Color(0xFFF43F5E),
-              ).animate().fadeIn(delay: 300.ms),
-              const SizedBox(height: 12),
-              losersAsync
-                  .when(
-                    data: (data) => _buildMoversList(data, false),
-                    loading: () => _buildLoadingList(),
-                    error: (e, _) => _buildErrorCard(e.toString()),
-                  )
-                  .animate()
-                  .fadeIn(delay: 350.ms),
+              // Tab Content (Live data takes precedence)
+              _selectedTabIndex == 0
+                  ? (liveGainers != null
+                        ? _buildMoversList(liveGainers, true)
+                        : gainersAsync.when(
+                            data: (data) => _buildMoversList(data, true),
+                            loading: () => _buildLoadingList(),
+                            error: (e, _) => _buildErrorCard(e.toString()),
+                          ))
+                  : (liveLosers != null
+                        ? _buildMoversList(liveLosers, false)
+                        : losersAsync.when(
+                            data: (data) => _buildMoversList(data, false),
+                            loading: () => _buildLoadingList(),
+                            error: (e, _) => _buildErrorCard(e.toString()),
+                          )),
 
               const SizedBox(height: 32),
             ],
@@ -146,6 +243,46 @@ class MarketAnalysisScreen extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildTab(String title, IconData icon, Color color, int index) {
+    final isSelected = _selectedTabIndex == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedTabIndex = index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? color.withValues(alpha: 0.15)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            border: isSelected
+                ? Border.all(color: color.withValues(alpha: 0.3), width: 1)
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: isSelected ? color : Colors.white38, size: 16),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    color: isSelected ? color : Colors.white38,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    fontSize: 12,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

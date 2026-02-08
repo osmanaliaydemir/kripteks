@@ -70,10 +70,12 @@ builder.Services.AddAuthentication(options =>
             {
                 var accessToken = context.Request.Query["access_token"];
 
-                // Bot Hub'ına gelen isteklerde token varsa al
+                // SignalR Hub'larına gelen isteklerde token varsa al
                 var path = context.HttpContext.Request.Path;
                 if (!string.IsNullOrEmpty(accessToken) &&
-                    (path.StartsWithSegments("/bot-hub") || path.StartsWithSegments("/backtest-hub")))
+                    (path.StartsWithSegments("/bot-hub") ||
+                     path.StartsWithSegments("/backtest-hub") ||
+                     path.StartsWithSegments("/market-hub")))
                 {
                     context.Token = accessToken;
                 }
@@ -138,8 +140,9 @@ builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.Sma111S
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.GoldenCrossStrategy>();
 builder.Services.AddScoped<IStrategyFactory, Kripteks.Infrastructure.Strategies.StrategyFactory>();
 
-// Arka Plan Servisleri (Bot Engine)
+// Arka Plan Servisleri (Bot Engine + Market Data Stream)
 builder.Services.AddHostedService<BotEngineService>();
+builder.Services.AddHostedService<BinanceWebSocketService>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -204,6 +207,7 @@ using (var scope = app.Services.CreateScope())
 app.MapControllers();
 app.MapHub<Kripteks.Api.Hubs.BotHub>("/bot-hub");
 app.MapHub<Kripteks.Api.Hubs.BacktestHub>("/backtest-hub");
+app.MapHub<Kripteks.Api.Hubs.MarketDataHub>("/market-hub");
 
 // Ana sayfaya gelenleri dökümantasyona yönlendir
 app.MapGet("/", () => Results.Redirect("/scalar/v1"));
