@@ -151,13 +151,21 @@ builder.Services.AddControllers()
 // .NET 9 Native OpenAPI Support
 builder.Services.AddOpenApi();
 
-// CORS
+// CORS - Production ve Development için
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
         corsBuilder =>
         {
-            corsBuilder.SetIsOriginAllowed(_ => true) // SignalR İçin Önemli
+            corsBuilder
+                .WithOrigins(
+                    "https://web-kripteks.runasp.net", // Production frontend
+                    "http://localhost:3000", // Development frontend
+                    "http://localhost:5173", // Vite dev server
+                    "https://localhost:3000",
+                    "https://localhost:5173"
+                )
+                .SetIsOriginAllowed(origin => true) // Fallback: tüm originlere izin
                 .AllowAnyMethod()
                 .AllowAnyHeader()
                 .AllowCredentials(); // SignalR İçin Önemli

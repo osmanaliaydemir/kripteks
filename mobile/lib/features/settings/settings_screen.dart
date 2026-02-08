@@ -140,8 +140,9 @@ class SettingsScreen extends ConsumerWidget {
                       final biometricState = ref.watch(biometricStateProvider);
                       return biometricState.when(
                         data: (state) {
-                          if (!state.isSupported)
+                          if (!state.isSupported) {
                             return const SizedBox.shrink();
+                          }
                           return Column(
                             children: [
                               SwitchListTile(
@@ -163,7 +164,7 @@ class SettingsScreen extends ConsumerWidget {
                                   style: const TextStyle(color: Colors.white38),
                                 ),
                                 value: state.isEnabled,
-                                activeColor: AppColors.primary,
+                                activeThumbColor: AppColors.primary,
                                 onChanged: (value) async {
                                   await ref
                                       .read(biometricServiceProvider)
@@ -176,7 +177,7 @@ class SettingsScreen extends ConsumerWidget {
                           );
                         },
                         loading: () => const SizedBox.shrink(),
-                        error: (_, __) => const SizedBox.shrink(),
+                        error: (_, _) => const SizedBox.shrink(),
                       );
                     },
                   ),
