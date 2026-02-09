@@ -11,6 +11,7 @@ using Binance.Net.Clients;
 using Binance.Net.Objects.Options;
 using CryptoExchange.Net.Objects.Options;
 using System.Net;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -84,6 +85,9 @@ builder.Services.AddAuthentication(options =>
             }
         };
     });
+// Şifreleme Servisi
+builder.Services.AddSingleton<IEncryptionService, AesEncryptionService>();
+
 // Servislerin Kaydı (Dependency Injection)
 builder.Services.AddScoped<IBotService, BotService>();
 builder.Services.AddSingleton<IMarketDataService, BinanceMarketService>();
@@ -154,6 +158,36 @@ builder.Services.AddControllers()
 // .NET 9 Native OpenAPI Support
 builder.Services.AddOpenApi();
 
+// Rate Limiting — Brute force ve API abuse koruması
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    // Auth endpoint'leri için sıkı limit: IP başına 30 saniyede 5 istek
+    options.AddPolicy("auth", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromSeconds(30),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
+
+    // Genel API limiti: IP başına 1 dakikada 100 istek
+    options.AddPolicy("api", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 100,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
+});
+
 // CORS - Production ve Development için
 builder.Services.AddCors(options =>
 {
@@ -168,26 +202,33 @@ builder.Services.AddCors(options =>
                     "https://localhost:3000",
                     "https://localhost:5173"
                 )
-                .SetIsOriginAllowed(origin => true) // Fallback: tüm originlere izin
                 .AllowAnyMethod()
                 .AllowAnyHeader()
                 .AllowCredentials(); // SignalR İçin Önemli
         });
 });
 
-builder.Services.AddSignalR(hubOptions => { hubOptions.EnableDetailedErrors = true; });
+builder.Services.AddSignalR(hubOptions =>
+{
+    hubOptions.EnableDetailedErrors = builder.Environment.IsDevelopment();
+});
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseMiddleware<Kripteks.Api.Middleware.GlobalExceptionHandlerMiddleware>();
+
 app.MapOpenApi(); // Generates /openapi/v1.json
 app.MapScalarApiReference(); // Serves Scalar UI at /scalar/v1
 
-
-// app.UseHttpsRedirection(); // Localhost'ta sorun çıkarabilir
-app.UseCors("AllowAll"); // Keeping original CORS policy name as "AllowNextJs" was not defined.
-app.UseAuthentication(); // KİMLİK DOĞRULAMA (Login oldun mu?)
-app.UseAuthorization(); // YETKİLENDİRME (Yetkin var mı?)
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+app.UseCors("AllowAll");
+app.UseRateLimiter();
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Seed Data
 using (var scope = app.Services.CreateScope())

@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
+using Kripteks.Core.Helpers;
 
 namespace Kripteks.Api.Controllers;
 
@@ -66,8 +67,8 @@ public class UsersController : ControllerBase
         {
             UserName = model.Email,
             Email = model.Email,
-            FirstName = model.FirstName,
-            LastName = model.LastName,
+            FirstName = InputSanitizer.Sanitize(model.FirstName),
+            LastName = InputSanitizer.Sanitize(model.LastName),
             EmailConfirmed = true
         };
 
@@ -88,10 +89,15 @@ public class UsersController : ControllerBase
 
             await _logger.LogInfoAsync($"Yeni kullanıcı eklendi: {model.Email} ({role})");
 
-            // Mail Gönderimi (Arka planda veya await ile)
+            // Şifre belirleme linki oluştur (şifre e-postada gönderilmez)
             try
             {
-                await _emailService.SendWelcomeEmailAsync(model.Email, model.FirstName, model.Password);
+                var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+                var encodedToken = System.Net.WebUtility.UrlEncode(resetToken);
+                var encodedEmail = System.Net.WebUtility.UrlEncode(model.Email);
+                var setupUrl = $"https://web-kripteks.runasp.net/set-password?token={encodedToken}&email={encodedEmail}";
+
+                await _emailService.SendWelcomeEmailAsync(model.Email, model.FirstName, setupUrl);
             }
             catch (Exception ex)
             {
@@ -99,7 +105,7 @@ public class UsersController : ControllerBase
                 System.Console.WriteLine($"Mail gönderme hatası: {ex.Message}");
             }
 
-            return Ok(new { message = "Kullanıcı başarıyla oluşturuldu ve bilgilendirme maili gönderildi." });
+            return Ok(new { message = "Kullanıcı başarıyla oluşturuldu ve şifre belirleme linki gönderildi." });
         }
 
         return BadRequest(new { message = "Kullanıcı oluşturulurken bir hata oluştu.", errors = result.Errors });
@@ -138,9 +144,23 @@ public class UsersController : ControllerBase
 
 public class CreateUserDto
 {
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Ad zorunludur.")]
+    [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 2)]
     public string FirstName { get; set; } = string.Empty;
+
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Soyad zorunludur.")]
+    [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 2)]
     public string LastName { get; set; } = string.Empty;
+
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "E-posta zorunludur.")]
+    [System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "Geçerli bir e-posta adresi giriniz.")]
+    [System.ComponentModel.DataAnnotations.StringLength(256)]
     public string Email { get; set; } = string.Empty;
+
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Şifre zorunludur.")]
+    [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 6)]
     public string Password { get; set; } = string.Empty;
-    public string Role { get; set; } = "User"; // Varsayılan rol
+
+    [System.ComponentModel.DataAnnotations.RegularExpression("^(Admin|Trader|User)$", ErrorMessage = "Rol Admin, Trader veya User olmalıdır.")]
+    public string Role { get; set; } = "User";
 }

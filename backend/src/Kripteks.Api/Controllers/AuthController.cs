@@ -8,6 +8,9 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.AspNetCore.RateLimiting;
+using System.ComponentModel.DataAnnotations;
+using Kripteks.Core.Helpers;
 
 namespace Kripteks.Api.Controllers;
 
@@ -31,88 +34,62 @@ public class AuthController : ControllerBase
         _emailService = emailService;
     }
 
+    [EnableRateLimiting("auth")]
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto model)
     {
-        try
-        {
-            var user = new AppUser
-                { UserName = model.Email, Email = model.Email, FirstName = model.FirstName, LastName = model.LastName };
-            var result = await _userManager.CreateAsync(user, model.Password);
+        var user = new AppUser
+            { UserName = model.Email, Email = model.Email,
+              FirstName = InputSanitizer.Sanitize(model.FirstName),
+              LastName = InputSanitizer.Sanitize(model.LastName) };
+        var result = await _userManager.CreateAsync(user, model.Password);
 
-            if (result.Succeeded)
-            {
-                return Ok(new { message = "Kayıt başarılı" });
-            }
-
-            return BadRequest(result.Errors);
-        }
-        catch (Exception ex)
+        if (result.Succeeded)
         {
-            // GEÇICI DEBUG: Gerçek hatayı görmek için
-            return StatusCode(500, new
-            {
-                error = "Registration failed with exception",
-                message = ex.Message,
-                innerException = ex.InnerException?.Message,
-                stackTrace = ex.StackTrace?.Split('\n').FirstOrDefault(),
-                type = ex.GetType().Name
-            });
+            return Ok(new { message = "Kayıt başarılı" });
         }
+
+        return BadRequest(result.Errors);
     }
 
+    [EnableRateLimiting("auth")]
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto model)
     {
-        try
+        var user = await _userManager.FindByEmailAsync(model.Email);
+        if (user == null)
         {
-            var user = await _userManager.FindByEmailAsync(model.Email);
-            if (user == null)
-            {
-                await _auditLogService.LogAnonymousAsync("Giriş Denemesi Başarısız",
-                    new { model.Email, Reason = "Kullanıcı bulunamadı" });
-                return Unauthorized("Giriş başarısız");
-            }
-
-            var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
-
-            if (result.Succeeded)
-            {
-                var roles = await _userManager.GetRolesAsync(user);
-                var primaryRole = roles.FirstOrDefault() ?? "User";
-                var token = GenerateJwtToken(user, roles);
-
-                await _auditLogService.LogAsync(user.Id, "Giriş Başarılı", new { user.Email });
-                return Ok(new LoginResponseDto
-                {
-                    Token = token,
-                    User = new UserDetailDto
-                    {
-                        FirstName = user.FirstName,
-                        LastName = user.LastName,
-                        Email = user.Email ?? string.Empty,
-                        Role = primaryRole
-                    }
-                });
-            }
-
             await _auditLogService.LogAnonymousAsync("Giriş Denemesi Başarısız",
-                new { model.Email, Reason = "Hatalı şifre" });
-
+                new { model.Email, Reason = "Kullanıcı bulunamadı" });
             return Unauthorized("Giriş başarısız");
         }
-        catch (Exception ex)
+
+        var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
+
+        if (result.Succeeded)
         {
-            // GEÇICI DEBUG: Gerçek hatayı görmek için
-            return StatusCode(500, new
+            var roles = await _userManager.GetRolesAsync(user);
+            var primaryRole = roles.FirstOrDefault() ?? "User";
+            var token = GenerateJwtToken(user, roles);
+
+            await _auditLogService.LogAsync(user.Id, "Giriş Başarılı", new { user.Email });
+            return Ok(new LoginResponseDto
             {
-                error = "Login failed with exception",
-                message = ex.Message,
-                innerException = ex.InnerException?.Message,
-                stackTrace = ex.StackTrace?.Split('\n').FirstOrDefault(),
-                type = ex.GetType().Name
+                Token = token,
+                User = new UserDetailDto
+                {
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Email = user.Email ?? string.Empty,
+                    Role = primaryRole
+                }
             });
         }
+
+        await _auditLogService.LogAnonymousAsync("Giriş Denemesi Başarısız",
+            new { model.Email, Reason = "Hatalı şifre" });
+
+        return Unauthorized("Giriş başarısız");
     }
 
     private string GenerateJwtToken(AppUser user, IList<string> roles)
@@ -167,13 +144,14 @@ public class AuthController : ControllerBase
         return BadRequest(new { message = "Şifre değiştirilemedi.", errors = result.Errors });
     }
 
+    [EnableRateLimiting("auth")]
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto model)
     {
         var user = await _userManager.FindByEmailAsync(model.Email);
         if (user == null) return Ok(new { message = "Eğer hesap mevcutsa, kod gönderilecektir." });
 
-        var code = new Random().Next(100000, 999999).ToString();
+        var code = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
         user.ResetCode = code;
         user.ResetCodeExpiry = DateTime.UtcNow.AddMinutes(15);
         await _userManager.UpdateAsync(user);
@@ -184,6 +162,7 @@ public class AuthController : ControllerBase
         return Ok(new { message = "Sıfırlama kodu gönderildi." });
     }
 
+    [EnableRateLimiting("auth")]
     [HttpPost("verify-reset-code")]
     public async Task<IActionResult> VerifyResetCode([FromBody] VerifyResetCodeDto model)
     {
@@ -223,21 +202,41 @@ public class AuthController : ControllerBase
 
 public class ChangePasswordDto
 {
+    [Required(ErrorMessage = "Mevcut şifre zorunludur.")]
     public string CurrentPassword { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Yeni şifre zorunludur.")]
+    [StringLength(128, MinimumLength = 6, ErrorMessage = "Şifre en az 6, en fazla 128 karakter olmalıdır.")]
     public string NewPassword { get; set; } = string.Empty;
 }
 
 public class RegisterDto
 {
+    [Required(ErrorMessage = "E-posta zorunludur.")]
+    [EmailAddress(ErrorMessage = "Geçerli bir e-posta adresi giriniz.")]
+    [StringLength(256)]
     public string Email { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Şifre zorunludur.")]
+    [StringLength(128, MinimumLength = 6, ErrorMessage = "Şifre en az 6, en fazla 128 karakter olmalıdır.")]
     public string Password { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Ad zorunludur.")]
+    [StringLength(100, MinimumLength = 2, ErrorMessage = "Ad en az 2, en fazla 100 karakter olmalıdır.")]
     public string FirstName { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Soyad zorunludur.")]
+    [StringLength(100, MinimumLength = 2, ErrorMessage = "Soyad en az 2, en fazla 100 karakter olmalıdır.")]
     public string LastName { get; set; } = string.Empty;
 }
 
 public class LoginDto
 {
+    [Required(ErrorMessage = "E-posta zorunludur.")]
+    [EmailAddress(ErrorMessage = "Geçerli bir e-posta adresi giriniz.")]
     public string Email { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Şifre zorunludur.")]
     public string Password { get; set; } = string.Empty;
 }
 
@@ -259,18 +258,33 @@ public class UserDetailDto
 
 public class ForgotPasswordDto
 {
+    [Required(ErrorMessage = "E-posta zorunludur.")]
+    [EmailAddress(ErrorMessage = "Geçerli bir e-posta adresi giriniz.")]
     public string Email { get; set; } = string.Empty;
 }
 
 public class VerifyResetCodeDto
 {
+    [Required(ErrorMessage = "E-posta zorunludur.")]
+    [EmailAddress(ErrorMessage = "Geçerli bir e-posta adresi giriniz.")]
     public string Email { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Doğrulama kodu zorunludur.")]
+    [StringLength(6, MinimumLength = 6, ErrorMessage = "Kod 6 haneli olmalıdır.")]
     public string Code { get; set; } = string.Empty;
 }
 
 public class ResetPasswordDto
 {
+    [Required(ErrorMessage = "E-posta zorunludur.")]
+    [EmailAddress(ErrorMessage = "Geçerli bir e-posta adresi giriniz.")]
     public string Email { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Doğrulama kodu zorunludur.")]
+    [StringLength(6, MinimumLength = 6, ErrorMessage = "Kod 6 haneli olmalıdır.")]
     public string Code { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Yeni şifre zorunludur.")]
+    [StringLength(128, MinimumLength = 6, ErrorMessage = "Şifre en az 6, en fazla 128 karakter olmalıdır.")]
     public string NewPassword { get; set; } = string.Empty;
 }

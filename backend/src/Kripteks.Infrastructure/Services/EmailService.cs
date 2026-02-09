@@ -48,9 +48,9 @@ public class EmailService : IEmailService
         await client.SendMailAsync(mailMessage);
     }
 
-    public async Task SendWelcomeEmailAsync(string toEmail, string firstName, string password)
+    public async Task SendWelcomeEmailAsync(string toEmail, string firstName, string setupPasswordUrl)
     {
-        var template = GetWelcomeTemplate(firstName, toEmail, password);
+        var template = GetWelcomeTemplate(firstName, toEmail, setupPasswordUrl);
         await SendEmailAsync(toEmail, "Kripteks Yönetici Hesabınız Oluşturuldu 🚀", template);
     }
 
@@ -114,7 +114,7 @@ public class EmailService : IEmailService
 ";
     }
 
-    private string GetWelcomeTemplate(string name, string email, string password)
+    private string GetWelcomeTemplate(string name, string email, string setupPasswordUrl)
     {
         return $@"
 <!DOCTYPE html>
@@ -154,17 +154,13 @@ public class EmailService : IEmailService
                     <span class='credential-label'>Giriş E-Postanız</span>
                     <span class='credential-value' style='color: #e2e8f0;'>{email}</span>
                 </div>
-                <div class='credential-item' style='margin-bottom: 0;'>
-                    <span class='credential-label'>Geçici Şifreniz</span>
-                    <span class='credential-value'>{password}</span>
-                </div>
             </div>
 
             <p style='color: #94a3b8; font-size: 14px; margin-bottom: 30px;'>
-                Güvenliğiniz için sisteme giriş yaptıktan sonra şifrenizi değiştirmenizi öneririz.
+                Hesabınızı aktif etmek için aşağıdaki butona tıklayarak şifrenizi belirleyiniz. Bu link <strong>24 saat</strong> boyunca geçerlidir.
             </p>
 
-            <a href='http://localhost:3000/login' class='btn'>Giriş Yap</a>
+            <a href='{setupPasswordUrl}' class='btn'>Şifremi Belirle</a>
         </div>
         <div class='footer'>
             &copy; 2026 Kripteks Inc. Tüm hakları saklıdır.<br>

@@ -35,20 +35,13 @@ public class AnalyticsController : ControllerBase
     [HttpGet("test-ai")]
     public async Task<IActionResult> TestAiIntegration()
     {
-        try
-        {
-            var news = await _newsService.GetLatestNewsAsync();
-            if (!news.Any()) return Ok(new { success = false, message = "Hiç haber bulunamadı." });
+        var news = await _newsService.GetLatestNewsAsync();
+        if (!news.Any()) return Ok(new { success = false, message = "Hiç haber bulunamadı." });
 
-            var text = news.First().Title;
-            var result = await _aiService.AnalyzeTextAsync(text);
+        var text = news.First().Title;
+        var result = await _aiService.AnalyzeTextAsync(text);
 
-            return Ok(new { success = true, result });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { success = false, error = ex.Message, stack = ex.StackTrace });
-        }
+        return Ok(new { success = true, result });
     }
 
     [HttpGet("stats")]

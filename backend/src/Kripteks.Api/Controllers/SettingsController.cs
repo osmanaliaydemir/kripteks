@@ -16,11 +16,14 @@ public class SettingsController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IAuditLogService _auditLogService;
+    private readonly IEncryptionService _encryptionService;
 
-    public SettingsController(AppDbContext context, IAuditLogService auditLogService)
+    public SettingsController(AppDbContext context, IAuditLogService auditLogService,
+        IEncryptionService encryptionService)
     {
         _context = context;
         _auditLogService = auditLogService;
+        _encryptionService = encryptionService;
     }
 
     [Authorize(Roles = "Admin,Trader")]
@@ -35,10 +38,10 @@ public class SettingsController : ControllerBase
 
         if (creds == null) return Ok(new { hasKeys = false });
 
-        // Güvenlik için Secret Key'i asla tam dönmüyoruz.
-        // Sadece maskeli API Key dönüyoruz.
-        var maskedKey = creds.ApiKey.Length > 8
-            ? string.Concat(creds.ApiKey.AsSpan(0, 4), "****", creds.ApiKey.AsSpan(creds.ApiKey.Length - 4))
+        // Şifreli API Key'i çözüp maskeli dönüyoruz. Secret Key asla dönmüyor.
+        var decryptedKey = _encryptionService.Decrypt(creds.ApiKey);
+        var maskedKey = decryptedKey.Length > 8
+            ? string.Concat(decryptedKey.AsSpan(0, 4), "****", decryptedKey.AsSpan(decryptedKey.Length - 4))
             : "****";
 
         return Ok(new { hasKeys = true, apiKey = maskedKey });
@@ -57,23 +60,24 @@ public class SettingsController : ControllerBase
         var existing = await _context.ExchangeCredentials
             .FirstOrDefaultAsync(x => x.UserId == userId && x.ExchangeName == "Binance");
 
+        var encryptedApiKey = _encryptionService.Encrypt(model.ApiKey);
+        var encryptedSecret = _encryptionService.Encrypt(model.SecretKey);
+
         if (existing != null)
         {
-            // Güncelleme
-            existing.ApiKey = model.ApiKey;
-            existing.ApiSecret = model.SecretKey; // Prodüksiyonda burada şifreleme yapılmalı!
+            existing.ApiKey = encryptedApiKey;
+            existing.ApiSecret = encryptedSecret;
             existing.UpdatedAt = DateTime.UtcNow;
             _context.ExchangeCredentials.Update(existing);
         }
         else
         {
-            // Yeni Kayıt
             var newCreds = new ExchangeCredential
             {
                 UserId = userId,
                 ExchangeName = "Binance",
-                ApiKey = model.ApiKey,
-                ApiSecret = model.SecretKey, // Prodüksiyonda şifreleme!
+                ApiKey = encryptedApiKey,
+                ApiSecret = encryptedSecret,
                 CreatedAt = DateTime.UtcNow
             };
             await _context.ExchangeCredentials.AddAsync(newCreds);
@@ -266,7 +270,12 @@ public class SettingsController : ControllerBase
 
 public class ApiKeyDto
 {
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "API Key zorunludur.")]
+    [System.ComponentModel.DataAnnotations.StringLength(512, MinimumLength = 8, ErrorMessage = "API Key en az 8 karakter olmalıdır.")]
     public string ApiKey { get; set; } = string.Empty;
+
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Secret Key zorunludur.")]
+    [System.ComponentModel.DataAnnotations.StringLength(512, MinimumLength = 8, ErrorMessage = "Secret Key en az 8 karakter olmalıdır.")]
     public string SecretKey { get; set; } = string.Empty;
 }
 

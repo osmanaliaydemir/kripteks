@@ -5,6 +5,6 @@ namespace Kripteks.Core.Interfaces;
 public interface IEmailService
 {
     Task SendEmailAsync(string toEmail, string subject, string body);
-    Task SendWelcomeEmailAsync(string toEmail, string firstName, string password);
+    Task SendWelcomeEmailAsync(string toEmail, string firstName, string setupPasswordUrl);
     Task SendResetCodeEmailAsync(string toEmail, string code);
 }
