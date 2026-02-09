@@ -43,7 +43,7 @@ class TopicDetailScreen extends StatelessWidget {
                         width: double.infinity,
                         height: 220,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, _, __) => Container(
+                        errorBuilder: (context, _, _) => Container(
                           height: 220,
                           color: AppColors.surface,
                           child: const Icon(

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/network/dio_client.dart';
+import '../models/coin_pair.dart';
 import '../services/market_data_service.dart';
 
 final marketDataServiceProvider = Provider<MarketDataService>((ref) {
@@ -10,4 +11,9 @@ final marketDataServiceProvider = Provider<MarketDataService>((ref) {
 final availablePairsProvider = FutureProvider<List<String>>((ref) async {
   final service = ref.watch(marketDataServiceProvider);
   return service.getAvailablePairs();
+});
+
+final availableCoinsProvider = FutureProvider<List<CoinPair>>((ref) async {
+  final service = ref.watch(marketDataServiceProvider);
+  return service.getAvailableCoins();
 });

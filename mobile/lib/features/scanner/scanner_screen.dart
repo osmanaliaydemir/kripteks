@@ -54,7 +54,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
         return strategy.name;
       },
       loading: () => _selectedStrategy,
-      error: (_, __) => _selectedStrategy,
+      error: (_, _) => _selectedStrategy,
     );
   }
 
@@ -594,7 +594,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
         }
       },
       loading: () {},
-      error: (_, __) {
+      error: (_, _) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Stratejiler yüklenemedi')),
         );
@@ -893,7 +893,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                     controller: scrollController,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: strategies.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final strategy = strategies[index];
                       final isSelected = strategy.id == _selectedStrategy;
@@ -904,29 +904,31 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                           Navigator.pop(context);
                         },
                         borderRadius: BorderRadius.circular(16),
-                        child: Container(
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? AppColors.primary.withValues(alpha: 0.1)
-                                : Colors.white.withValues(alpha: 0.05),
+                                ? AppColors.primary.withValues(alpha: 0.06)
+                                : const Color(0xFF1A1D2E),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: isSelected
                                   ? AppColors.primary
-                                  : Colors.transparent,
+                                  : Colors.white.withValues(alpha: 0.04),
+                              width: isSelected ? 1.5 : 1,
                             ),
                           ),
                           child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Selection Indicator
                               Container(
                                 width: 4,
-                                height: 40,
+                                height: 48,
                                 decoration: BoxDecoration(
                                   color: isSelected
                                       ? AppColors.primary
-                                      : Colors.white10,
+                                      : Colors.white.withValues(alpha: 0.08),
                                   borderRadius: BorderRadius.circular(2),
                                 ),
                               ),
@@ -939,21 +941,24 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                                       strategy.name,
                                       style: GoogleFonts.inter(
                                         color: isSelected
-                                            ? AppColors.primary
-                                            : Colors.white,
-                                        fontWeight: FontWeight.bold,
+                                            ? Colors.white
+                                            : Colors.white.withValues(
+                                                alpha: 0.9,
+                                              ),
+                                        fontWeight: FontWeight.w700,
                                         fontSize: 16,
                                       ),
                                     ),
                                     if (strategy.description.isNotEmpty) ...[
-                                      const SizedBox(height: 4),
+                                      const SizedBox(height: 6),
                                       Text(
                                         strategy.description,
-                                        style: TextStyle(
+                                        style: GoogleFonts.inter(
                                           color: Colors.white.withValues(
-                                            alpha: 0.5,
+                                            alpha: 0.4,
                                           ),
-                                          fontSize: 12,
+                                          fontSize: 13,
+                                          height: 1.4,
                                         ),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
@@ -962,11 +967,17 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                                   ],
                                 ),
                               ),
-                              if (isSelected)
-                                const Icon(
-                                  Icons.check_circle_rounded,
-                                  color: AppColors.primary,
+                              if (isSelected) ...[
+                                const SizedBox(width: 12),
+                                Container(
+                                  margin: const EdgeInsets.only(top: 2),
+                                  child: const Icon(
+                                    Icons.check_circle,
+                                    color: AppColors.primary,
+                                    size: 24,
+                                  ),
                                 ),
+                              ],
                             ],
                           ),
                         ),

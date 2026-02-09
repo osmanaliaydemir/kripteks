@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../models/coin_pair.dart';
 
 class MarketDataService {
   final Dio _dio;
@@ -6,17 +7,23 @@ class MarketDataService {
   MarketDataService(this._dio);
 
   Future<List<String>> getAvailablePairs() async {
+    final coins = await getAvailableCoins();
+    return coins.map((c) => c.symbol).toList();
+  }
+
+  Future<List<CoinPair>> getAvailableCoins() async {
     try {
       final response = await _dio.get('/stocks');
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
-        // The API might return a list of objects (Maps) or Strings.
-        // The error indicates it's a List<Map<String, dynamic>>.
-        // We need to extract the symbol.
         if (data.isNotEmpty && data.first is Map) {
-          return data.map((e) => e['symbol'].toString()).toList();
+          return data
+              .map((e) => CoinPair.fromJson(e as Map<String, dynamic>))
+              .toList();
         }
-        return data.cast<String>();
+        return data
+            .map((e) => CoinPair(symbol: e.toString(), price: 0))
+            .toList();
       }
       throw Exception('Failed to load pairs');
     } catch (e) {

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/widgets/app_header.dart';
+import 'package:mobile/core/providers/market_data_provider.dart';
 import '../providers/bot_create_provider.dart';
 import '../../backtest/providers/backtest_provider.dart';
 import '../../wallet/providers/wallet_provider.dart';
@@ -291,8 +292,23 @@ class _BotCreateWizardScreenState extends ConsumerState<BotCreateWizardScreen> {
     );
   }
 
+  String _formatPrice(double price) {
+    if (price == 0) return '-';
+    if (price >= 1) {
+      return '\$${price.toStringAsFixed(2)}';
+    } else if (price >= 0.01) {
+      return '\$${price.toStringAsFixed(4)}';
+    } else {
+      // Çok küçük fiyatlar için anlamlı basamak göster
+      final str = price.toStringAsFixed(8);
+      // Sondaki gereksiz sıfırları kaldır ama en az 4 basamak kalsın
+      final trimmed = str.replaceAll(RegExp(r'0+$'), '');
+      return '\$$trimmed';
+    }
+  }
+
   Widget _buildSymbolSelectionStep(BotCreateState state) {
-    final symbolsAsync = ref.watch(availableSymbolsProvider);
+    final coinsAsync = ref.watch(availableCoinsProvider);
     final notifier = ref.read(botCreateProvider.notifier);
 
     return Padding(
@@ -327,11 +343,11 @@ class _BotCreateWizardScreenState extends ConsumerState<BotCreateWizardScreen> {
           ),
           const SizedBox(height: 16),
           Expanded(
-            child: symbolsAsync.when(
-              data: (symbols) {
-                final filtered = symbols
+            child: coinsAsync.when(
+              data: (coins) {
+                final filtered = coins
                     .where(
-                      (s) => s.toLowerCase().contains(
+                      (c) => c.symbol.toLowerCase().contains(
                         _searchController.text.toLowerCase(),
                       ),
                     )
@@ -340,58 +356,111 @@ class _BotCreateWizardScreenState extends ConsumerState<BotCreateWizardScreen> {
                 return ListView.builder(
                   itemCount: filtered.length,
                   itemBuilder: (context, index) {
-                    final symbol = filtered[index];
-                    final isSelected = state.selectedSymbol == symbol;
+                    final coin = filtered[index];
+                    final isSelected = state.selectedSymbol == coin.symbol;
 
                     return GestureDetector(
-                      onTap: () => notifier.selectSymbol(symbol),
+                      onTap: () => notifier.selectSymbol(coin.symbol),
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? AppColors.primary.withValues(alpha: 0.1)
-                              : AppColors.surfaceLight,
+                              ? AppColors.primary.withValues(alpha: 0.08)
+                              : const Color(0xFF1A1D2E),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: isSelected
                                 ? AppColors.primary
-                                : Colors.transparent,
+                                : Colors.white.withValues(alpha: 0.04),
                           ),
                         ),
                         child: Row(
                           children: [
-                            Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                color: Colors.white10,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                symbol.substring(0, 1),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            // Coin icon + selected overlay
+                            SizedBox(
+                              width: 36,
+                              height: 36,
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? AppColors.primary.withValues(
+                                              alpha: 0.2,
+                                            )
+                                          : Colors.white10,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      coin.symbol
+                                          .replaceAll('/USDT', '')
+                                          .substring(0, 1),
+                                      style: TextStyle(
+                                        color: isSelected
+                                            ? AppColors.primary
+                                            : Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isSelected)
+                                    Positioned(
+                                      right: -2,
+                                      bottom: -2,
+                                      child: Container(
+                                        width: 16,
+                                        height: 16,
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primary,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: const Color(0xFF1A1D2E),
+                                            width: 2,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.check,
+                                          color: Colors.black,
+                                          size: 10,
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
                             const SizedBox(width: 12),
-                            Text(
-                              symbol,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                            // Coin name
+                            Expanded(
+                              child: Text(
+                                coin.symbol,
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? Colors.white
+                                      : Colors.white.withValues(alpha: 0.8),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
                               ),
                             ),
-                            const Spacer(),
-                            if (isSelected)
-                              const Icon(
-                                Icons.check_circle,
-                                color: AppColors.primary,
+                            // Current price
+                            Text(
+                              _formatPrice(coin.price),
+                              style: TextStyle(
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : Colors.white.withValues(alpha: 0.5),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
                               ),
+                            ),
                           ],
                         ),
                       ),
@@ -418,19 +487,21 @@ class _BotCreateWizardScreenState extends ConsumerState<BotCreateWizardScreen> {
     final strategiesAsync = ref.watch(strategiesProvider);
 
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Hangi stratejiyi kullanacaksınız?',
-            style: GoogleFonts.inter(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 14),
+            child: Text(
+              'Hangi stratejiyi kullanacaksınız?',
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-          const SizedBox(height: 16),
           Expanded(
             child: strategiesAsync.when(
               data: (allStrategies) {
@@ -442,17 +513,50 @@ class _BotCreateWizardScreenState extends ConsumerState<BotCreateWizardScreen> {
                     )
                     .toList();
 
+                // Anlık Alım (market-buy) her zaman ilk sırada
+                strategies.sort((a, b) {
+                  if (a.id == 'strategy-market-buy') return -1;
+                  if (b.id == 'strategy-market-buy') return 1;
+                  return 0;
+                });
+
+                // Henüz strateji seçilmemişse Anlık Alım'ı otomatik seç
+                if (state.selectedStrategyId == null ||
+                    state.selectedStrategyId!.isEmpty) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (strategies.isNotEmpty) {
+                      notifier.selectStrategy(strategies.first.id);
+                    }
+                  });
+                }
+
                 if (strategies.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'Uygun strateji bulunamadı',
-                      style: TextStyle(color: Colors.white70),
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.psychology_outlined,
+                          color: Colors.white.withValues(alpha: 0.2),
+                          size: 48,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Uygun strateji bulunamadı',
+                          style: GoogleFonts.inter(
+                            color: Colors.white54,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
                     ),
                   );
                 }
 
-                return ListView.builder(
+                return ListView.separated(
+                  padding: EdgeInsets.zero,
                   itemCount: strategies.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final strategy = strategies[index];
                     final isSelected = state.selectedStrategyId == strategy.id;
@@ -461,63 +565,78 @@ class _BotCreateWizardScreenState extends ConsumerState<BotCreateWizardScreen> {
                       onTap: () => notifier.selectStrategy(strategy.id),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 14,
+                        ),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? AppColors.primary.withValues(alpha: 0.05)
-                              : AppColors.surfaceLight,
+                              ? AppColors.primary.withValues(alpha: 0.06)
+                              : const Color(0xFF1A1D2E),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: isSelected
                                 ? AppColors.primary
-                                : Colors.white.withValues(alpha: 0.05),
-                            width: isSelected ? 2 : 1,
+                                : Colors.white.withValues(alpha: 0.04),
+                            width: isSelected ? 1.5 : 1,
                           ),
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: AppColors.primary.withValues(
-                                      alpha: 0.2,
-                                    ),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ]
-                              : [],
                         ),
-                        child: Column(
+                        child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
+                            // Sol dikey accent bar
+                            Container(
+                              width: 4,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : Colors.white.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            // Strateji bilgileri
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
                                     strategy.name,
                                     style: GoogleFonts.inter(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.white.withValues(alpha: 0.9),
+                                      fontWeight: FontWeight.w700,
                                       fontSize: 16,
                                     ),
                                   ),
-                                ),
-                                if (isSelected)
-                                  const Icon(
-                                    Icons.check_circle,
-                                    color: AppColors.primary,
-                                    size: 20,
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    strategy.description,
+                                    style: GoogleFonts.inter(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.4,
+                                      ),
+                                      fontSize: 13,
+                                      height: 1.4,
+                                    ),
                                   ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              strategy.description,
-                              style: GoogleFonts.inter(
-                                color: Colors.white60,
-                                fontSize: 13,
-                                height: 1.4,
+                                ],
                               ),
                             ),
+                            // Sağ taraf checkmark
+                            if (isSelected) ...[
+                              const SizedBox(width: 12),
+                              Container(
+                                margin: const EdgeInsets.only(top: 2),
+                                child: Icon(
+                                  Icons.check_circle,
+                                  color: AppColors.primary,
+                                  size: 24,
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -525,11 +644,27 @@ class _BotCreateWizardScreenState extends ConsumerState<BotCreateWizardScreen> {
                   },
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
               error: (err, stack) => Center(
-                child: Text(
-                  'Hata: $err',
-                  style: const TextStyle(color: AppColors.error),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: AppColors.error,
+                      size: 40,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Stratejiler yüklenemedi',
+                      style: GoogleFonts.inter(
+                        color: AppColors.error,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -562,7 +697,7 @@ class _BotCreateWizardScreenState extends ConsumerState<BotCreateWizardScreen> {
               final availableBalance = walletAsync.when(
                 data: (wallet) => wallet.availableBalance,
                 loading: () => 0.0,
-                error: (_, __) => 0.0,
+                error: (_, _) => 0.0,
               );
 
               return Column(

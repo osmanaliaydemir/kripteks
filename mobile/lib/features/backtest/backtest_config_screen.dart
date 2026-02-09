@@ -242,9 +242,6 @@ class _BacktestConfigScreenState extends ConsumerState<BacktestConfigScreen> {
   }
 
   void _runBacktest() {
-    print(
-      'Backtest: Running with strategy $_selectedStrategyId on $_selectedSymbol',
-    );
     if (_formKey.currentState!.validate() && _selectedStrategyId != null) {
       final request = BacktestRequest(
         symbol: _selectedSymbol!.toUpperCase(),
@@ -608,7 +605,7 @@ class _BacktestConfigScreenState extends ConsumerState<BacktestConfigScreen> {
               physics: const NeverScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: _intervals.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final interval = _intervals[index];
                 final isSelected = interval == _selectedInterval;
@@ -845,7 +842,7 @@ class _BacktestConfigScreenState extends ConsumerState<BacktestConfigScreen> {
                         controller: scrollController,
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         itemCount: filteredPairs.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        separatorBuilder: (_, _) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {
                           final symbol = filteredPairs[index];
                           final isSelected = symbol == _selectedSymbol;
@@ -976,7 +973,7 @@ class _BacktestConfigScreenState extends ConsumerState<BacktestConfigScreen> {
                     controller: scrollController,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: strategies.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final strategy = strategies[index];
                       final isSelected = strategy.id == _selectedStrategyId;
@@ -987,29 +984,31 @@ class _BacktestConfigScreenState extends ConsumerState<BacktestConfigScreen> {
                           Navigator.pop(context);
                         },
                         borderRadius: BorderRadius.circular(16),
-                        child: Container(
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? AppColors.primary.withValues(alpha: 0.1)
-                                : Colors.white.withValues(alpha: 0.05),
+                                ? AppColors.primary.withValues(alpha: 0.06)
+                                : const Color(0xFF1A1D2E),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: isSelected
                                   ? AppColors.primary
-                                  : Colors.transparent,
+                                  : Colors.white.withValues(alpha: 0.04),
+                              width: isSelected ? 1.5 : 1,
                             ),
                           ),
                           child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Selection Indicator
                               Container(
                                 width: 4,
-                                height: 40,
+                                height: 48,
                                 decoration: BoxDecoration(
                                   color: isSelected
                                       ? AppColors.primary
-                                      : Colors.white10,
+                                      : Colors.white.withValues(alpha: 0.08),
                                   borderRadius: BorderRadius.circular(2),
                                 ),
                               ),
@@ -1022,21 +1021,24 @@ class _BacktestConfigScreenState extends ConsumerState<BacktestConfigScreen> {
                                       strategy.name,
                                       style: GoogleFonts.inter(
                                         color: isSelected
-                                            ? AppColors.primary
-                                            : Colors.white,
-                                        fontWeight: FontWeight.bold,
+                                            ? Colors.white
+                                            : Colors.white.withValues(
+                                                alpha: 0.9,
+                                              ),
+                                        fontWeight: FontWeight.w700,
                                         fontSize: 16,
                                       ),
                                     ),
                                     if (strategy.description.isNotEmpty) ...[
-                                      const SizedBox(height: 4),
+                                      const SizedBox(height: 6),
                                       Text(
                                         strategy.description,
-                                        style: TextStyle(
+                                        style: GoogleFonts.inter(
                                           color: Colors.white.withValues(
-                                            alpha: 0.5,
+                                            alpha: 0.4,
                                           ),
-                                          fontSize: 12,
+                                          fontSize: 13,
+                                          height: 1.4,
                                         ),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
@@ -1045,11 +1047,17 @@ class _BacktestConfigScreenState extends ConsumerState<BacktestConfigScreen> {
                                   ],
                                 ),
                               ),
-                              if (isSelected)
-                                const Icon(
-                                  Icons.check_circle_rounded,
-                                  color: AppColors.primary,
+                              if (isSelected) ...[
+                                const SizedBox(width: 12),
+                                Container(
+                                  margin: const EdgeInsets.only(top: 2),
+                                  child: const Icon(
+                                    Icons.check_circle,
+                                    color: AppColors.primary,
+                                    size: 24,
+                                  ),
                                 ),
+                              ],
                             ],
                           ),
                         ),
