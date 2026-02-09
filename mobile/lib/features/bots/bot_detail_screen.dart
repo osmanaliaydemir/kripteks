@@ -94,25 +94,13 @@ class BotDetailScreen extends ConsumerWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          bot.symbol,
-                          style: GoogleFonts.inter(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        Text(
-                          bot.strategyName,
-                          style: GoogleFonts.inter(
-                            color: Colors.white54,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      bot.symbol,
+                      style: GoogleFonts.inter(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                     _buildStatusChip(bot.status),
                   ],
@@ -135,33 +123,125 @@ class BotDetailScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
+                // Stop Button inside Header Card
+                if (bot.status == 'Running' ||
+                    bot.status == 'WaitingForEntry') ...[
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _stopBot(ref, context),
+                      icon: const Icon(Icons.stop_rounded),
+                      label: const Text('Durdur'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFEF4444),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1, end: 0),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
-          // Actions
-          if (bot.status == 'Running' || bot.status == 'WaitingForEntry') ...[
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _stopBot(ref, context),
-                icon: const Icon(Icons.stop_rounded),
-                label: const Text('Durdur'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEF4444),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+          // Bot Configuration Section
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B).withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Bot Ayarları',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
-                  elevation: 0,
                 ),
-              ),
-            ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
-            const SizedBox(height: 32),
-          ],
+                const SizedBox(height: 16),
+                _buildConfigRow(
+                  'Strateji',
+                  _formatStrategyName(bot.strategyName),
+                  Icons.psychology_rounded,
+                ),
+                const Divider(color: Colors.white10, height: 24),
+                _buildConfigRow(
+                  'Zaman Aralığı',
+                  _formatInterval(bot.interval),
+                  Icons.schedule_rounded,
+                ),
+                if (bot.entryDate != null) ...[
+                  const Divider(color: Colors.white10, height: 24),
+                  _buildConfigRow(
+                    'Giriş Tarihi',
+                    _formatDateTime(bot.entryDate!),
+                    Icons.login_rounded,
+                  ),
+                ],
+                if (bot.exitDate != null) ...[
+                  const Divider(color: Colors.white10, height: 24),
+                  _buildConfigRow(
+                    'Çıkış Tarihi',
+                    _formatDateTime(bot.exitDate!),
+                    Icons.logout_rounded,
+                  ),
+                ],
+                const Divider(color: Colors.white10, height: 24),
+                _buildConfigRow(
+                  'Stop Loss',
+                  bot.stopLoss != null
+                      ? '%${bot.stopLoss!.toStringAsFixed(1)}'
+                      : 'Kapalı',
+                  Icons.arrow_downward_rounded,
+                  valueColor: bot.stopLoss != null
+                      ? const Color(0xFFEF4444)
+                      : Colors.white38,
+                ),
+                const Divider(color: Colors.white10, height: 24),
+                _buildConfigRow(
+                  'Take Profit',
+                  bot.takeProfit != null
+                      ? '%${bot.takeProfit!.toStringAsFixed(1)}'
+                      : 'Kapalı',
+                  Icons.arrow_upward_rounded,
+                  valueColor: bot.takeProfit != null
+                      ? const Color(0xFF10B981)
+                      : Colors.white38,
+                ),
+                const Divider(color: Colors.white10, height: 24),
+                _buildConfigRow(
+                  'Trailing Stop',
+                  bot.isTrailingStop ? 'Aktif' : 'Pasif',
+                  Icons.trending_up_rounded,
+                  valueColor: bot.isTrailingStop
+                      ? const Color(0xFF3B82F6)
+                      : Colors.white38,
+                ),
+                if (bot.isTrailingStop && bot.trailingStopDistance != null) ...[
+                  const Divider(color: Colors.white10, height: 24),
+                  _buildConfigRow(
+                    'Takip Mesafesi',
+                    '%${bot.trailingStopDistance!.toStringAsFixed(1)}',
+                    Icons.straighten_rounded,
+                  ),
+                ],
+              ],
+            ),
+          ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1, end: 0),
+
+          const SizedBox(height: 24),
 
           Text(
             'İşlem Kayıtları', // Changed from 'Geçmiş İşlemler'
@@ -407,5 +487,78 @@ class BotDetailScreen extends ConsumerWidget {
   String _formatDate(DateTime date) {
     final localDate = date.toLocal();
     return '${localDate.hour.toString().padLeft(2, '0')}:${localDate.minute.toString().padLeft(2, '0')}:${localDate.second.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildConfigRow(
+    String label,
+    String value,
+    IconData icon, {
+    Color? valueColor,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: Colors.white54, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: GoogleFonts.inter(color: Colors.white54, fontSize: 14),
+          ),
+        ),
+        Text(
+          value,
+          style: GoogleFonts.inter(
+            color: valueColor ?? Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatInterval(String interval) {
+    const intervalMap = {
+      '1m': '1 Dakika',
+      '3m': '3 Dakika',
+      '5m': '5 Dakika',
+      '15m': '15 Dakika',
+      '30m': '30 Dakika',
+      '1h': '1 Saat',
+      '2h': '2 Saat',
+      '4h': '4 Saat',
+      '6h': '6 Saat',
+      '8h': '8 Saat',
+      '12h': '12 Saat',
+      '1d': '1 Gün',
+      '3d': '3 Gün',
+      '1w': '1 Hafta',
+      '1M': '1 Ay',
+    };
+    return intervalMap[interval] ?? interval;
+  }
+
+  String _formatStrategyName(String strategyId) {
+    const strategyMap = {
+      'strategy-golden-rose': 'Altın Kesişim Trendi',
+      'strategy-sma111': 'SMA 111',
+      'strategy-rsi-scalper': 'RSI Skalper',
+      'strategy-macd-cross': 'MACD Kesişim',
+      'strategy-bollinger': 'Bollinger Bandı',
+      'strategy-market-buy': 'Hemen Al',
+    };
+    return strategyMap[strategyId] ?? strategyId;
+  }
+
+  String _formatDateTime(DateTime date) {
+    final localDate = date.toLocal();
+    return '${localDate.day.toString().padLeft(2, '0')}.${localDate.month.toString().padLeft(2, '0')}.${localDate.year} ${localDate.hour.toString().padLeft(2, '0')}:${localDate.minute.toString().padLeft(2, '0')}';
   }
 }

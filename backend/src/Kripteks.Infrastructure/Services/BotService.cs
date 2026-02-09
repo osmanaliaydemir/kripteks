@@ -35,6 +35,9 @@ public class BotService : IBotService
                 CreatedAt = DateTime.SpecifyKind(b.CreatedAt, DateTimeKind.Utc),
                 Pnl = b.CurrentPnl,
                 PnlPercent = b.CurrentPnlPercent,
+                EntryPrice = b.EntryPrice,
+                EntryDate = b.EntryDate.HasValue ? DateTime.SpecifyKind(b.EntryDate.Value, DateTimeKind.Utc) : null,
+                ExitDate = b.ExitDate.HasValue ? DateTime.SpecifyKind(b.ExitDate.Value, DateTimeKind.Utc) : null,
                 IsTrailingStop = b.IsTrailingStop,
                 TrailingStopDistance = b.TrailingStopDistance,
                 MaxPriceReached = b.MaxPriceReached,
@@ -82,6 +85,9 @@ public class BotService : IBotService
             CreatedAt = DateTime.SpecifyKind(bot.CreatedAt, DateTimeKind.Utc),
             Pnl = bot.CurrentPnl,
             PnlPercent = bot.CurrentPnlPercent,
+            EntryPrice = bot.EntryPrice,
+            EntryDate = bot.EntryDate.HasValue ? DateTime.SpecifyKind(bot.EntryDate.Value, DateTimeKind.Utc) : null,
+            ExitDate = bot.ExitDate.HasValue ? DateTime.SpecifyKind(bot.ExitDate.Value, DateTimeKind.Utc) : null,
             Logs = logs.Select(l => new LogDto
             {
                 Id = l.Id,

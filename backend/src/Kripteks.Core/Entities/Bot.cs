@@ -14,6 +14,8 @@ public class Bot
 
     // Yeni Alanlar
     public decimal EntryPrice { get; set; } // İşleme Giriş Fiyatı
+    public DateTime? EntryDate { get; set; } // İşleme Giriş Tarihi
+    public DateTime? ExitDate { get; set; } // İşlemden Çıkış Tarihi
     public decimal CurrentPnl { get; set; } // Anlık Kar/Zarar (USDT)
     public decimal CurrentPnlPercent { get; set; } // Anlık Kar/Zarar (%)
 

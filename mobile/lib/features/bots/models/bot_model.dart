@@ -11,6 +11,8 @@ class Bot {
   final double pnlPercent;
   final DateTime createdAt;
   final double entryPrice;
+  final DateTime? entryDate;
+  final DateTime? exitDate;
   final double currentPnl;
   final double currentPnlPercent;
   final bool isTrailingStop;
@@ -32,6 +34,8 @@ class Bot {
     required this.pnlPercent,
     required this.createdAt,
     required this.entryPrice,
+    this.entryDate,
+    this.exitDate,
     required this.currentPnl,
     required this.currentPnlPercent,
     required this.isTrailingStop,
@@ -57,6 +61,12 @@ class Bot {
           DateTime.tryParse(json['createdAt'] as String? ?? '') ??
           DateTime.now(),
       entryPrice: (json['entryPrice'] as num?)?.toDouble() ?? 0.0,
+      entryDate: json['entryDate'] != null
+          ? DateTime.tryParse(json['entryDate'] as String)
+          : null,
+      exitDate: json['exitDate'] != null
+          ? DateTime.tryParse(json['exitDate'] as String)
+          : null,
       currentPnl: (json['currentPnl'] as num?)?.toDouble() ?? 0.0,
       currentPnlPercent: (json['currentPnlPercent'] as num?)?.toDouble() ?? 0.0,
       isTrailingStop: json['isTrailingStop'] as bool? ?? false,

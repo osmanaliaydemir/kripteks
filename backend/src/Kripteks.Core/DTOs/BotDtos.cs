@@ -18,6 +18,8 @@ public class BotDto
     public decimal EntryPrice { get; set; }
     public decimal CurrentPnl { get; set; }
     public decimal CurrentPnlPercent { get; set; }
+    public DateTime? EntryDate { get; set; }
+    public DateTime? ExitDate { get; set; }
     public List<LogDto> Logs { get; set; } = new();
     public bool IsTrailingStop { get; set; }
     public decimal? TrailingStopDistance { get; set; }

@@ -44,7 +44,7 @@ class BotService {
 
   Future<void> createBot(BotCreateRequest request) async {
     try {
-      await _dio.post('/bots', data: request.toJson());
+      await _dio.post('/bots/start', data: request.toJson());
     } catch (e) {
       throw Exception('Failed to create bot: $e');
     }

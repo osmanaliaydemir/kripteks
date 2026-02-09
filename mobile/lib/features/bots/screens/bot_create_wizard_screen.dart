@@ -215,37 +215,72 @@ class _BotCreateWizardScreenState extends ConsumerState<BotCreateWizardScreen> {
                 if (state.currentStep > 0) const SizedBox(width: 16),
                 Expanded(
                   flex: 2,
-                  child: ElevatedButton(
-                    onPressed: state.isLoading
+                  child: GestureDetector(
+                    onTap: state.isLoading
                         ? null
                         : (state.currentStep == 3 ? _createBot : _nextPage),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.black,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
+                      decoration: BoxDecoration(
+                        gradient: state.isLoading
+                            ? null
+                            : const LinearGradient(
+                                colors: [AppColors.primary, Color(0xFFE6C200)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                        color: state.isLoading
+                            ? AppColors.primary.withValues(alpha: 0.5)
+                            : null,
                         borderRadius: BorderRadius.circular(12),
+                        boxShadow: state.isLoading
+                            ? []
+                            : [
+                                BoxShadow(
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.3,
+                                  ),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                       ),
-                      disabledBackgroundColor: AppColors.primary.withValues(
-                        alpha: 0.5,
-                      ),
+                      child: state.isLoading
+                          ? const Center(
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.black,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  state.currentStep == 3
+                                      ? Icons.rocket_launch_rounded
+                                      : Icons.arrow_forward_rounded,
+                                  color: Colors.black,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  state.currentStep == 3
+                                      ? 'Oluştur'
+                                      : 'Devam Et',
+                                  style: GoogleFonts.inter(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
                     ),
-                    child: state.isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.black,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : Text(
-                            state.currentStep == 3 ? 'Oluştur' : 'Devam Et',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
                   ),
                 ),
               ],
@@ -1249,13 +1284,15 @@ class _BotCreateWizardScreenState extends ConsumerState<BotCreateWizardScreen> {
                   const Divider(color: Colors.white10),
                   _buildSummaryItem(
                     'Stop Loss',
-                    state.stopLoss != null ? '%${state.stopLoss}' : 'Kapalı',
+                    state.stopLoss != null
+                        ? '%${state.stopLoss!.toStringAsFixed(1)}'
+                        : 'Kapalı',
                     isSecondary: state.stopLoss == null,
                   ),
                   _buildSummaryItem(
                     'Take Profit',
                     state.takeProfit != null
-                        ? '%${state.takeProfit}'
+                        ? '%${state.takeProfit!.toStringAsFixed(1)}'
                         : 'Kapalı',
                     isSecondary: state.takeProfit == null,
                   ),
@@ -1267,7 +1304,7 @@ class _BotCreateWizardScreenState extends ConsumerState<BotCreateWizardScreen> {
                   if (state.isTrailingStop)
                     _buildSummaryItem(
                       'Takip Mesafesi',
-                      '%${state.trailingStopDistance}',
+                      '%${state.trailingStopDistance?.toStringAsFixed(1) ?? '0'}',
                     ),
                 ],
               ),
