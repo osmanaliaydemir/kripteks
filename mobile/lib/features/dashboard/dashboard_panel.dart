@@ -238,12 +238,14 @@ class DashboardPanel extends ConsumerWidget {
       final isPositive = !value.contains('-');
       final gradientColors = isPositive
           ? [
-              AppColors.successDark.withValues(alpha: 0.8),
-              AppColors.successDark.withValues(alpha: 0.0),
+              AppColors.successDark.withValues(alpha: 0.9),
+              AppColors.successDark.withValues(alpha: 0.3),
+              AppColors.surface,
             ]
           : [
-              AppColors.errorDark.withValues(alpha: 0.8),
-              AppColors.errorDark.withValues(alpha: 0.0),
+              AppColors.errorDark.withValues(alpha: 0.9),
+              AppColors.errorDark.withValues(alpha: 0.3),
+              AppColors.surface,
             ];
 
       decoration = BoxDecoration(
@@ -252,26 +254,34 @@ class DashboardPanel extends ConsumerWidget {
           end: Alignment.bottomRight,
           colors: gradientColors,
         ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha: 0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: color.withValues(alpha: 0.25),
+            blurRadius: 20,
+            spreadRadius: -5,
+            offset: const Offset(0, 10),
           ),
         ],
       );
     } else {
       decoration = BoxDecoration(
-        color: AppColors.surfaceLight.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.white10),
+        color: AppColors.surfaceLight.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       );
     }
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(isLarge ? 24 : 20),
       decoration: decoration,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -281,45 +291,69 @@ class DashboardPanel extends ConsumerWidget {
             children: [
               Expanded(
                 child: Text(
-                  title,
+                  title.toUpperCase(),
                   style: GoogleFonts.inter(
-                    color: AppColors.textSecondary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
+                    color: isPnlCard ? Colors.white70 : AppColors.textSecondary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
                   ),
                   overflow: TextOverflow.ellipsis,
-                  maxLines: 2,
+                  maxLines: 1,
                 ),
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      color.withValues(alpha: 0.2),
+                      color.withValues(alpha: 0.05),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: color.withValues(alpha: 0.2)),
                 ),
-                child: Icon(icon, color: color, size: 16),
+                child: Icon(icon, color: color, size: isLarge ? 20 : 16),
               ),
             ],
           ),
-          SizedBox(height: isLarge ? 16 : 12),
+          SizedBox(height: isLarge ? 20 : 14),
           Text(
             value,
             style: GoogleFonts.plusJakartaSans(
-              fontSize: isLarge ? 32 : (value.contains('adet') ? 14 : 20),
-              fontWeight: FontWeight.bold,
-              color: isPnlCard ? AppColors.textPrimary : AppColors.textPrimary,
+              fontSize: isLarge ? 36 : (value.contains('adet') ? 14 : 22),
+              fontWeight: FontWeight.w800,
+              color: isPnlCard ? Colors.white : AppColors.textPrimary,
+              height: 1.1,
             ),
           ),
           if (isPnlCard) ...[
-            const SizedBox(height: 4),
-            Text(
-              'Toplam bakiye değişimi',
-              style: GoogleFonts.plusJakartaSans(
-                color: AppColors.textSecondary,
-                fontSize: 12,
-              ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Toplam bakiye değişimi',
+                    style: GoogleFonts.inter(
+                      color: Colors.white70,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ],

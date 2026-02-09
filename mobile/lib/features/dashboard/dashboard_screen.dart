@@ -76,42 +76,84 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ],
       ),
       appBar: _currentIndex == 0 ? _buildDashboardAppBar() : null,
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: AppColors.surface.withValues(
-          alpha: 0.8,
-        ), // Slightly transparent
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textSecondary,
-        type: BottomNavigationBarType.fixed,
-        items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.dashboard),
-            label: AppLocalizations.of(context)!.dashboard,
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface.withValues(alpha: 0.95),
+          border: Border(
+            top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.smart_toy),
-            label: AppLocalizations.of(context)!.bots,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.grid_view_rounded),
-            label: AppLocalizations.of(context)!.tools,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.account_balance_wallet_rounded),
-            label: AppLocalizations.of(context)!.wallet,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.settings),
-            label: AppLocalizations.of(context)!.settings,
-          ),
-        ],
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 15,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          selectedItemColor: AppColors.primary,
+          unselectedItemColor: AppColors.textSecondary.withValues(alpha: 0.5),
+          type: BottomNavigationBarType.fixed,
+          selectedFontSize: 11,
+          unselectedFontSize: 10,
+          items: [
+            _buildNavItem(
+              Icons.dashboard_rounded,
+              AppLocalizations.of(context)!.dashboard,
+              0,
+            ),
+            _buildNavItem(
+              Icons.smart_toy_rounded,
+              AppLocalizations.of(context)!.bots,
+              1,
+            ),
+            _buildNavItem(
+              Icons.grid_view_rounded,
+              AppLocalizations.of(context)!.tools,
+              2,
+            ),
+            _buildNavItem(
+              Icons.account_balance_wallet_rounded,
+              AppLocalizations.of(context)!.wallet,
+              3,
+            ),
+            _buildNavItem(
+              Icons.settings_rounded,
+              AppLocalizations.of(context)!.settings,
+              4,
+            ),
+          ],
+          currentIndex: _currentIndex,
+          onTap: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+        ),
       ),
+    );
+  }
+
+  BottomNavigationBarItem _buildNavItem(
+    IconData icon,
+    String label,
+    int index,
+  ) {
+    final isSelected = _currentIndex == index;
+    return BottomNavigationBarItem(
+      icon: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.15)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, size: isSelected ? 26 : 22),
+      ),
+      label: label,
     );
   }
 
