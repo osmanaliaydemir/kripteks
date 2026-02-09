@@ -9,7 +9,7 @@ public class AlphaTrendStrategy : IStrategy
     public string Name => "Alfa Trend Takibi";
 
     public string Description =>
-        "EMA 20 (Hızlı) ve EMA 50 (Yavaş) üstel hareketli ortalama kesişimlerini temel alan trend takip stratejisi. Yanıltıcı sinyalleri elemek için RSI (14) momentum filtresi kullanır; RSI'ın 50 üzerindeki kalıcılığına ve hacim desteğine göre trend başlangıçlarını saptamaya çalışır.";
+        "EMA 20 (Hızlı) ve EMA 50 (Yavaş) üstel hareketli ortalama kesişimlerini temel alan trend takip stratejisi. Giriş için RSI (14) filtresini kullanır (aşırı alımda girmez). Çıkış için EMA negatif kesişim (Death Cross) veya RSI aşırı alım + EMA yakınlaşması (trend zayıflaması) koşullarını birlikte değerlendirir. Hedef: %5, Stop: %3.";
 
     public StrategyCategory Category => StrategyCategory.Trading;
 
@@ -75,17 +75,30 @@ public class AlphaTrendStrategy : IStrategy
         else
         {
             // SATIŞ MANTIĞI
-            // 1. Death Cross: Fast EMA, Slow EMA'yı aşağı keserse
+            // 1. Death Cross: Fast EMA, Slow EMA'yı aşağı keserse → Kesin satış
             bool isDeathCross = prevFast >= prevSlow && currentFast < currentSlow;
 
-            // 2. RSI Overbought: RSI çok yükselirse
-            bool isOverbought = currentRsi > _rsiSellThreshold;
-
-            if (isDeathCross || isOverbought)
+            if (isDeathCross)
             {
                 result.Action = TradeAction.Sell;
-                result.Description =
-                    isDeathCross ? "SATIŞ: EMA Negatif Kesişim" : $"SATIŞ: RSI Aşırı Alım ({currentRsi:F1})";
+                result.Description = "SATIŞ: EMA Negatif Kesişim (Death Cross)";
+            }
+            // 2. RSI Overbought + EMA yakınlaşması → Trend zayıflıyor
+            // Tek başına RSI yüksek olması güçlü trendde normaldir.
+            // RSI satışı ancak trend de zayıflıyorsa tetiklenmeli.
+            else if (currentRsi > _rsiSellThreshold)
+            {
+                // EMA farkı daralıyorsa → trend zayıflıyor
+                decimal emaGap = (currentFast.Value - currentSlow.Value) / currentSlow.Value * 100;
+                decimal prevEmaGap = (prevFast.Value - prevSlow.Value) / prevSlow.Value * 100;
+
+                // EMA farkı daralmaya başladıysa ve RSI çok yüksekse → momentum kaybı
+                if (emaGap < prevEmaGap || currentRsi > 80)
+                {
+                    result.Action = TradeAction.Sell;
+                    result.Description =
+                        $"SATIŞ: RSI Aşırı Alım ({currentRsi:F1}) + Trend Zayıflıyor (EMA Gap: %{emaGap:F2})";
+                }
             }
         }
 
@@ -95,7 +108,7 @@ public class AlphaTrendStrategy : IStrategy
     public decimal CalculateSignalScore(List<Candle> candles)
     {
         int maxPeriod = Math.Max(_slowEma, _rsiPeriod) + 1;
-        if (candles.Count < maxPeriod) return 50;
+        if (candles.Count < maxPeriod) return 0;
 
         var prices = candles.Select(c => c.Close).ToList();
         var fastEmaList = TechnicalIndicators.CalculateEma(prices, _fastEma);

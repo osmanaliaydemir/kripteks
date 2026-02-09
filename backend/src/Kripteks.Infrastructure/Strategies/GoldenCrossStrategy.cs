@@ -88,10 +88,9 @@ public class GoldenCrossStrategy : IStrategy
         var shortSmaList = TechnicalIndicators.CalculateSma(prices, _shortPeriod);
         var longSmaList = TechnicalIndicators.CalculateSma(prices, _longPeriod);
 
-        // Son değerler
         var currentShort = shortSmaList.Last();
         var currentLong = longSmaList.Last();
-        
+
         if (currentShort == null || currentLong == null) return 0;
 
         // Son 3 mum içinde kesişim var mı?
@@ -102,7 +101,7 @@ public class GoldenCrossStrategy : IStrategy
             int previousIdx = currentIdx - 1;
 
             if (previousIdx < 0) continue;
-            
+
             var sCurr = shortSmaList[currentIdx];
             var sPrev = shortSmaList[previousIdx];
             var lCurr = longSmaList[currentIdx];
@@ -110,7 +109,6 @@ public class GoldenCrossStrategy : IStrategy
 
             if (sCurr == null || sPrev == null || lCurr == null || lPrev == null) continue;
 
-            // Yukarı kesişim kontrolü
             if (sPrev <= lPrev && sCurr > lCurr)
             {
                 hasRecentCrossover = true;
@@ -118,19 +116,20 @@ public class GoldenCrossStrategy : IStrategy
             }
         }
 
-        if (hasRecentCrossover) return 100; // Tam sinyal anı
+        if (hasRecentCrossover) return 100;
 
-        // Trend devam ediyorsa
+        // Boğa trendi devam ediyor
         if (currentShort > currentLong)
         {
-            // Fiyat da ortalamaların üzerindeyse güçlü trend
             var currentPrice = candles.Last().Close;
             if (currentPrice > currentShort && currentPrice > currentLong)
-                return 85; 
-            
-            return 70; // Trend pozitif ama fiyat biraz gevşemiş olabilir
+                return 85;
+
+            return 70;
         }
 
-        return 0;
+        // Ayı trendi (Death Cross bölgesi) — sinyal yok ama veri var
+        // 0 yerine düşük skor veriyoruz (veri yetersizliğinden ayırt etmek için)
+        return 15;
     }
 }

@@ -161,82 +161,23 @@ public static class TechnicalIndicators
     public static (List<decimal?> MacdLine, List<decimal?> SignalLine, List<decimal?> Histogram) CalculateMacd(
         List<decimal> prices, int fastPeriod = 12, int slowPeriod = 26, int signalPeriod = 9)
     {
+        var macdLine = new List<decimal?>(prices.Count);
+        var signalLine = new List<decimal?>(prices.Count);
+        var histogram = new List<decimal?>(prices.Count);
+
         var fastEma = CalculateEma(prices, fastPeriod);
         var slowEma = CalculateEma(prices, slowPeriod);
 
-        var macdLine = new List<decimal?>();
-        var signalLine = new List<decimal?>(); // Signal Line is EMA of MACD Line
-        var histogram = new List<decimal?>();
-
-        var validMacdValues = new List<decimal>(); // For calculating Signal Line
+        // MACD Line = Fast EMA - Slow EMA
+        var validMacdValues = new List<decimal>();
 
         for (int i = 0; i < prices.Count; i++)
         {
-            if (fastEma[i] == null || slowEma[i] == null)
+            if (fastEma[i].HasValue && slowEma[i].HasValue)
             {
-                macdLine.Add(null);
-                signalLine.Add(null);
-                histogram.Add(null);
-                continue;
-            }
-
-            decimal macd = fastEma[i].Value - slowEma[i].Value;
-            macdLine.Add(macd);
-            validMacdValues.Add(macd);
-        }
-
-        // Calculate Signal Line (EMA of MACD Line)
-        // Note: The loop indices need to align correctly with the original prices list
-        var signalEmaValues = CalculateEma(validMacdValues, signalPeriod);
-
-        // Pad the beginning of Signal Line to match MACD Line length
-        // Signal EMA calculation starts after validMacdValues has enough data
-        int macdStartIndex = macdLine.IndexOf(macdLine.First(x => x != null));
-
-        // Re-align signal line results to the original array
-        int signalIndex = 0;
-        for (int i = 0; i < macdLine.Count; i++)
-        {
-            if (i < macdStartIndex)
-            {
-                // Already handled by nulls in macdLine loop? No, signalLine needs padding
-                // Actually the previous loop added nulls to macdLine, signalLine is empty
-            }
-        }
-
-        // Easier approach: Calculate Signal Line from valid values, then prepend nulls based on offset
-        // Offset is where validMacdValues started relative to prices
-
-        var alignedSignalLine = new List<decimal?>(new decimal?[macdStartIndex]);
-        alignedSignalLine.AddRange(signalEmaValues);
-
-        // Fill remaining potentially if signalEmaValues is shorter than remaining
-        while (alignedSignalLine.Count < prices.Count) alignedSignalLine.Add(null);
-
-        // Let's rewrite strictly:
-        // We have macdLine with nulls at start.
-        // We need signalLine to be calculated on the non-null part of macdLine.
-
-        // Clear and rebuild correctly
-        macdLine.Clear();
-        signalLine.Clear();
-        histogram.Clear();
-
-        // Re-calculate simply
-        var tempFast = CalculateEma(prices, fastPeriod);
-        var tempSlow = CalculateEma(prices, slowPeriod);
-
-        var tempMacdValues = new List<decimal>();
-        var tempMacdIndices = new List<int>();
-
-        for (int i = 0; i < prices.Count; i++)
-        {
-            if (tempFast[i].HasValue && tempSlow[i].HasValue)
-            {
-                decimal val = tempFast[i].Value - tempSlow[i].Value;
+                decimal val = fastEma[i].Value - slowEma[i].Value;
                 macdLine.Add(val);
-                tempMacdValues.Add(val);
-                tempMacdIndices.Add(i);
+                validMacdValues.Add(val);
             }
             else
             {
@@ -244,14 +185,11 @@ public static class TechnicalIndicators
             }
         }
 
-        var tempSignal = CalculateEma(tempMacdValues, signalPeriod);
+        // Signal Line = EMA of MACD Line
+        var signalEma = CalculateEma(validMacdValues, signalPeriod);
 
-        // Now map tempSignal back to full list
-        // tempSignal[0] corresponds to tempMacdValues[0] which is at price index tempMacdIndices[0]
-        // But EMA calculation itself introduces nulls at the start of its input list!
-        // So tempSignal[k] corresponds to tempMacdValues[k]
-
-        int signalCounter = 0;
+        // Signal ve Histogram'ı MACD ile hizala
+        int signalIdx = 0;
         for (int i = 0; i < prices.Count; i++)
         {
             if (macdLine[i] == null)
@@ -261,23 +199,10 @@ public static class TechnicalIndicators
             }
             else
             {
-                // We are in the valid MACD zone
-                if (signalCounter < tempSignal.Count)
-                {
-                    var sigVal = tempSignal[signalCounter];
-                    signalLine.Add(sigVal);
-                    if (sigVal.HasValue)
-                        histogram.Add(macdLine[i] - sigVal);
-                    else
-                        histogram.Add(null);
-
-                    signalCounter++;
-                }
-                else
-                {
-                    signalLine.Add(null);
-                    histogram.Add(null);
-                }
+                var sigVal = signalIdx < signalEma.Count ? signalEma[signalIdx] : null;
+                signalLine.Add(sigVal);
+                histogram.Add(sigVal.HasValue ? macdLine[i] - sigVal : null);
+                signalIdx++;
             }
         }
 
@@ -444,8 +369,6 @@ public static class TechnicalIndicators
         if (recentRsi.Count < 5) return false;
 
         // Find price lows
-        int priceLow1Idx = 0;
-        int priceLow2Idx = recentCandles.Count / 2;
 
         decimal priceLow1 = recentCandles.Take(recentCandles.Count / 2).Min(c => c.Low);
         decimal priceLow2 = recentCandles.Skip(recentCandles.Count / 2).Min(c => c.Low);
@@ -507,28 +430,22 @@ public static class TechnicalIndicators
     public static (List<decimal?> Adx, List<decimal?> PlusDi, List<decimal?> MinusDi) CalculateAdx(
         List<Candle> candles, int period = 14)
     {
-        var adxList = new List<decimal?>();
-        var plusDiList = new List<decimal?>();
-        var minusDiList = new List<decimal?>();
+        int count = candles.Count;
 
-        if (candles.Count < period + 1)
-        {
-            for (int i = 0; i < candles.Count; i++)
-            {
-                adxList.Add(null);
-                plusDiList.Add(null);
-                minusDiList.Add(null);
-            }
+        // Sonuç listelerini önceden null ile doldur (O(n²) insert yerine O(n))
+        var adxList = new List<decimal?>(new decimal?[count]);
+        var plusDiList = new List<decimal?>(new decimal?[count]);
+        var minusDiList = new List<decimal?>(new decimal?[count]);
 
+        if (count < period + 1)
             return (adxList, plusDiList, minusDiList);
-        }
 
-        var plusDm = new List<decimal>();
-        var minusDm = new List<decimal>();
-        var tr = new List<decimal>();
+        var plusDm = new List<decimal>(count);
+        var minusDm = new List<decimal>(count);
+        var tr = new List<decimal>(count);
 
-        // Calculate +DM, -DM, and TR
-        for (int i = 1; i < candles.Count; i++)
+        // +DM, -DM ve TR hesapla
+        for (int i = 1; i < count; i++)
         {
             decimal upMove = candles[i].High - candles[i - 1].High;
             decimal downMove = candles[i - 1].Low - candles[i].Low;
@@ -542,12 +459,7 @@ public static class TechnicalIndicators
             tr.Add(Math.Max(highLow, Math.Max(highPrevClose, lowPrevClose)));
         }
 
-        // First value is null (no previous candle)
-        adxList.Add(null);
-        plusDiList.Add(null);
-        minusDiList.Add(null);
-
-        // Calculate smoothed values
+        // Smoothed değerleri hesapla
         decimal smoothedPlusDm = plusDm.Take(period).Sum();
         decimal smoothedMinusDm = minusDm.Take(period).Sum();
         decimal smoothedTr = tr.Take(period).Sum();
@@ -556,11 +468,7 @@ public static class TechnicalIndicators
 
         for (int i = period - 1; i < plusDm.Count; i++)
         {
-            if (i == period - 1)
-            {
-                // Initial values
-            }
-            else
+            if (i > period - 1)
             {
                 smoothedPlusDm = smoothedPlusDm - (smoothedPlusDm / period) + plusDm[i];
                 smoothedMinusDm = smoothedMinusDm - (smoothedMinusDm / period) + minusDm[i];
@@ -570,29 +478,22 @@ public static class TechnicalIndicators
             decimal plusDi = smoothedTr > 0 ? (smoothedPlusDm / smoothedTr) * 100 : 0;
             decimal minusDi = smoothedTr > 0 ? (smoothedMinusDm / smoothedTr) * 100 : 0;
 
-            plusDiList.Add(plusDi);
-            minusDiList.Add(minusDi);
+            // candles dizisindeki gerçek index: i + 1 (çünkü plusDm[0] = candles[1])
+            int candleIdx = i + 1;
+            plusDiList[candleIdx] = plusDi;
+            minusDiList[candleIdx] = minusDi;
 
             decimal diSum = plusDi + minusDi;
             decimal dx = diSum > 0 ? (Math.Abs(plusDi - minusDi) / diSum) * 100 : 0;
             dxList.Add(dx);
 
-            // ADX is smoothed average of DX
+            // ADX = Son N DX değerinin ortalaması
             if (dxList.Count >= period)
             {
                 decimal adx = dxList.TakeLast(period).Average();
-                adxList.Add(adx);
-            }
-            else
-            {
-                adxList.Add(null);
+                adxList[candleIdx] = adx;
             }
         }
-
-        // Pad beginning with nulls
-        while (plusDiList.Count < candles.Count) plusDiList.Insert(0, null);
-        while (minusDiList.Count < candles.Count) minusDiList.Insert(0, null);
-        while (adxList.Count < candles.Count) adxList.Insert(0, null);
 
         return (adxList, plusDiList, minusDiList);
     }

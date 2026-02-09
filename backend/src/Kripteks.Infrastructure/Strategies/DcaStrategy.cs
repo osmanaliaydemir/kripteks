@@ -8,13 +8,15 @@ public class DcaStrategy : IStrategy
     public string Name => "DCA Bot (Martingale)";
 
     public string Description =>
-        "Dollar Cost Averaging (Maliyet Ortalaması) stratejisi. Fiyat ortalama maliyetin belirli bir yüzdesi altına düştüğünde kademeli olarak ek alımlar yapar. Martingale mantığıyla her adımda yatırım miktarını katlayarak ortalama maliyeti düşürmeyi hedefler.";
+        "Dollar Cost Averaging (Maliyet Ortalaması) stratejisi. Fiyat ortalama maliyetin belirli bir yüzdesi altına düştüğünde kademeli ek alımlar yapar (varsayılan %2 aralıklarla, maks. 5 adım). Her adımda Martingale mantığıyla yatırım miktarı katlanır (1x→2x→4x→8x). Ortalama maliyetin %3 üzerinde kâr al, %15 altında zarar durdur hedefleri otomatik belirlenir.";
 
     public StrategyCategory Category => StrategyCategory.Trading;
 
     private int _maxDcaStep = 5;
-    private decimal _priceDeviation = 2.0m; // %2 düşüşte al
-    private decimal _amountScale = 2.0m; // Yatırımı 2 katına çıkar
+    private decimal _priceDeviation = 2.0m; // %2 düşüşte ek alım
+    private decimal _amountScale = 2.0m; // Her adımda yatırımı 2x katla
+    private decimal _takeProfitPercent = 3.0m; // Ortalama maliyetin %3 üzerinde kâr al
+    private decimal _stopLossPercent = 15.0m; // Ortalama maliyetin %15 altında zarar durdur
 
     public void SetParameters(Dictionary<string, string> parameters)
     {
@@ -22,6 +24,10 @@ public class DcaStrategy : IStrategy
         if (parameters.TryGetValue("priceDeviation", out var v2) && decimal.TryParse(v2, out var d))
             _priceDeviation = d;
         if (parameters.TryGetValue("amountScale", out var v3) && decimal.TryParse(v3, out var s)) _amountScale = s;
+        if (parameters.TryGetValue("takeProfit", out var v4) && decimal.TryParse(v4, out var tp))
+            _takeProfitPercent = tp;
+        if (parameters.TryGetValue("stopLoss", out var v5) && decimal.TryParse(v5, out var sl))
+            _stopLossPercent = sl;
     }
 
     public StrategyResult Analyze(List<Candle> candles, decimal currentBalance, decimal currentPositionAmount,
@@ -30,64 +36,82 @@ public class DcaStrategy : IStrategy
         var result = new StrategyResult();
         var currentPrice = candles.Last().Close;
 
-        // Pozisyon yoksa hemen al (Basit başlangıç)
-        // Veya RSI < 30 vb ekleyebiliriz ama DCA genelde hemen başlar.
+        // ═══════════════════════════════════════════════
+        // 1. POZİSYON YOK → İlk alım
+        // ═══════════════════════════════════════════════
         if (currentPositionAmount == 0)
         {
             result.Action = TradeAction.Buy;
+            result.TargetPrice = currentPrice * (1 + _takeProfitPercent / 100);
+            result.StopPrice = currentPrice * (1 - _stopLossPercent / 100);
             result.Description = "DCA Başlangıç Alımı";
-            result.TargetPrice = currentPrice * 1.01m; // Kar al hedefi (Değişken olabilir)
             return result;
         }
 
-        // Pozisyon varsa ve limit dolmadıysa düşüşlerde tekrar al
-        if (currentStep < _maxDcaStep && entryPrice > 0)
+        // ═══════════════════════════════════════════════
+        // 2. POZİSYON VAR → Kâr Al / Zarar Durdur / Ek Alım
+        // entryPrice = BotEngine'den gelen ORTALAMA MALİYET
+        // ═══════════════════════════════════════════════
+        if (entryPrice <= 0)
         {
-            // Ortalamadan ne kadar düştü?
-            decimal deviation = ((currentPrice - entryPrice) / entryPrice) * 100;
-
-            // Her adımda deviation artabilir (Örn: -2, -4, -6...)
-            // Şimdilik lineer artış: Step 1 (-2%), Step 2 (-4%)
-            // Şu anki adım 1 ise (yani 1 kez ek yapmışsak), bir sonraki hedef 2 * deviation
-
-            decimal
-                targetDeviation = -1 * _priceDeviation; // Hep sabit deviation kullanalım: Ortalamadan -%2 düştükçe al.
-            // Ama ortalama düştükçe, yeni alım fiyatı da düşecek.
-            // Martingale mantığı: Ortalama maliyetin X% altına düştükçe al.
-
-            if (deviation <= targetDeviation)
-            {
-                result.Action = TradeAction.Buy;
-                result.Description = $"DCA Step {currentStep + 1}: Ortalamadan %{Math.Abs(deviation):F2} düştü.";
-
-                // Önerilen miktar: Mevcut pozisyonun X katı veya sabit scale
-                // Genelde DCA: 1x, 2x, 4x, 8x... (Martingale)
-                // currentPositionAmount bize "adet" veya "USD tutar" olarak gelmeli.
-                // Interface'de "decimal currentPositionAmount" var. Bu Bot.Amount (USD) mi yoksa Quantity mi?
-                // BotEngineService içinde: strategy.Analyze(candles, 0, bot.Amount / bot.EntryPrice);
-                // Yani Quantity gönderiliyor gibi. (Amount / Price = Quantity)
-                // Ama DCA genelde Amount üzerinden hesaplanır.
-                // Biz basitçe: Botun ana parası (bot.Amount) bu stratejide "Toplam Yatırılan" olduğu için
-                // Bir sonraki adımda ne kadar yatırılacağını hesaplayalım.
-                // Ancak burada "currentPositionAmount" parametresinin aslında "Mevcut Yatırım Tutarı (USD)" olması daha mantıklı olurdu.
-                // BotEngineService tarafını güncelleyip buraya "bot.Amount" (Toplam maliyet) göndermek daha iyi.
-
-                result.Amount = currentPositionAmount * _amountScale; // Şimdilik gelen değeri scale edelim.
-            }
+            result.Description = "DCA: Ortalama maliyet bilgisi bekleniyor";
+            return result;
         }
 
-        // Pozisyon varsa ve Engine DCA kontrolü yapıyorsa:
-        // Engine tarafında ortalama maliyete göre % düşüş hesaplanıp buraya parametre veya logic aktarılmalı
-        // Ancak Interface gereği sadece 'candles' ve 'currentPositionAmount' alıyoruz.
-        // Ortalama maliyeti bilmiyoruz!
-        // Bu durumda IStrategy interface'ini 'AverageEntryPrice' alacak şekilde güncellememiz lazım
-        // VEYA Engine tarafında bu hesabı yapıp, buraya "CurrentPnlPercent" verisi gibi bir şey geçmeliyiz.
-        // Şimdilik BotEngineService içindeki CheckExitSignalAndPnl metodunda,
-        // PNL negatif ise ve strateji DCA ise, tekrar Analyze çağırmak yerine direkt logic işletilebilir
-        // VEYA IStrategy'yi güncelleyelim.
+        decimal pnlPercent = ((currentPrice - entryPrice) / entryPrice) * 100;
+
+        // Kâr Al: Ortalama maliyetin üzerinde TP'ye ulaştıysa sat
+        if (pnlPercent >= _takeProfitPercent)
+        {
+            result.Action = TradeAction.Sell;
+            result.Description = $"DCA KÂR AL: %{pnlPercent:F2} kâr (Ortalama: ${entryPrice:F2})";
+            return result;
+        }
+
+        // Zarar Durdur: Tüm DCA adımları tükendiyse ve hala düşüyorsa çık
+        if (currentStep >= _maxDcaStep && pnlPercent <= -_stopLossPercent)
+        {
+            result.Action = TradeAction.Sell;
+            result.Description =
+                $"DCA STOP: Tüm adımlar tükendi, %{Math.Abs(pnlPercent):F2} zarar (Ortalama: ${entryPrice:F2})";
+            return result;
+        }
+
+        // Ek Alım: Fiyat ortalama maliyetin deviation% altına düştüyse
+        if (currentStep < _maxDcaStep)
+        {
+            // Her adım için kümülatif sapma: Step 0→-2%, Step 1→-4%, Step 2→-6%...
+            decimal requiredDeviation = -_priceDeviation * (currentStep + 1);
+
+            if (pnlPercent <= requiredDeviation)
+            {
+                // Martingale: Her adımda miktar katlanır (1x, 2x, 4x, 8x...)
+                decimal scaleMultiplier = (decimal)Math.Pow((double)_amountScale, currentStep);
+                result.Action = TradeAction.Buy;
+                result.Amount = scaleMultiplier;
+                result.TargetPrice = entryPrice * (1 + _takeProfitPercent / 100);
+                result.StopPrice = entryPrice * (1 - _stopLossPercent / 100);
+                result.Description =
+                    $"DCA Adım {currentStep + 1}/{_maxDcaStep}: %{Math.Abs(pnlPercent):F2} düşüş, {scaleMultiplier}x alım";
+            }
+            else
+            {
+                result.Description =
+                    $"DCA Bekleniyor: %{pnlPercent:F2} (Hedef: %{requiredDeviation:F1})";
+            }
+        }
+        else
+        {
+            result.Description =
+                $"DCA Tüm Adımlar Tamamlandı: %{pnlPercent:F2} PnL, TP bekleniyor";
+        }
 
         return result;
     }
 
-    public decimal CalculateSignalScore(List<Candle> candles) => 50; // Neutral for DCA
+    public decimal CalculateSignalScore(List<Candle> candles)
+    {
+        // DCA her zaman nötr başlar; giriş zamanlaması stratejiye bağlı değil
+        return 50;
+    }
 }

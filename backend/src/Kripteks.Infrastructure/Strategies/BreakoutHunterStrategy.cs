@@ -14,7 +14,7 @@ public class BreakoutHunterStrategy : IStrategy
     public string Name => "Kırılım Avcısı";
 
     public string Description =>
-        "Bollinger Band sıkışması (düşük bandwidth) ve ATR daralması ile konsolidasyon tespit eder. Hacim patlamasıyla birlikte üst bandı kıran coinleri yakalar.";
+        "Bollinger Band sıkışması (düşük bandwidth) ve ATR daralması ile konsolidasyon tespit eder. Hacim patlamasıyla birlikte üst bandı kıran coinleri yakalar. Pozisyondayken fiyat Bollinger orta bandının altına düşerse kırılım başarısız sayılır ve çıkış yapılır. Hedef: %15, Stop: %6.";
 
     public StrategyCategory Category => StrategyCategory.Scanner;
 
@@ -25,8 +25,9 @@ public class BreakoutHunterStrategy : IStrategy
 
     public void SetParameters(Dictionary<string, string> parameters)
     {
-        if (parameters.TryGetValue("BbPeriod", out var bb)) _bbPeriod = int.Parse(bb);
-        if (parameters.TryGetValue("AtrPeriod", out var atr)) _atrPeriod = int.Parse(atr);
+        if (parameters.TryGetValue("BbPeriod", out var bb) && int.TryParse(bb, out var bbVal)) _bbPeriod = bbVal;
+        if (parameters.TryGetValue("AtrPeriod", out var atr) && int.TryParse(atr, out var atrVal))
+            _atrPeriod = atrVal;
     }
 
     public StrategyResult Analyze(List<Candle> candles, decimal currentBalance, decimal currentPositionAmount,
@@ -34,16 +35,58 @@ public class BreakoutHunterStrategy : IStrategy
     {
         if (candles.Count < 50) return new StrategyResult { Action = TradeAction.None };
 
-        var score = CalculateSignalScore(candles);
         var lastPrice = candles.Last().Close;
+
+        // POZİSYON VAR → Çıkış kontrolü
+        if (currentPositionAmount > 0 && entryPrice > 0)
+        {
+            var prices = candles.Select(c => c.Close).ToList();
+            var bbResult = TechnicalIndicators.CalculateBollingerBands(prices, _bbPeriod, _bbStdDev);
+            var lastBbMiddle = bbResult.Middle.LastOrDefault();
+
+            decimal pnl = ((lastPrice - entryPrice) / entryPrice) * 100;
+
+            // Kâr al: %15 hedef
+            if (pnl >= 15)
+                return new StrategyResult
+                {
+                    Action = TradeAction.Sell,
+                    Description = $"BREAKOUT KÂR AL: %{pnl:F2}"
+                };
+
+            // False breakout: Fiyat Bollinger orta bandının altına düştüyse kırılım başarısız
+            if (lastBbMiddle.HasValue && lastPrice < lastBbMiddle.Value && pnl < 0)
+                return new StrategyResult
+                {
+                    Action = TradeAction.Sell,
+                    Description = $"BREAKOUT BAŞARISIZ: Fiyat orta bandın altına düştü (%{pnl:F2})"
+                };
+
+            // Zarar durdur: %6 altına
+            if (pnl <= -6)
+                return new StrategyResult
+                {
+                    Action = TradeAction.Sell,
+                    Description = $"BREAKOUT STOP: %{Math.Abs(pnl):F2} zarar"
+                };
+
+            return new StrategyResult
+            {
+                Action = TradeAction.None,
+                Description = $"Breakout pozisyonda: %{pnl:F2}"
+            };
+        }
+
+        // POZİSYON YOK → Giriş sinyali
+        var score = CalculateSignalScore(candles);
 
         if (score >= 75)
         {
             return new StrategyResult
             {
                 Action = TradeAction.Buy,
-                TargetPrice = lastPrice * 1.15m, // %15 hedef (breakout momentum)
-                StopPrice = lastPrice * 0.94m, // %6 stop (false breakout koruması)
+                TargetPrice = lastPrice * 1.15m,
+                StopPrice = lastPrice * 0.94m,
                 Description = "Konsolidasyondan kırılım tespit edildi - Breakout fırsatı"
             };
         }

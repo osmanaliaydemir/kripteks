@@ -14,7 +14,7 @@ public class TrendSurferStrategy : IStrategy
     public string Name => "Trend Sörfçüsü";
 
     public string Description =>
-        "ADX (Average Directional Index) ile trend gücünü ölçer, EMA 50/200 ile trend yönünü belirler. Güçlü yükseliş trendindeki coinleri tespit ederek trende binme fırsatı sunar.";
+        "ADX (Average Directional Index) ile trend gücünü ölçer, EMA 50/200 ile trend yönünü belirler. Güçlü yükseliş trendindeki coinleri tespit ederek trende binme fırsatı sunar. Pozisyondayken trend yönü değişirse (Death Cross veya -DI > +DI) çıkış yapılır. Hedef: %20, Stop: %8.";
 
     public StrategyCategory Category => StrategyCategory.Scanner;
 
@@ -25,9 +25,12 @@ public class TrendSurferStrategy : IStrategy
 
     public void SetParameters(Dictionary<string, string> parameters)
     {
-        if (parameters.TryGetValue("AdxPeriod", out var adx)) _adxPeriod = int.Parse(adx);
-        if (parameters.TryGetValue("FastEmaPeriod", out var fast)) _fastEmaPeriod = int.Parse(fast);
-        if (parameters.TryGetValue("SlowEmaPeriod", out var slow)) _slowEmaPeriod = int.Parse(slow);
+        if (parameters.TryGetValue("AdxPeriod", out var adx) && int.TryParse(adx, out var adxVal))
+            _adxPeriod = adxVal;
+        if (parameters.TryGetValue("FastEmaPeriod", out var fast) && int.TryParse(fast, out var fastVal))
+            _fastEmaPeriod = fastVal;
+        if (parameters.TryGetValue("SlowEmaPeriod", out var slow) && int.TryParse(slow, out var slowVal))
+            _slowEmaPeriod = slowVal;
     }
 
     public StrategyResult Analyze(List<Candle> candles, decimal currentBalance, decimal currentPositionAmount,
@@ -35,16 +38,69 @@ public class TrendSurferStrategy : IStrategy
     {
         if (candles.Count < 200) return new StrategyResult { Action = TradeAction.None };
 
-        var score = CalculateSignalScore(candles);
         var lastPrice = candles.Last().Close;
+
+        // POZİSYON VAR → Trend hala devam ediyor mu?
+        if (currentPositionAmount > 0 && entryPrice > 0)
+        {
+            var prices = candles.Select(c => c.Close).ToList();
+            var adxResult = TechnicalIndicators.CalculateAdx(candles, _adxPeriod);
+            var emaCross = TechnicalIndicators.DetectEmaCross(prices, _fastEmaPeriod, _slowEmaPeriod);
+
+            var lastAdx = adxResult.Adx.LastOrDefault();
+            var lastPlusDi = adxResult.PlusDi.LastOrDefault();
+            var lastMinusDi = adxResult.MinusDi.LastOrDefault();
+            decimal pnl = ((lastPrice - entryPrice) / entryPrice) * 100;
+
+            // Kâr al: %20
+            if (pnl >= 20)
+                return new StrategyResult
+                {
+                    Action = TradeAction.Sell,
+                    Description = $"TREND SURFER KÂR AL: %{pnl:F2}"
+                };
+
+            // Trend yönü değişti: -DI > +DI ve ADX güçlü → düşüş trendi başladı
+            if (lastPlusDi.HasValue && lastMinusDi.HasValue && lastMinusDi > lastPlusDi && lastAdx > 25)
+                return new StrategyResult
+                {
+                    Action = TradeAction.Sell,
+                    Description = $"TREND SURFER: Trend yön değiştirdi (-DI > +DI, ADX: {lastAdx:F0})"
+                };
+
+            // Death Cross: Fast EMA, Slow EMA'nın altına düştü
+            if (emaCross.IsDeathCross)
+                return new StrategyResult
+                {
+                    Action = TradeAction.Sell,
+                    Description = "TREND SURFER: Death Cross tespit edildi"
+                };
+
+            // Zarar durdur: %8
+            if (pnl <= -8)
+                return new StrategyResult
+                {
+                    Action = TradeAction.Sell,
+                    Description = $"TREND SURFER STOP: %{Math.Abs(pnl):F2} zarar"
+                };
+
+            return new StrategyResult
+            {
+                Action = TradeAction.None,
+                Description = $"Trend Surfer pozisyonda: %{pnl:F2} (ADX: {lastAdx:F0})"
+            };
+        }
+
+        // POZİSYON YOK → Giriş sinyali
+        var score = CalculateSignalScore(candles);
 
         if (score >= 70)
         {
             return new StrategyResult
             {
                 Action = TradeAction.Buy,
-                TargetPrice = lastPrice * 1.20m, // %20 hedef (trend devam beklentisiyle)
-                StopPrice = lastPrice * 0.92m, // %8 stop (trend kırılırsa)
+                TargetPrice = lastPrice * 1.20m,
+                StopPrice = lastPrice * 0.92m,
                 Description = "Güçlü yükseliş trendi tespit edildi - Trende binme fırsatı"
             };
         }

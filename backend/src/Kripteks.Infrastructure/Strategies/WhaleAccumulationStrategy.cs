@@ -14,7 +14,7 @@ public class WhaleAccumulationStrategy : IStrategy
     public string Name => "Balina Biriktirmesi";
 
     public string Description =>
-        "Düşük volatilite dönemlerinde (Bollinger sıkışması) OBV'nin yükseliş trendinde olduğu coinleri tespit eder. Büyük yatırımcıların sessizce birikim yaptığı potansiyel kırılım adaylarını yakalar.";
+        "Düşük volatilite dönemlerinde (Bollinger sıkışması) OBV'nin yükseliş trendinde olduğu coinleri tespit eder. Büyük yatırımcıların sessizce birikim yaptığı potansiyel kırılım adaylarını yakalar. Pozisyondayken birikim yapısı bozulursa (skor düşüşü + zarar) çıkış yapılır. Hedef: %15, Stop: %7.";
 
     public StrategyCategory Category => StrategyCategory.Scanner;
 
@@ -25,9 +25,11 @@ public class WhaleAccumulationStrategy : IStrategy
 
     public void SetParameters(Dictionary<string, string> parameters)
     {
-        if (parameters.TryGetValue("ObvSmaPeriod", out var obv)) _obvSmaPeriod = int.Parse(obv);
-        if (parameters.TryGetValue("BbPeriod", out var bb)) _bbPeriod = int.Parse(bb);
-        if (parameters.TryGetValue("SqueezeThreshold", out var sq)) _squeezeThreshold = decimal.Parse(sq);
+        if (parameters.TryGetValue("ObvSmaPeriod", out var obv) && int.TryParse(obv, out var obvVal))
+            _obvSmaPeriod = obvVal;
+        if (parameters.TryGetValue("BbPeriod", out var bb) && int.TryParse(bb, out var bbVal)) _bbPeriod = bbVal;
+        if (parameters.TryGetValue("SqueezeThreshold", out var sq) && decimal.TryParse(sq, out var sqVal))
+            _squeezeThreshold = sqVal;
     }
 
     public StrategyResult Analyze(List<Candle> candles, decimal currentBalance, decimal currentPositionAmount,
@@ -35,16 +37,55 @@ public class WhaleAccumulationStrategy : IStrategy
     {
         if (candles.Count < 50) return new StrategyResult { Action = TradeAction.None };
 
-        var score = CalculateSignalScore(candles);
         var lastPrice = candles.Last().Close;
+
+        // POZİSYON VAR → Kırılım gerçekleşti mi yoksa birikim bozuldu mu?
+        if (currentPositionAmount > 0 && entryPrice > 0)
+        {
+            decimal pnl = ((lastPrice - entryPrice) / entryPrice) * 100;
+
+            // Kâr al: Kırılım sonrası %15 hedef
+            if (pnl >= 15)
+                return new StrategyResult
+                {
+                    Action = TradeAction.Sell,
+                    Description = $"WHALE KÂR AL: Kırılım hedefi ulaşıldı (%{pnl:F2})"
+                };
+
+            // Birikim bozuldu: Skor düştüyse ve zarar varsa çık
+            var currentScore = CalculateSignalScore(candles);
+            if (currentScore < 30 && pnl < -3)
+                return new StrategyResult
+                {
+                    Action = TradeAction.Sell,
+                    Description = $"WHALE: Birikim yapısı bozuldu (Skor: {currentScore:F0}, PnL: %{pnl:F2})"
+                };
+
+            // Zarar durdur: %7
+            if (pnl <= -7)
+                return new StrategyResult
+                {
+                    Action = TradeAction.Sell,
+                    Description = $"WHALE STOP: %{Math.Abs(pnl):F2} zarar"
+                };
+
+            return new StrategyResult
+            {
+                Action = TradeAction.None,
+                Description = $"Whale pozisyonda: %{pnl:F2}, kırılım bekleniyor"
+            };
+        }
+
+        // POZİSYON YOK → Giriş sinyali
+        var score = CalculateSignalScore(candles);
 
         if (score >= 75)
         {
             return new StrategyResult
             {
                 Action = TradeAction.Buy,
-                TargetPrice = lastPrice * 1.15m, // %15 hedef (sıkışmadan sonra güçlü hareket beklentisi)
-                StopPrice = lastPrice * 0.93m, // %7 stop
+                TargetPrice = lastPrice * 1.15m,
+                StopPrice = lastPrice * 0.93m,
                 Description = "Balina biriktirme tespit edildi - Kırılım bekleniyor"
             };
         }

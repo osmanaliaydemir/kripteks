@@ -100,8 +100,9 @@ public class GoldenRoseStrategy : IStrategy
             // --- SATIŞ MANTIĞI (SELL) ---
 
             // 1. TOP DETECTED (Tepe Tespiti)
-            // Pine Script: top_detected = crossunder(x2, sma1)
-            // Anlamı: SMA1 çizgisi, (SMA2 * Mult) çizgisini YUKARIDAN AŞAĞIYA kestiğinde.
+            // crossunder(sma1, x2): SMA111 çizgisi, (SMA350 * Mult) çizgisinin altına düşerse tepe sinyali.
+            // Döngü tepesi sırasında SMA111 hızla yükselir ve SMA350*2'yi aşar.
+            // Geri düştüğünde → döngü tepesi geçti, satış zamanı.
             bool topDetected = (prevSma1 > prevX2) && (sma1 <= x2);
 
             if (topDetected)
@@ -126,7 +127,7 @@ public class GoldenRoseStrategy : IStrategy
     public decimal CalculateSignalScore(List<Candle> candles)
     {
         int maxSma = Math.Max(_sma1, _sma2);
-        if (candles.Count < maxSma) return 50; // Neutral if not enough data
+        if (candles.Count < maxSma) return 0; // Yetersiz veri
 
         var prices = candles.Select(c => c.Close).ToList();
         var sma1List = TechnicalIndicators.CalculateSma(prices, _sma1);

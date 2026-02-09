@@ -14,7 +14,7 @@ public class OversoldRecoveryStrategy : IStrategy
     public string Name => "Dipten Dönüş";
 
     public string Description =>
-        "RSI ve Stochastic RSI aşırı satım bölgesinden (30 altı) toparlanma sinyali veren coinleri tespit eder. Destek seviyesi yakınında, hacim artışıyla birlikte yukarı dönüş yapan pariteleri yakalar.";
+        "RSI ve Stochastic RSI aşırı satım bölgesinden (30 altı) toparlanma sinyali veren coinleri tespit eder. Destek seviyesi yakınında, hacim artışıyla birlikte yukarı dönüş yapan pariteleri yakalar. Pozisyondayken RSI normalleşirse (%65 üzeri + kâr) veya toparlanma başarısız olursa çıkış yapılır. Hedef: %12, Stop: %5.";
 
     public StrategyCategory Category => StrategyCategory.Scanner;
 
@@ -24,9 +24,12 @@ public class OversoldRecoveryStrategy : IStrategy
 
     public void SetParameters(Dictionary<string, string> parameters)
     {
-        if (parameters.TryGetValue("RsiPeriod", out var rsi)) _rsiPeriod = int.Parse(rsi);
-        if (parameters.TryGetValue("StochRsiPeriod", out var stoch)) _stochRsiPeriod = int.Parse(stoch);
-        if (parameters.TryGetValue("OversoldLevel", out var level)) _oversoldLevel = decimal.Parse(level);
+        if (parameters.TryGetValue("RsiPeriod", out var rsi) && int.TryParse(rsi, out var rsiVal))
+            _rsiPeriod = rsiVal;
+        if (parameters.TryGetValue("StochRsiPeriod", out var stoch) && int.TryParse(stoch, out var stochVal))
+            _stochRsiPeriod = stochVal;
+        if (parameters.TryGetValue("OversoldLevel", out var level) && decimal.TryParse(level, out var levelVal))
+            _oversoldLevel = levelVal;
     }
 
     public StrategyResult Analyze(List<Candle> candles, decimal currentBalance, decimal currentPositionAmount,
@@ -34,16 +37,65 @@ public class OversoldRecoveryStrategy : IStrategy
     {
         if (candles.Count < 50) return new StrategyResult { Action = TradeAction.None };
 
-        var score = CalculateSignalScore(candles);
         var lastPrice = candles.Last().Close;
+
+        // POZİSYON VAR → Toparlanma gerçekleşti mi?
+        if (currentPositionAmount > 0 && entryPrice > 0)
+        {
+            var prices = candles.Select(c => c.Close).ToList();
+            var rsiResults = TechnicalIndicators.CalculateRsi(prices, _rsiPeriod);
+            var lastRsi = rsiResults.LastOrDefault() ?? 50;
+            decimal pnl = ((lastPrice - entryPrice) / entryPrice) * 100;
+
+            // Kâr al: %12
+            if (pnl >= 12)
+                return new StrategyResult
+                {
+                    Action = TradeAction.Sell,
+                    Description = $"DİP DÖNÜŞ KÂR AL: Toparlanma tamamlandı (%{pnl:F2})"
+                };
+
+            // RSI normalleşti → toparlanma tamamlanıyor (RSI > 65 ve kâr varsa)
+            if (lastRsi > 65 && pnl > 5)
+                return new StrategyResult
+                {
+                    Action = TradeAction.Sell,
+                    Description = $"DİP DÖNÜŞ: RSI normalleşti ({lastRsi:F0}), kâr alınıyor (%{pnl:F2})"
+                };
+
+            // Daha da derinleşti: RSI tekrar düşüyorsa ve zarar büyüyorsa
+            if (lastRsi < 20 && pnl <= -5)
+                return new StrategyResult
+                {
+                    Action = TradeAction.Sell,
+                    Description = $"DİP DÖNÜŞ STOP: Toparlanma başarısız, RSI {lastRsi:F0} (%{Math.Abs(pnl):F2} zarar)"
+                };
+
+            // Zarar durdur: %5
+            if (pnl <= -5)
+                return new StrategyResult
+                {
+                    Action = TradeAction.Sell,
+                    Description = $"DİP DÖNÜŞ STOP: %{Math.Abs(pnl):F2} zarar"
+                };
+
+            return new StrategyResult
+            {
+                Action = TradeAction.None,
+                Description = $"Dip dönüş pozisyonda: %{pnl:F2} (RSI: {lastRsi:F0})"
+            };
+        }
+
+        // POZİSYON YOK → Giriş sinyali
+        var score = CalculateSignalScore(candles);
 
         if (score >= 70)
         {
             return new StrategyResult
             {
                 Action = TradeAction.Buy,
-                TargetPrice = lastPrice * 1.12m, // %12 hedef (toparlanma hareketiyle)
-                StopPrice = lastPrice * 0.95m, // %5 stop (destek altına düşerse)
+                TargetPrice = lastPrice * 1.12m,
+                StopPrice = lastPrice * 0.95m,
                 Description = "Aşırı satımdan toparlanma sinyali - Dip alım fırsatı"
             };
         }

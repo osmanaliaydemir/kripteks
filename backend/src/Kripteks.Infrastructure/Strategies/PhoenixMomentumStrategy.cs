@@ -9,7 +9,7 @@ public class PhoenixMomentumStrategy : IStrategy
     public string Name => "Anka Kuşu Patlaması";
 
     public string Description =>
-        "Hacim, RSI ve Bollinger indikatörlerini birleştirerek kısa vadeli sert yükseliş (pump) potansiyeli taşıyan pariteleri yakalar.";
+        "Hacim, RSI, Bollinger ve MACD indikatörlerini birleştirerek kısa vadeli sert yükseliş (pump) potansiyeli taşıyan pariteleri yakalar. Pozisyondayken RSI 85 üzerine çıkarsa momentum tükenmiş sayılır ve çıkış yapılır. Hedef: %10, Stop: %5.";
 
     public StrategyCategory Category => StrategyCategory.Scanner;
 
@@ -20,8 +20,9 @@ public class PhoenixMomentumStrategy : IStrategy
 
     public void SetParameters(Dictionary<string, string> parameters)
     {
-        if (parameters.TryGetValue("RsiPeriod", out var rsi)) _rsiPeriod = int.Parse(rsi);
-        if (parameters.TryGetValue("BbPeriod", out var bb)) _bbPeriod = int.Parse(bb);
+        if (parameters.TryGetValue("RsiPeriod", out var rsi) && int.TryParse(rsi, out var rsiVal))
+            _rsiPeriod = rsiVal;
+        if (parameters.TryGetValue("BbPeriod", out var bb) && int.TryParse(bb, out var bbVal)) _bbPeriod = bbVal;
     }
 
     public StrategyResult Analyze(List<Candle> candles, decimal currentBalance, decimal currentPositionAmount,
@@ -29,16 +30,57 @@ public class PhoenixMomentumStrategy : IStrategy
     {
         if (candles.Count < 50) return new StrategyResult { Action = TradeAction.None };
 
-        var score = CalculateSignalScore(candles);
         var lastPrice = candles.Last().Close;
+
+        // POZİSYON VAR → Momentum kaybı veya TP/SL kontrolü
+        if (currentPositionAmount > 0 && entryPrice > 0)
+        {
+            var prices = candles.Select(c => c.Close).ToList();
+            var rsiResults = TechnicalIndicators.CalculateRsi(prices, _rsiPeriod);
+            var lastRsi = rsiResults.LastOrDefault() ?? 50;
+            decimal pnl = ((lastPrice - entryPrice) / entryPrice) * 100;
+
+            // Kâr al: %10
+            if (pnl >= 10)
+                return new StrategyResult
+                {
+                    Action = TradeAction.Sell,
+                    Description = $"PHOENIX KÂR AL: %{pnl:F2}"
+                };
+
+            // RSI aşırı alım → momentum tükeniyor
+            if (lastRsi > 85)
+                return new StrategyResult
+                {
+                    Action = TradeAction.Sell,
+                    Description = $"PHOENIX: RSI aşırı alım ({lastRsi:F0}), momentum tükeniyor"
+                };
+
+            // Zarar durdur: %5
+            if (pnl <= -5)
+                return new StrategyResult
+                {
+                    Action = TradeAction.Sell,
+                    Description = $"PHOENIX STOP: %{Math.Abs(pnl):F2} zarar"
+                };
+
+            return new StrategyResult
+            {
+                Action = TradeAction.None,
+                Description = $"Phoenix pozisyonda: %{pnl:F2} (RSI: {lastRsi:F0})"
+            };
+        }
+
+        // POZİSYON YOK → Giriş sinyali
+        var score = CalculateSignalScore(candles);
 
         if (score >= 80)
         {
             return new StrategyResult
             {
                 Action = TradeAction.Buy,
-                TargetPrice = lastPrice * 1.10m, // %10 hedef
-                StopPrice = lastPrice * 0.95m, // %5 stop
+                TargetPrice = lastPrice * 1.10m,
+                StopPrice = lastPrice * 0.95m,
                 Description = "Güçlü hacim ve momentum kırılımı (Pump Sinyali)"
             };
         }

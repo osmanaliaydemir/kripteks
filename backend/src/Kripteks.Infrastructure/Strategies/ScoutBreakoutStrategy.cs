@@ -90,7 +90,7 @@ public class ScoutBreakoutStrategy : IStrategy
     public decimal CalculateSignalScore(List<Candle> candles)
     {
         int maxPeriod = Math.Max(_volumeAvgPeriod, _rsiPeriod) + 1;
-        if (candles.Count < maxPeriod) return 50;
+        if (candles.Count < maxPeriod) return 0;
 
         var prices = candles.Select(c => c.Close).ToList();
         var volumes = candles.Select(c => c.Volume).ToList();
@@ -100,7 +100,7 @@ public class ScoutBreakoutStrategy : IStrategy
         var lastVolume = volumes.Last();
         var avgVolume = volumes.Skip(volumes.Count - _volumeAvgPeriod - 1).Take(_volumeAvgPeriod).Average();
 
-        decimal score = 50;
+        decimal score = 0;
 
         // 1. Hacim Faktörü (En önemli faktör - %50 etki)
         decimal volRatio = lastVolume / (avgVolume > 0 ? avgVolume : 1);

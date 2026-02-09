@@ -14,7 +14,7 @@ public class DivergenceDetectorStrategy : IStrategy
     public string Name => "Uyumsuzluk Dedektörü";
 
     public string Description =>
-        "Fiyat ve RSI/MACD arasındaki uyumsuzlukları tespit eder. Fiyat düşerken RSI yükseliyorsa (bullish divergence) trend dönüşü sinyali verir. Erken giriş fırsatları sunar.";
+        "Fiyat ve RSI/MACD arasındaki uyumsuzlukları tespit eder. Fiyat düşerken RSI yükseliyorsa (bullish divergence) trend dönüşü sinyali verir. Pozisyondayken RSI 75 üzerine çıkıp kâr varsa dönüş tamamlanmış sayılır. Hedef: %12, Stop: %5.";
 
     public StrategyCategory Category => StrategyCategory.Scanner;
 
@@ -23,8 +23,10 @@ public class DivergenceDetectorStrategy : IStrategy
 
     public void SetParameters(Dictionary<string, string> parameters)
     {
-        if (parameters.TryGetValue("RsiPeriod", out var rsi)) _rsiPeriod = int.Parse(rsi);
-        if (parameters.TryGetValue("DivergenceLookback", out var lb)) _divergenceLookback = int.Parse(lb);
+        if (parameters.TryGetValue("RsiPeriod", out var rsi) && int.TryParse(rsi, out var rsiVal))
+            _rsiPeriod = rsiVal;
+        if (parameters.TryGetValue("DivergenceLookback", out var lb) && int.TryParse(lb, out var lbVal))
+            _divergenceLookback = lbVal;
     }
 
     public StrategyResult Analyze(List<Candle> candles, decimal currentBalance, decimal currentPositionAmount,
@@ -32,16 +34,57 @@ public class DivergenceDetectorStrategy : IStrategy
     {
         if (candles.Count < 50) return new StrategyResult { Action = TradeAction.None };
 
-        var score = CalculateSignalScore(candles);
         var lastPrice = candles.Last().Close;
+
+        // POZİSYON VAR → Trend dönüşü gerçekleşti mi?
+        if (currentPositionAmount > 0 && entryPrice > 0)
+        {
+            var prices = candles.Select(c => c.Close).ToList();
+            var rsiResults = TechnicalIndicators.CalculateRsi(prices, _rsiPeriod);
+            var lastRsi = rsiResults.LastOrDefault() ?? 50;
+            decimal pnl = ((lastPrice - entryPrice) / entryPrice) * 100;
+
+            // Kâr al: %12
+            if (pnl >= 12)
+                return new StrategyResult
+                {
+                    Action = TradeAction.Sell,
+                    Description = $"DIVERGENCE KÂR AL: Dönüş tamamlandı (%{pnl:F2})"
+                };
+
+            // RSI aşırı alıma girdi → dönüş tamamlanıyor
+            if (lastRsi > 75 && pnl > 3)
+                return new StrategyResult
+                {
+                    Action = TradeAction.Sell,
+                    Description = $"DIVERGENCE: RSI aşırı alım ({lastRsi:F0}), kâr al (%{pnl:F2})"
+                };
+
+            // Zarar durdur: Dönüş gerçekleşmedi, %5 altına
+            if (pnl <= -5)
+                return new StrategyResult
+                {
+                    Action = TradeAction.Sell,
+                    Description = $"DIVERGENCE STOP: Dönüş gerçekleşmedi (%{Math.Abs(pnl):F2} zarar)"
+                };
+
+            return new StrategyResult
+            {
+                Action = TradeAction.None,
+                Description = $"Divergence pozisyonda: %{pnl:F2} (RSI: {lastRsi:F0})"
+            };
+        }
+
+        // POZİSYON YOK → Giriş sinyali
+        var score = CalculateSignalScore(candles);
 
         if (score >= 70)
         {
             return new StrategyResult
             {
                 Action = TradeAction.Buy,
-                TargetPrice = lastPrice * 1.12m, // %12 hedef
-                StopPrice = lastPrice * 0.95m, // %5 stop
+                TargetPrice = lastPrice * 1.12m,
+                StopPrice = lastPrice * 0.95m,
                 Description = "Bullish divergence tespit edildi - Trend dönüşü sinyali"
             };
         }
