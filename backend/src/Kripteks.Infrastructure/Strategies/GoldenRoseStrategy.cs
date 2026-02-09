@@ -6,7 +6,12 @@ namespace Kripteks.Infrastructure.Strategies;
 public class GoldenRoseStrategy : IStrategy
 {
     public string Id => "strategy-golden-rose";
-    public string Name => "Golden Rose Trend Strategy";
+    public string Name => "Altın Kesişim Trendi";
+
+    public string Description =>
+        "SMA 111, 200 ve 350 periyotluk hareketli ortalamaları kullanarak ana trend yönünü belirleyen kurumsal düzeyde bir strateji. Giriş sinyalleri için SMA 111 kırılımını, kâr alım hedefleri için ise Fibonacci 1.618 (Golden Ratio) genişleme seviyelerini baz alır. Özellikle Bitcoin halving döngüleri ve makro trend değişimleri için optimize edilmiştir.";
+
+    public StrategyCategory Category => StrategyCategory.Trading;
 
     private int _sma1 = 111;
     private int _sma2 = 350;

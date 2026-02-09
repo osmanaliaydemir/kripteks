@@ -11,10 +11,12 @@ namespace Kripteks.Infrastructure.Strategies;
 public class OversoldRecoveryStrategy : IStrategy
 {
     public string Id => "strategy-oversold-recovery";
-    public string Name => "Oversold Recovery (Aşırı Satım Toparlanması)";
+    public string Name => "Dipten Dönüş";
 
     public string Description =>
         "RSI ve Stochastic RSI aşırı satım bölgesinden (30 altı) toparlanma sinyali veren coinleri tespit eder. Destek seviyesi yakınında, hacim artışıyla birlikte yukarı dönüş yapan pariteleri yakalar.";
+
+    public StrategyCategory Category => StrategyCategory.Scanner;
 
     private int _rsiPeriod = 14;
     private int _stochRsiPeriod = 14;

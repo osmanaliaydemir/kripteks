@@ -6,7 +6,12 @@ namespace Kripteks.Infrastructure.Strategies;
 public class ScoutBreakoutStrategy : IStrategy
 {
     public string Id => "strategy-scout-breakout";
-    public string Name => "Scout Breakout (Volume & RSI)";
+    public string Name => "İzci Kırılımı";
+
+    public string Description =>
+        "20 periyotluk hacim ortalamasının 1.8x katı üzerindeki patlamaları yakalayan momentum stratejisi. RSI (14) indikatörünün 50-70 'ideal breakout' koridorunda olmasını veya RSI 30 seviyesinden güçlü hacimle dönüşü (oversold recovery) şart koşar. Puanlama %50 Hacim Faktörü, %50 RSI Momentum ağırlığı ile hesaplanır.";
+
+    public StrategyCategory Category => StrategyCategory.Scanner;
 
     private int _rsiPeriod = 14;
     private int _volumeAvgPeriod = 20;

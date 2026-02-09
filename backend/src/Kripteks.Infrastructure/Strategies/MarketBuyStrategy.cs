@@ -5,7 +5,11 @@ namespace Kripteks.Infrastructure.Strategies;
 public class MarketBuyStrategy : IStrategy
 {
     public string Id => "strategy-market-buy";
-    public string Name => "Hemen Al (Market Buy)";
+    public string Name => "Anlık Alım";
+
+    public string Description => "Beklemeden o anki fiyattan alım yapar.";
+
+    public StrategyCategory Category => StrategyCategory.Trading;
 
     public void SetParameters(Dictionary<string, string> parameters)
     {

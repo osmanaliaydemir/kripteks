@@ -437,7 +437,7 @@ class _BotCreateWizardScreenState extends ConsumerState<BotCreateWizardScreen> {
                 final strategies = allStrategies
                     .where(
                       (s) =>
-                          s.category.toLowerCase() == 'simulation' ||
+                          s.category.toLowerCase() == 'trading' ||
                           s.category.toLowerCase() == 'both',
                     )
                     .toList();

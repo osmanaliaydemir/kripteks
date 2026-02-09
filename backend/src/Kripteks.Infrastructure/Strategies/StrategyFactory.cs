@@ -13,14 +13,23 @@ public class StrategyFactory : IStrategyFactory
 
     public IStrategy GetStrategy(string id)
     {
-        var strategy = _strategies.FirstOrDefault(s => s.Id == id);
-        // Eğer bulunamazsa Golden Rose varsayılan olarak döner (veya null dönüp yönetilebilir)
-        // Mevcut yapıda fallback kullanılıyordu.
-        return strategy ?? _strategies.First(s => s.Id == "strategy-golden-rose");
+        var strategy = _strategies.FirstOrDefault(s =>
+            string.Equals(s.Id, id, StringComparison.OrdinalIgnoreCase));
+
+        if (strategy is null)
+            throw new KeyNotFoundException(
+                $"'{id}' ID'sine sahip strateji bulunamadı. Kayıtlı stratejiler: {string.Join(", ", _strategies.Select(s => s.Id))}");
+
+        return strategy;
     }
 
     public IEnumerable<IStrategy> GetAllStrategies()
     {
         return _strategies;
+    }
+
+    public IEnumerable<IStrategy> GetStrategiesByCategory(StrategyCategory category)
+    {
+        return _strategies.Where(s => s.Category == category);
     }
 }

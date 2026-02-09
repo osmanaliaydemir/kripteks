@@ -7,6 +7,11 @@ public class DcaStrategy : IStrategy
     public string Id => "strategy-dca";
     public string Name => "DCA Bot (Martingale)";
 
+    public string Description =>
+        "Dollar Cost Averaging (Maliyet Ortalaması) stratejisi. Fiyat ortalama maliyetin belirli bir yüzdesi altına düştüğünde kademeli olarak ek alımlar yapar. Martingale mantığıyla her adımda yatırım miktarını katlayarak ortalama maliyeti düşürmeyi hedefler.";
+
+    public StrategyCategory Category => StrategyCategory.Trading;
+
     private int _maxDcaStep = 5;
     private decimal _priceDeviation = 2.0m; // %2 düşüşte al
     private decimal _amountScale = 2.0m; // Yatırımı 2 katına çıkar

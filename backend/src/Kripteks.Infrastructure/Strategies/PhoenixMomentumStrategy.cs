@@ -6,10 +6,12 @@ namespace Kripteks.Infrastructure.Strategies;
 public class PhoenixMomentumStrategy : IStrategy
 {
     public string Id => "strategy-phoenix-momentum";
-    public string Name => "Phoenix Momentum Strategy";
+    public string Name => "Anka Kuşu Patlaması";
 
     public string Description =>
         "Hacim, RSI ve Bollinger indikatörlerini birleştirerek kısa vadeli sert yükseliş (pump) potansiyeli taşıyan pariteleri yakalar.";
+
+    public StrategyCategory Category => StrategyCategory.Scanner;
 
     private int _rsiPeriod = 14;
     private int _bbPeriod = 20;

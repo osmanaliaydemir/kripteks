@@ -8,6 +8,11 @@ public class Sma111Strategy : IStrategy
     public string Id => "strategy-sma-111-breakout";
     public string Name => "SMA 111 Kırılım";
 
+    public string Description =>
+        "Fiyatın SMA 111 (Basit Hareketli Ortalama) seviyesini yukarı yönlü kırmasını takip eder. Güçlü bir trend başlangıcı sinyali olarak kabul edilir.";
+
+    public StrategyCategory Category => StrategyCategory.Scanner;
+
     private int _period = 111;
 
     public void SetParameters(Dictionary<string, string> parameters)

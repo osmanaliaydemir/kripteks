@@ -11,10 +11,12 @@ namespace Kripteks.Infrastructure.Strategies;
 public class DivergenceDetectorStrategy : IStrategy
 {
     public string Id => "strategy-divergence-detector";
-    public string Name => "Divergence Detector (Uyumsuzluk Tespit)";
+    public string Name => "Uyumsuzluk Dedektörü";
 
     public string Description =>
         "Fiyat ve RSI/MACD arasındaki uyumsuzlukları tespit eder. Fiyat düşerken RSI yükseliyorsa (bullish divergence) trend dönüşü sinyali verir. Erken giriş fırsatları sunar.";
+
+    public StrategyCategory Category => StrategyCategory.Scanner;
 
     private int _rsiPeriod = 14;
     private int _divergenceLookback = 20;

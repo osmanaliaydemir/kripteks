@@ -11,10 +11,12 @@ namespace Kripteks.Infrastructure.Strategies;
 public class WhaleAccumulationStrategy : IStrategy
 {
     public string Id => "strategy-whale-accumulation";
-    public string Name => "Whale Accumulation (Balina Biriktirme)";
+    public string Name => "Balina Biriktirmesi";
 
     public string Description =>
         "Düşük volatilite dönemlerinde (Bollinger sıkışması) OBV'nin yükseliş trendinde olduğu coinleri tespit eder. Büyük yatırımcıların sessizce birikim yaptığı potansiyel kırılım adaylarını yakalar.";
+
+    public StrategyCategory Category => StrategyCategory.Scanner;
 
     private int _obvSmaPeriod = 20;
     private int _bbPeriod = 20;

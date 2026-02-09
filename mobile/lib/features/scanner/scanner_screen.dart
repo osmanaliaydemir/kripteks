@@ -21,14 +21,13 @@ class ScannerScreen extends ConsumerStatefulWidget {
 }
 
 class _ScannerScreenState extends ConsumerState<ScannerScreen> {
-  String _selectedStrategy = 'SMA_111';
+  String _selectedStrategy = '';
   String _selectedInterval = '1h';
   double _minSignalScore = 70;
   int? _autoScanInterval; // in minutes, null means off
   Timer? _autoScanTimer;
   List<String> _selectedSymbols = [];
 
-  final List<String> _strategies = ['SMA_111', 'RSI_Strategy', 'MACD_Strategy'];
   final List<String> _intervals = ['15m', '1h', '4h', '1d'];
   final List<int> _autoScanOptions = [1, 5, 15, 30, 60];
 
@@ -39,6 +38,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
   }
 
   String _getStrategyName() {
+    if (_selectedStrategy.isEmpty) return 'Strateji Seçiniz';
     final strategiesAsync = ref.read(strategiesProvider);
     return strategiesAsync.when(
       data: (strategies) {
@@ -58,11 +58,27 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
     );
   }
 
+  void _autoSelectFirstStrategy() {
+    if (_selectedStrategy.isNotEmpty) return;
+    final strategiesAsync = ref.read(strategiesProvider);
+    strategiesAsync.whenData((strategies) {
+      final scannerStrategies = strategies
+          .where((s) => s.category == 'scanner' || s.category == 'both')
+          .toList();
+      if (scannerStrategies.isNotEmpty && mounted) {
+        setState(() => _selectedStrategy = scannerStrategies.first.id);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final resultsAsync = ref.watch(scannerResultsProvider);
     final availablePairsAsync = ref.watch(availablePairsProvider);
     final favoriteListsAsync = ref.watch(favoriteListsProvider);
+
+    // İlk scanner stratejisini otomatik seç
+    _autoSelectFirstStrategy();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -570,14 +586,8 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
             .toList();
 
         if (scannerStrategies.isEmpty) {
-          // Fallback to simple selection if no strategies available
-          _showSelectionSheet(
-            title: 'Strateji Seçiniz',
-            items: _strategies,
-            currentValue: _selectedStrategy,
-            onSelect: (val) {
-              setState(() => _selectedStrategy = val);
-            },
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Tarayıcı stratejisi bulunamadı')),
           );
         } else {
           _showStrategySelectionSheet(scannerStrategies);
@@ -585,14 +595,8 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
       },
       loading: () {},
       error: (_, __) {
-        // Fallback to simple selection on error
-        _showSelectionSheet(
-          title: 'Strateji Seçiniz',
-          items: _strategies,
-          currentValue: _selectedStrategy,
-          onSelect: (val) {
-            setState(() => _selectedStrategy = val);
-          },
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Stratejiler yüklenemedi')),
         );
       },
     );

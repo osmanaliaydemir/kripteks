@@ -5,7 +5,12 @@ namespace Kripteks.Infrastructure.Strategies;
 public class SimulationStrategy : IStrategy
 {
     public string Id => "strategy-simulation";
-    public string Name => "Simülasyon Stratejisi (Test)";
+    public string Name => "Simülasyon Stratejisi";
+
+    public string Description =>
+        "Gerçek veri olmasa bile test verisi üreterek sistemin akışını kontrol etmenizi sağlar.";
+
+    public StrategyCategory Category => StrategyCategory.Both;
 
     public void SetParameters(Dictionary<string, string> parameters)
     {

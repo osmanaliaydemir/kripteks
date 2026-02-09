@@ -7,6 +7,11 @@ public class GridStrategy : IStrategy
     public string Id => "strategy-grid";
     public string Name => "Grid Trading Bot";
 
+    public string Description =>
+        "Belirlenen fiyat aralığını eşit grid seviyelerine bölerek, fiyat her seviyeye düştüğünde alım, her çıktığında satım yapar. Yatay piyasalarda kâr üretmeye optimize edilmiştir.";
+
+    public StrategyCategory Category => StrategyCategory.Trading;
+
     private int _gridCount = 10;
     private decimal _lowerPrice = 0;
     private decimal _upperPrice = 0;

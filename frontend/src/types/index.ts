@@ -49,7 +49,7 @@ export interface Strategy {
     id: string;
     name: string;
     description?: string;
-    category?: 'scanner' | 'simulation' | 'both';
+    category?: 'simulation' | 'trading' | 'scanner' | 'both';
 }
 
 export interface Wallet {

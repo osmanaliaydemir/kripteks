@@ -7,6 +7,14 @@ public enum TradeAction
     Sell // Satış Sinyali (TP veya SL)
 }
 
+public enum StrategyCategory
+{
+    Simulation, // Simülasyon & backtesting
+    Trading, // Canlı bot trading
+    Scanner, // Piyasa tarama
+    Both // Tüm alanlar
+}
+
 public class StrategyResult
 {
     public TradeAction Action { get; set; } = TradeAction.None;
@@ -20,6 +28,8 @@ public interface IStrategy
 {
     string Id { get; }
     string Name { get; }
+    string Description { get; }
+    StrategyCategory Category { get; }
 
     void SetParameters(Dictionary<string, string> parameters);
 

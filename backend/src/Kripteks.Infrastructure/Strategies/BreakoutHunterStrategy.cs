@@ -11,10 +11,12 @@ namespace Kripteks.Infrastructure.Strategies;
 public class BreakoutHunterStrategy : IStrategy
 {
     public string Id => "strategy-breakout-hunter";
-    public string Name => "Breakout Hunter (Kırılım Avcısı)";
+    public string Name => "Kırılım Avcısı";
 
     public string Description =>
         "Bollinger Band sıkışması (düşük bandwidth) ve ATR daralması ile konsolidasyon tespit eder. Hacim patlamasıyla birlikte üst bandı kıran coinleri yakalar.";
+
+    public StrategyCategory Category => StrategyCategory.Scanner;
 
     private int _bbPeriod = 20;
     private decimal _bbStdDev = 2;

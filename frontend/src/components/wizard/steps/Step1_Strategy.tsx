@@ -39,11 +39,11 @@ export default function Step1_Strategy({
     isLoadingCoins,
     refreshCoins
 }: Step1Props) {
-    const [selectedCategory, setSelectedCategory] = useState<'all' | 'simulation' | 'scanner'>('all');
+    const [selectedCategory, setSelectedCategory] = useState<'all' | 'trading' | 'scanner'>('all');
 
     const filteredStrategies = strategies.filter(s => {
         if (selectedCategory === 'all') return true;
-        if (selectedCategory === 'simulation') return s.category === 'simulation' || s.category === 'both';
+        if (selectedCategory === 'trading') return s.category === 'trading' || s.category === 'both';
         if (selectedCategory === 'scanner') return s.category === 'scanner' || s.category === 'both';
         return true;
     });
@@ -78,7 +78,7 @@ export default function Step1_Strategy({
 
                     {/* Category Filter */}
                     <div className="flex bg-slate-900/50 p-1 rounded-lg border border-white/5">
-                        {(['all', 'simulation', 'scanner'] as const).map((cat) => (
+                        {(['all', 'trading', 'scanner'] as const).map((cat) => (
                             <button
                                 key={cat}
                                 onClick={() => setSelectedCategory(cat)}
@@ -87,7 +87,7 @@ export default function Step1_Strategy({
                                     : 'text-slate-400 hover:text-white hover:bg-white/5'
                                     }`}
                             >
-                                {cat === 'all' ? 'Tümü' : cat === 'simulation' ? 'Simülasyon' : 'Tarayıcı'}
+                                {cat === 'all' ? 'Tümü' : cat === 'trading' ? 'Trading' : 'Tarayıcı'}
                             </button>
                         ))}
                     </div>
@@ -121,11 +121,12 @@ export default function Step1_Strategy({
                                             </h4>
                                             <div className="flex items-center gap-2">
                                                 {strategy.category && (
-                                                    <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded border ${strategy.category === 'simulation' ? 'text-blue-400 border-blue-500/30' :
+                                                    <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded border ${strategy.category === 'trading' ? 'text-emerald-400 border-emerald-500/30' :
+                                                        strategy.category === 'simulation' ? 'text-blue-400 border-blue-500/30' :
                                                         strategy.category === 'scanner' ? 'text-purple-400 border-purple-500/30' :
                                                             'text-slate-400 border-slate-500/30'
                                                         }`}>
-                                                        {strategy.category === 'both' ? 'GENEL' : strategy.category === 'simulation' ? 'SİM' : 'SCAN'}
+                                                        {strategy.category === 'both' ? 'GENEL' : strategy.category === 'trading' ? 'TRADE' : strategy.category === 'simulation' ? 'SİM' : 'SCAN'}
                                                     </span>
                                                 )}
                                                 {isSelected && (

@@ -8,6 +8,11 @@ public class GoldenCrossStrategy : IStrategy
     public string Id => "strategy-golden-cross";
     public string Name => "Altın Kesişim (Golden Cross)";
 
+    public string Description =>
+        "Klasik SMA 50 ve SMA 200 kesişim stratejisi. SMA 50, SMA 200'ü yukarı kestiğinde alım (Golden Cross), aşağı kestiğinde satış (Death Cross) sinyali üretir. Uzun vadeli trend takibi için idealdir.";
+
+    public StrategyCategory Category => StrategyCategory.Trading;
+
     private int _shortPeriod = 50;
     private int _longPeriod = 200;
 

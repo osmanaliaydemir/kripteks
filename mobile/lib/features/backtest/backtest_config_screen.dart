@@ -386,7 +386,12 @@ class _BacktestConfigScreenState extends ConsumerState<BacktestConfigScreen> {
     return strategiesAsync.when(
       data: (strategies) {
         final simulationStrategies = strategies
-            .where((s) => s.category == 'simulation' || s.category == 'both')
+            .where(
+              (s) =>
+                  s.category == 'trading' ||
+                  s.category == 'simulation' ||
+                  s.category == 'both',
+            )
             .toList();
 
         if (simulationStrategies.isEmpty) {

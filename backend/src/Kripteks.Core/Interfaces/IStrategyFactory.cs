@@ -4,4 +4,5 @@ public interface IStrategyFactory
 {
     IStrategy GetStrategy(string id);
     IEnumerable<IStrategy> GetAllStrategies();
+    IEnumerable<IStrategy> GetStrategiesByCategory(StrategyCategory category);
 }

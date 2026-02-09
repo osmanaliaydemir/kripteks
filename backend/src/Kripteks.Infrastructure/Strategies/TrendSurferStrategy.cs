@@ -11,10 +11,12 @@ namespace Kripteks.Infrastructure.Strategies;
 public class TrendSurferStrategy : IStrategy
 {
     public string Id => "strategy-trend-surfer";
-    public string Name => "Trend Surfer (Trend Sörfçüsü)";
+    public string Name => "Trend Sörfçüsü";
 
     public string Description =>
         "ADX (Average Directional Index) ile trend gücünü ölçer, EMA 50/200 ile trend yönünü belirler. Güçlü yükseliş trendindeki coinleri tespit ederek trende binme fırsatı sunar.";
+
+    public StrategyCategory Category => StrategyCategory.Scanner;
 
     private int _adxPeriod = 14;
     private int _fastEmaPeriod = 50;

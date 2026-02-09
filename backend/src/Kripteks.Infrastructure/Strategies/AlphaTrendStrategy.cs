@@ -6,7 +6,12 @@ namespace Kripteks.Infrastructure.Strategies;
 public class AlphaTrendStrategy : IStrategy
 {
     public string Id => "strategy-alpha-trend";
-    public string Name => "Alpha Trend (EMA + RSI)";
+    public string Name => "Alfa Trend Takibi";
+
+    public string Description =>
+        "EMA 20 (Hızlı) ve EMA 50 (Yavaş) üstel hareketli ortalama kesişimlerini temel alan trend takip stratejisi. Yanıltıcı sinyalleri elemek için RSI (14) momentum filtresi kullanır; RSI'ın 50 üzerindeki kalıcılığına ve hacim desteğine göre trend başlangıçlarını saptamaya çalışır.";
+
+    public StrategyCategory Category => StrategyCategory.Trading;
 
     private int _fastEma = 20;
     private int _slowEma = 50;
