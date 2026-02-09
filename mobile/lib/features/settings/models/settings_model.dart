@@ -64,3 +64,68 @@ class BiometricState {
 
   BiometricState({required this.isSupported, required this.isEnabled});
 }
+
+class NotificationSettings {
+  final bool notifyBuySignals;
+  final bool notifySellSignals;
+  final bool notifyStopLoss;
+  final bool notifyTakeProfit;
+  final bool notifyGeneral;
+  final bool notifyErrors;
+  final bool enablePushNotifications;
+
+  NotificationSettings({
+    this.notifyBuySignals = true,
+    this.notifySellSignals = true,
+    this.notifyStopLoss = true,
+    this.notifyTakeProfit = true,
+    this.notifyGeneral = true,
+    this.notifyErrors = true,
+    this.enablePushNotifications = true,
+  });
+
+  factory NotificationSettings.fromJson(Map<String, dynamic> json) {
+    return NotificationSettings(
+      notifyBuySignals: json['notifyBuySignals'] as bool? ?? true,
+      notifySellSignals: json['notifySellSignals'] as bool? ?? true,
+      notifyStopLoss: json['notifyStopLoss'] as bool? ?? true,
+      notifyTakeProfit: json['notifyTakeProfit'] as bool? ?? true,
+      notifyGeneral: json['notifyGeneral'] as bool? ?? true,
+      notifyErrors: json['notifyErrors'] as bool? ?? true,
+      enablePushNotifications: json['enablePushNotifications'] as bool? ?? true,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'notifyBuySignals': notifyBuySignals,
+      'notifySellSignals': notifySellSignals,
+      'notifyStopLoss': notifyStopLoss,
+      'notifyTakeProfit': notifyTakeProfit,
+      'notifyGeneral': notifyGeneral,
+      'notifyErrors': notifyErrors,
+      'enablePushNotifications': enablePushNotifications,
+    };
+  }
+
+  NotificationSettings copyWith({
+    bool? notifyBuySignals,
+    bool? notifySellSignals,
+    bool? notifyStopLoss,
+    bool? notifyTakeProfit,
+    bool? notifyGeneral,
+    bool? notifyErrors,
+    bool? enablePushNotifications,
+  }) {
+    return NotificationSettings(
+      notifyBuySignals: notifyBuySignals ?? this.notifyBuySignals,
+      notifySellSignals: notifySellSignals ?? this.notifySellSignals,
+      notifyStopLoss: notifyStopLoss ?? this.notifyStopLoss,
+      notifyTakeProfit: notifyTakeProfit ?? this.notifyTakeProfit,
+      notifyGeneral: notifyGeneral ?? this.notifyGeneral,
+      notifyErrors: notifyErrors ?? this.notifyErrors,
+      enablePushNotifications:
+          enablePushNotifications ?? this.enablePushNotifications,
+    );
+  }
+}

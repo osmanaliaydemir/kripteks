@@ -1,4 +1,5 @@
 using Kripteks.Core.Entities;
+using Kripteks.Core.DTOs;
 using Kripteks.Core.Interfaces;
 using Kripteks.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -136,6 +137,121 @@ public class SettingsController : ControllerBase
         return Ok(new { message = "Sistem ayarları başarıyla kaydedildi." });
     }
 
+    [Authorize(Roles = "Admin,Trader")]
+    [HttpGet("notifications")]
+    public async Task<IActionResult> GetNotificationSettings()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId == null) return Unauthorized();
+
+        var settings = await _context.SystemSettings
+            .FirstOrDefaultAsync(x => x.UserId == userId);
+
+        if (settings == null)
+        {
+            // Varsayılan değerler
+            return Ok(new NotificationSettingsDto
+            {
+                NotifyBuySignals = true,
+                NotifySellSignals = true,
+                NotifyStopLoss = true,
+                NotifyTakeProfit = true,
+                NotifyGeneral = true,
+                NotifyErrors = true,
+                EnablePushNotifications = true
+            });
+        }
+
+        return Ok(new NotificationSettingsDto
+        {
+            NotifyBuySignals = settings.NotifyBuySignals,
+            NotifySellSignals = settings.NotifySellSignals,
+            NotifyStopLoss = settings.NotifyStopLoss,
+            NotifyTakeProfit = settings.NotifyTakeProfit,
+            NotifyGeneral = settings.NotifyGeneral,
+            NotifyErrors = settings.NotifyErrors,
+            EnablePushNotifications = settings.EnablePushNotifications
+        });
+    }
+
+    [Authorize(Roles = "Admin,Trader")]
+    [HttpPut("notifications")]
+    public async Task<IActionResult> UpdateNotificationSettings([FromBody] NotificationSettingsDto model)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId == null) return Unauthorized();
+
+        var existing = await _context.SystemSettings
+            .FirstOrDefaultAsync(x => x.UserId == userId);
+
+        if (existing != null)
+        {
+            existing.NotifyBuySignals = model.NotifyBuySignals;
+            existing.NotifySellSignals = model.NotifySellSignals;
+            existing.NotifyStopLoss = model.NotifyStopLoss;
+            existing.NotifyTakeProfit = model.NotifyTakeProfit;
+            existing.NotifyGeneral = model.NotifyGeneral;
+            existing.NotifyErrors = model.NotifyErrors;
+            existing.EnablePushNotifications = model.EnablePushNotifications;
+            existing.UpdatedAt = DateTime.UtcNow;
+            _context.SystemSettings.Update(existing);
+        }
+        else
+        {
+            var newSettings = new SystemSetting
+            {
+                UserId = userId,
+                NotifyBuySignals = model.NotifyBuySignals,
+                NotifySellSignals = model.NotifySellSignals,
+                NotifyStopLoss = model.NotifyStopLoss,
+                NotifyTakeProfit = model.NotifyTakeProfit,
+                NotifyGeneral = model.NotifyGeneral,
+                NotifyErrors = model.NotifyErrors,
+                EnablePushNotifications = model.EnablePushNotifications,
+                UpdatedAt = DateTime.UtcNow
+            };
+            await _context.SystemSettings.AddAsync(newSettings);
+        }
+
+        await _context.SaveChangesAsync();
+        await _auditLogService.LogAsync(userId, "Bildirim Ayarları Güncellendi");
+        return Ok(new { message = "Bildirim ayarları başarıyla kaydedildi." });
+    }
+
+    [Authorize(Roles = "Admin,Trader")]
+    [HttpPost("fcm-token")]
+    public async Task<IActionResult> UpdateFcmToken([FromBody] UpdateFcmTokenRequest model)
+    {
+        if (string.IsNullOrWhiteSpace(model.FcmToken))
+            return BadRequest("FCM token zorunludur.");
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId == null) return Unauthorized();
+
+        var existing = await _context.SystemSettings
+            .FirstOrDefaultAsync(x => x.UserId == userId);
+
+        if (existing != null)
+        {
+            existing.FcmToken = model.FcmToken;
+            existing.UpdatedAt = DateTime.UtcNow;
+            _context.SystemSettings.Update(existing);
+        }
+        else
+        {
+            var newSettings = new SystemSetting
+            {
+                UserId = userId,
+                FcmToken = model.FcmToken,
+                UpdatedAt = DateTime.UtcNow
+            };
+            await _context.SystemSettings.AddAsync(newSettings);
+        }
+
+        await _context.SaveChangesAsync();
+        return Ok(new { message = "FCM token kaydedildi." });
+    }
+
     [Authorize(Roles = "Admin")]
     [HttpGet("audit-logs")]
     public async Task<IActionResult> GetAuditLogs()
@@ -153,3 +269,4 @@ public class ApiKeyDto
     public string ApiKey { get; set; } = string.Empty;
     public string SecretKey { get; set; } = string.Empty;
 }
+

@@ -32,3 +32,61 @@ final biometricStateProvider = FutureProvider.autoDispose<BiometricState>((
   final isEnabled = isSupported ? await service.isBiometricEnabled() : false;
   return BiometricState(isSupported: isSupported, isEnabled: isEnabled);
 });
+
+final notificationSettingsProvider =
+    AsyncNotifierProvider<NotificationSettingsNotifier, NotificationSettings>(
+      NotificationSettingsNotifier.new,
+    );
+
+class NotificationSettingsNotifier extends AsyncNotifier<NotificationSettings> {
+  @override
+  Future<NotificationSettings> build() async {
+    final service = ref.watch(settingsServiceProvider);
+    return service.getNotificationSettings();
+  }
+
+  Future<void> updateSettings(NotificationSettings newSettings) async {
+    final service = ref.read(settingsServiceProvider);
+    state = const AsyncValue.loading();
+    try {
+      await service.updateNotificationSettings(newSettings);
+      state = AsyncValue.data(newSettings);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
+  Future<void> toggleSetting(String field, bool value) async {
+    final current = state.value;
+    if (current == null) return;
+
+    NotificationSettings updated;
+    switch (field) {
+      case 'notifyBuySignals':
+        updated = current.copyWith(notifyBuySignals: value);
+        break;
+      case 'notifySellSignals':
+        updated = current.copyWith(notifySellSignals: value);
+        break;
+      case 'notifyStopLoss':
+        updated = current.copyWith(notifyStopLoss: value);
+        break;
+      case 'notifyTakeProfit':
+        updated = current.copyWith(notifyTakeProfit: value);
+        break;
+      case 'notifyGeneral':
+        updated = current.copyWith(notifyGeneral: value);
+        break;
+      case 'notifyErrors':
+        updated = current.copyWith(notifyErrors: value);
+        break;
+      case 'enablePushNotifications':
+        updated = current.copyWith(enablePushNotifications: value);
+        break;
+      default:
+        return;
+    }
+
+    await updateSettings(updated);
+  }
+}

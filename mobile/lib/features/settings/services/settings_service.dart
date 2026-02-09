@@ -42,4 +42,29 @@ class SettingsService {
       throw Exception('Failed to save system settings: $e');
     }
   }
+
+  Future<NotificationSettings> getNotificationSettings() async {
+    try {
+      final response = await _dio.get('/settings/notifications');
+      return NotificationSettings.fromJson(response.data);
+    } catch (e) {
+      throw Exception('Failed to fetch notification settings: $e');
+    }
+  }
+
+  Future<void> updateNotificationSettings(NotificationSettings settings) async {
+    try {
+      await _dio.put('/settings/notifications', data: settings.toJson());
+    } catch (e) {
+      throw Exception('Failed to update notification settings: $e');
+    }
+  }
+
+  Future<void> updateFcmToken(String token) async {
+    try {
+      await _dio.post('/settings/fcm-token', data: {'fcmToken': token});
+    } catch (e) {
+      throw Exception('Failed to update FCM token: $e');
+    }
+  }
 }
