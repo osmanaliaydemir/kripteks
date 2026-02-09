@@ -182,22 +182,24 @@ class BotDetailScreen extends ConsumerWidget {
                   _formatInterval(bot.interval),
                   Icons.schedule_rounded,
                 ),
-                if (bot.entryDate != null) ...[
-                  const Divider(color: Colors.white10, height: 24),
-                  _buildConfigRow(
-                    'Giriş Tarihi',
-                    _formatDateTime(bot.entryDate!),
-                    Icons.login_rounded,
-                  ),
-                ],
-                if (bot.exitDate != null) ...[
-                  const Divider(color: Colors.white10, height: 24),
-                  _buildConfigRow(
-                    'Çıkış Tarihi',
-                    _formatDateTime(bot.exitDate!),
-                    Icons.logout_rounded,
-                  ),
-                ],
+                const Divider(color: Colors.white10, height: 24),
+                _buildConfigRow(
+                  'Giriş Tarihi',
+                  bot.entryDate != null ? _formatDateTime(bot.entryDate!) : '-',
+                  Icons.login_rounded,
+                  valueColor: bot.entryDate != null
+                      ? Colors.white
+                      : Colors.white38,
+                ),
+                const Divider(color: Colors.white10, height: 24),
+                _buildConfigRow(
+                  'Çıkış Tarihi',
+                  bot.exitDate != null ? _formatDateTime(bot.exitDate!) : '-',
+                  Icons.logout_rounded,
+                  valueColor: bot.exitDate != null
+                      ? Colors.white
+                      : Colors.white38,
+                ),
                 const Divider(color: Colors.white10, height: 24),
                 _buildConfigRow(
                   'Stop Loss',

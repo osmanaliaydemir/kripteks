@@ -164,6 +164,9 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
                               bot: displayedBots[index],
                               onStop: () =>
                                   _showStopConfirmation(displayedBots[index]),
+                              onTap: () => context.push(
+                                '/bots/${displayedBots[index].id}',
+                              ),
                             );
                           },
                         ),
@@ -357,8 +360,13 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
 class _BotCardItem extends StatefulWidget {
   final Bot bot;
   final VoidCallback onStop;
+  final VoidCallback onTap;
 
-  const _BotCardItem({required this.bot, required this.onStop});
+  const _BotCardItem({
+    required this.bot,
+    required this.onStop,
+    required this.onTap,
+  });
 
   @override
   State<_BotCardItem> createState() => _BotCardItemState();
@@ -372,251 +380,256 @@ class _BotCardItemState extends State<_BotCardItem> {
     final bot = widget.bot;
     final isPositive = bot.pnl >= 0;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: Column(
-        children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceLight,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.white10),
-                  ),
-                  child: Center(
-                    child: Text(
-                      bot.symbol.isNotEmpty ? bot.symbol.substring(0, 1) : '?',
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: AppColors.surface.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        child: Column(
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceLight,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.white10),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        bot.symbol,
+                    child: Center(
+                      child: Text(
+                        bot.symbol.isNotEmpty
+                            ? bot.symbol.substring(0, 1)
+                            : '?',
                         style: GoogleFonts.inter(
                           color: Colors.white,
-                          fontSize: 16,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: _getStatusColor(bot.status),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            _getStatusLabel(bot.status),
-                            style: GoogleFonts.inter(
-                              color: _getStatusColor(
-                                bot.status,
-                              ).withValues(alpha: 0.8),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-                if (bot.status != 'WaitingForEntry')
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        '${isPositive ? '+' : ''}${bot.pnl.toStringAsFixed(2)}\$',
-                        style: GoogleFonts.inter(
-                          color: isPositive
-                              ? AppColors.success
-                              : AppColors.error,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          bot.symbol,
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '${bot.pnlPercent < 0 ? '-' : ''}%${bot.pnlPercent.abs().toStringAsFixed(2)}',
-                            style: GoogleFonts.inter(
-                              color: isPositive
-                                  ? AppColors.success
-                                  : AppColors.error,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: _getStatusColor(bot.status),
+                                shape: BoxShape.circle,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-          ),
-
-          // Action Row
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      Flexible(
-                        child: _buildSmallChip(
-                          bot.strategyName.toUpperCase().contains('STRATEGY-')
-                              ? bot.strategyName.toUpperCase().replaceFirst(
-                                  'STRATEGY-',
-                                  '',
-                                )
-                              : bot.strategyName.toUpperCase(),
-                          color: Colors.white.withValues(alpha: 0.05),
-                          textColor: Colors.white38,
+                            const SizedBox(width: 6),
+                            Text(
+                              _getStatusLabel(bot.status),
+                              style: GoogleFonts.inter(
+                                color: _getStatusColor(
+                                  bot.status,
+                                ).withValues(alpha: 0.8),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      _buildSmallChip(
-                        bot.interval.toUpperCase(),
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        textColor: AppColors.primary,
-                      ),
-                      const SizedBox(width: 6),
-                      _buildSmallChip(
-                        '${bot.amount.toInt()}\$',
-                        color: Colors.white.withValues(alpha: 0.03),
-                        textColor: Colors.white38,
-                        icon: Icons.account_balance_wallet_outlined,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Row(
-                  children: [
-                    _buildMinimalAction(
-                      icon: Icons.show_chart_rounded,
-                      onTap: () => _openTradingView(bot.symbol, bot.interval),
-                    ),
-                    const SizedBox(width: 6),
-                    _buildMinimalAction(
-                      icon: Icons.stop_rounded,
-                      color: AppColors.error.withValues(alpha: 0.1),
-                      iconColor: AppColors.error,
-                      onTap: widget.onStop,
-                    ),
-                    const SizedBox(width: 6),
-                    _buildMinimalAction(
-                      icon: Icons.keyboard_arrow_right_rounded,
-                      onTap: () => context.push('/bots/${bot.id}'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // Logs
-          Container(
-            decoration: const BoxDecoration(
-              border: Border(
-                top: BorderSide(color: Colors.white10, width: 0.5),
-              ),
-            ),
-            child: Theme(
-              data: Theme.of(
-                context,
-              ).copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
-                onExpansionChanged: (value) =>
-                    setState(() => _isExpanded = value),
-                dense: true,
-                visualDensity: VisualDensity.compact,
-                title: Text(
-                  'İŞLEM KAYITLARI',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                trailing: Icon(
-                  _isExpanded
-                      ? Icons.keyboard_arrow_up_rounded
-                      : Icons.keyboard_arrow_down_rounded,
-                  color: Colors.white12,
-                  size: 20,
-                ),
-                children: [
-                  if (bot.logs != null && bot.logs!.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                      child: Column(
-                        children: bot.logs!.take(3).map((log) {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: Row(
-                              children: [
-                                Text(
-                                  _formatTime(log.timestamp),
-                                  style: const TextStyle(
-                                    color: Colors.white24,
-                                    fontSize: 9,
-                                    fontFamily: 'monospace',
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    log.message,
-                                    style: TextStyle(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.5,
-                                      ),
-                                      fontSize: 10,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
+                  if (bot.status != 'WaitingForEntry')
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${isPositive ? '+' : ''}${bot.pnl.toStringAsFixed(2)}\$',
+                          style: GoogleFonts.inter(
+                            color: isPositive
+                                ? AppColors.success
+                                : AppColors.error,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '${bot.pnlPercent < 0 ? '-' : ''}%${bot.pnlPercent.abs().toStringAsFixed(2)}',
+                              style: GoogleFonts.inter(
+                                color: isPositive
+                                    ? AppColors.success
+                                    : AppColors.error,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          );
-                        }).toList(),
-                      ),
+                          ],
+                        ),
+                      ],
                     ),
                 ],
               ),
             ),
-          ),
-        ],
+
+            // Action Row
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: _buildSmallChip(
+                            bot.strategyName.toUpperCase().contains('STRATEGY-')
+                                ? bot.strategyName.toUpperCase().replaceFirst(
+                                    'STRATEGY-',
+                                    '',
+                                  )
+                                : bot.strategyName.toUpperCase(),
+                            color: Colors.white.withValues(alpha: 0.05),
+                            textColor: Colors.white38,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        _buildSmallChip(
+                          bot.interval.toUpperCase(),
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          textColor: AppColors.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        _buildSmallChip(
+                          '${bot.amount.toInt()}\$',
+                          color: Colors.white.withValues(alpha: 0.03),
+                          textColor: Colors.white38,
+                          icon: Icons.account_balance_wallet_outlined,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Row(
+                    children: [
+                      _buildMinimalAction(
+                        icon: Icons.show_chart_rounded,
+                        onTap: () => _openTradingView(bot.symbol, bot.interval),
+                      ),
+                      const SizedBox(width: 6),
+                      _buildMinimalAction(
+                        icon: Icons.stop_rounded,
+                        color: AppColors.error.withValues(alpha: 0.1),
+                        iconColor: AppColors.error,
+                        onTap: widget.onStop,
+                      ),
+                      const SizedBox(width: 6),
+                      _buildMinimalAction(
+                        icon: Icons.keyboard_arrow_right_rounded,
+                        onTap: () => context.push('/bots/${bot.id}'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Logs
+            Container(
+              decoration: const BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Colors.white10, width: 0.5),
+                ),
+              ),
+              child: Theme(
+                data: Theme.of(
+                  context,
+                ).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  onExpansionChanged: (value) =>
+                      setState(() => _isExpanded = value),
+                  dense: true,
+                  visualDensity: VisualDensity.compact,
+                  title: Text(
+                    'İŞLEM KAYITLARI',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  trailing: Icon(
+                    _isExpanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    color: Colors.white12,
+                    size: 20,
+                  ),
+                  children: [
+                    if (bot.logs != null && bot.logs!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                        child: Column(
+                          children: bot.logs!.take(3).map((log) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    _formatTime(log.timestamp),
+                                    style: const TextStyle(
+                                      color: Colors.white24,
+                                      fontSize: 9,
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      log.message,
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.5,
+                                        ),
+                                        fontSize: 10,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
