@@ -10,8 +10,9 @@ import 'package:flutter/foundation.dart';
 /// - Maksimum 3 deneme (varsayılan).
 /// - Sadece retry yapılabilir hata tipleri için çalışır:
 ///   - Connection timeout/error
-///   - 500, 502, 503, 504 sunucu hataları
+///   - 408, 429, 502, 503, 504 geçici sunucu hataları
 ///   - Send/Receive timeout
+///   - 500 (Internal Server Error) retry **yapılmaz** (deterministik hata)
 class RetryInterceptor extends Interceptor {
   final Dio dio;
   final int maxRetries;
@@ -126,7 +127,15 @@ class RetryInterceptor extends Interceptor {
   }
 
   /// Retry yapılabilir HTTP durum kodları.
+  ///
+  /// 500 (Internal Server Error) retry listesinden **çıkarıldı** çünkü
+  /// deterministik bir hata olup retry ile düzelmez. Sadece geçici hatalar:
+  /// - 408: Request Timeout
+  /// - 429: Too Many Requests (rate limit)
+  /// - 502: Bad Gateway (proxy/load balancer geçici hatası)
+  /// - 503: Service Unavailable (sunucu geçici olarak meşgul)
+  /// - 504: Gateway Timeout
   bool _isRetryableStatusCode(int statusCode) {
-    return const {408, 429, 500, 502, 503, 504}.contains(statusCode);
+    return const {408, 429, 502, 503, 504}.contains(statusCode);
   }
 }

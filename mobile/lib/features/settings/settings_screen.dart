@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/core/widgets/app_header.dart';
 import 'package:mobile/l10n/app_localizations.dart';
 import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/error/exceptions.dart';
 import 'package:mobile/core/auth/biometric_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -628,6 +629,14 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Widget _buildErrorCard(BuildContext context, Object err) {
+    // AppException'dan kullanıcı dostu mesajı al, değilse generic mesaj göster
+    final String userMessage;
+    if (err is AppException) {
+      userMessage = err.message;
+    } else {
+      userMessage = AppLocalizations.of(context)!.profileLoadError;
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -635,9 +644,24 @@ class SettingsScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.error.withValues(alpha: 0.2)),
       ),
-      child: Text(
-        '${AppLocalizations.of(context)!.profileLoadError}: $err',
-        style: const TextStyle(color: AppColors.error),
+      child: Row(
+        children: [
+          Icon(
+            Icons.error_outline_rounded,
+            color: AppColors.error.withValues(alpha: 0.7),
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              userMessage,
+              style: TextStyle(
+                color: AppColors.error.withValues(alpha: 0.9),
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
