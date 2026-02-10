@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Kripteks.Core.Entities;
 using Kripteks.Core.Interfaces;
 using Kripteks.Infrastructure.Data;
@@ -19,27 +20,37 @@ public class NotificationsController(
     IWebHostEnvironment env,
     IConfiguration configuration) : ControllerBase
 {
+    private string GetUserId() =>
+        User.FindFirstValue(ClaimTypes.NameIdentifier)
+        ?? throw new UnauthorizedAccessException("User ID not found in token");
+
     [HttpGet]
-    public async Task<ActionResult<List<Notification>>> GetAllNotifications()
+    public async Task<IActionResult> GetNotifications()
     {
-        var notifications = await notificationService.GetAllNotificationsAsync();
+        var userId = GetUserId();
+        var notifications = await notificationService.GetNotificationsAsync(userId);
         return Ok(notifications);
     }
 
     [HttpPut("{id}/read")]
     public async Task<IActionResult> MarkAsRead(Guid id)
     {
-        await notificationService.MarkAsReadAsync(id);
+        var userId = GetUserId();
+        await notificationService.MarkAsReadAsync(id, userId);
         return Ok();
     }
 
     [HttpPut("read-all")]
     public async Task<IActionResult> MarkAllAsRead()
     {
-        await notificationService.MarkAllAsReadAsync();
+        var userId = GetUserId();
+        await notificationService.MarkAllAsReadAsync(userId);
         return Ok();
     }
 
+    /// <summary>
+    /// Genel test bildirimi gönder (tüm kullanıcılara)
+    /// </summary>
     [HttpPost("test")]
     public async Task<IActionResult> TestNotification()
     {
@@ -48,7 +59,23 @@ public class NotificationsController(
             "Bu bir push notification testidir! 🚀",
             NotificationType.Info);
 
-        return Ok(new { message = "Test notification sent" });
+        return Ok(new { message = "Test notification sent (broadcast)" });
+    }
+
+    /// <summary>
+    /// Kullanıcıya özel test bildirimi gönder
+    /// </summary>
+    [HttpPost("test-personal")]
+    public async Task<IActionResult> TestPersonalNotification()
+    {
+        var userId = GetUserId();
+        await notificationService.SendNotificationAsync(
+            "Kişisel Bildirim",
+            "Bu sadece sana özel bir bildirimdir! 🔐",
+            NotificationType.Info,
+            userId: userId);
+
+        return Ok(new { message = "Personal test notification sent", userId });
     }
 
     /// <summary>

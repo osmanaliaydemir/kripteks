@@ -19,6 +19,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<BacktestResult> BacktestResults { get; set; }
     public DbSet<UserFavoriteList> UserFavoriteLists { get; set; }
     public DbSet<UserDevice> UserDevices { get; set; }
+    public DbSet<UserNotificationRead> UserNotificationReads { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -132,6 +133,32 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
             .HasOne(ud => ud.User)
             .WithMany()
             .HasForeignKey(ud => ud.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Notification -> User (optional, kullanıcıya özel bildirimler için)
+        modelBuilder.Entity<Notification>()
+            .HasOne(n => n.User)
+            .WithMany()
+            .HasForeignKey(n => n.UserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Notification>()
+            .HasIndex(n => n.UserId);
+
+        // UserNotificationRead - composite PK (UserId + NotificationId)
+        modelBuilder.Entity<UserNotificationRead>()
+            .HasKey(r => new { r.UserId, r.NotificationId });
+
+        modelBuilder.Entity<UserNotificationRead>()
+            .HasOne(r => r.User)
+            .WithMany()
+            .HasForeignKey(r => r.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<UserNotificationRead>()
+            .HasOne(r => r.Notification)
+            .WithMany()
+            .HasForeignKey(r => r.NotificationId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

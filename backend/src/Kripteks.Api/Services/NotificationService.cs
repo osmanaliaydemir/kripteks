@@ -23,16 +23,17 @@ public class NotificationService(
             Message = message,
             Type = type,
             RelatedBotId = relatedBotId,
+            UserId = userId, // null = genel, set = kullanıcıya özel
             CreatedAt = DateTime.UtcNow
         };
 
         context.Notifications.Add(notification);
         await context.SaveChangesAsync();
 
-        // Broadcast to all connected clients via SignalR
+        // SignalR broadcast (client tarafta filtreleme yapılır)
         await hubContext.Clients.All.ReceiveNotification(notification);
 
-        // Push notification data payload - mobile tarafta navigasyon için
+        // Push notification data payload
         var data = new Dictionary<string, string>
         {
             ["type"] = type.ToString().ToLowerInvariant(),
@@ -45,23 +46,25 @@ public class NotificationService(
 
         try
         {
-            // Kullanıcıları ve push tercihlerini çek
-            var usersQuery = context.UserDevices
-                .Where(d => d.IsActive)
-                .Select(d => d.UserId)
-                .Distinct();
-
-            // Belirli bir kullanıcıya gönderilecekse filtrele
+            // Kullanıcıya özel bildirimse sadece o kullanıcıya gönder
             if (!string.IsNullOrEmpty(userId))
             {
-                usersQuery = usersQuery.Where(u => u == userId);
+                if (await ShouldSendPushAsync(userId, type))
+                {
+                    await firebaseNotificationService.SendToUserAsync(userId, title, message, data);
+                }
+                return;
             }
 
-            var targetUserIds = await usersQuery.ToListAsync();
+            // Genel bildirim - tüm aktif kullanıcılara gönder
+            var targetUserIds = await context.UserDevices
+                .Where(d => d.IsActive)
+                .Select(d => d.UserId)
+                .Distinct()
+                .ToListAsync();
 
             foreach (var targetUserId in targetUserIds)
             {
-                // Kullanıcının bildirim tercihlerini kontrol et
                 if (!await ShouldSendPushAsync(targetUserId, type))
                 {
                     logger.LogInformation(
@@ -70,8 +73,7 @@ public class NotificationService(
                     continue;
                 }
 
-                await firebaseNotificationService.SendToUserAsync(
-                    targetUserId, title, message, data);
+                await firebaseNotificationService.SendToUserAsync(targetUserId, title, message, data);
             }
         }
         catch (Exception ex)
@@ -89,13 +91,9 @@ public class NotificationService(
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.UserId == userId);
 
-        // Ayar yoksa varsayılan olarak gönder
         if (settings == null) return true;
-
-        // Genel push bildirimi kapalıysa hiç gönderme
         if (!settings.EnablePushNotifications) return false;
 
-        // Bildirim tipine göre kullanıcı tercihini kontrol et
         return type switch
         {
             NotificationType.Trade => settings.NotifyBuySignals || settings.NotifySellSignals,
@@ -107,41 +105,76 @@ public class NotificationService(
         };
     }
 
-    public async Task<List<Notification>> GetUnreadNotificationsAsync()
+    public async Task<List<NotificationDto>> GetNotificationsAsync(string userId)
     {
-        return await context.Notifications
-            .Where(n => !n.IsRead)
-            .OrderByDescending(n => n.CreatedAt)
-            .ToListAsync();
-    }
+        // Kullanıcının okuduğu bildirim ID'lerini al
+        var readNotificationIds = await context.UserNotificationReads
+            .AsNoTracking()
+            .Where(r => r.UserId == userId)
+            .Select(r => r.NotificationId)
+            .ToHashSetAsync();
 
-    public async Task<List<Notification>> GetAllNotificationsAsync()
-    {
-        return await context.Notifications
+        // Kullanıcıya ait bildirimler: genel (UserId=null) + kullanıcıya özel (UserId=userId)
+        var notifications = await context.Notifications
+            .AsNoTracking()
+            .Where(n => n.UserId == null || n.UserId == userId)
             .OrderByDescending(n => n.CreatedAt)
             .Take(50)
             .ToListAsync();
+
+        return notifications.Select(n => new NotificationDto
+        {
+            Id = n.Id,
+            Title = n.Title,
+            Message = n.Message,
+            Type = n.Type,
+            IsRead = readNotificationIds.Contains(n.Id),
+            CreatedAt = n.CreatedAt,
+            UserId = n.UserId,
+            RelatedBotId = n.RelatedBotId
+        }).ToList();
     }
 
-    public async Task MarkAsReadAsync(Guid id)
+    public async Task MarkAsReadAsync(Guid notificationId, string userId)
     {
-        var notification = await context.Notifications.FindAsync(id);
-        if (notification != null)
+        // Zaten okunmuş mu kontrol et
+        var alreadyRead = await context.UserNotificationReads
+            .AnyAsync(r => r.UserId == userId && r.NotificationId == notificationId);
+
+        if (!alreadyRead)
         {
-            notification.IsRead = true;
+            context.UserNotificationReads.Add(new UserNotificationRead
+            {
+                UserId = userId,
+                NotificationId = notificationId,
+                ReadAt = DateTime.UtcNow
+            });
             await context.SaveChangesAsync();
         }
     }
 
-    public async Task MarkAllAsReadAsync()
+    public async Task MarkAllAsReadAsync(string userId)
     {
-        var notifications = await context.Notifications.Where(n => !n.IsRead).ToListAsync();
-        foreach (var n in notifications)
-        {
-            n.IsRead = true;
-        }
+        // Kullanıcının görmesi gereken ama henüz okumadığı bildirimleri bul
+        var unreadNotificationIds = await context.Notifications
+            .Where(n => n.UserId == null || n.UserId == userId)
+            .Where(n => !context.UserNotificationReads
+                .Any(r => r.UserId == userId && r.NotificationId == n.Id))
+            .Select(n => n.Id)
+            .ToListAsync();
 
-        await context.SaveChangesAsync();
+        if (unreadNotificationIds.Count > 0)
+        {
+            var readRecords = unreadNotificationIds.Select(nId => new UserNotificationRead
+            {
+                UserId = userId,
+                NotificationId = nId,
+                ReadAt = DateTime.UtcNow
+            });
+
+            context.UserNotificationReads.AddRange(readRecords);
+            await context.SaveChangesAsync();
+        }
     }
 
     public Task NotifyBotUpdate(object bot)
