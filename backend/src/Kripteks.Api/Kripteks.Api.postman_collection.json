@@ -1,0 +1,1731 @@
+{
+	"info": {
+		"_postman_id": "kripteks-api-collection",
+		"name": "Kripteks API",
+		"description": "Kripteks Kripto Trading Platform API - Tüm endpoint'ler\n\nBase URL: https://localhost:7042 (Development)\n\nAuthentication: JWT Bearer Token\n- Login endpoint'inden alınan token, Authorization header'ında \"Bearer {token}\" formatında gönderilmelidir.\n\nRate Limiting:\n- Auth endpoints: 5 istek / 30 saniye (IP bazlı)\n- Genel API: 100 istek / dakika (IP bazlı)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{access_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "https://localhost:7042",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"item": [
+		{
+			"name": "Auth",
+			"description": "Kimlik doğrulama ve kullanıcı kayıt işlemleri",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password123!\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Auth", "register"]
+						},
+						"description": "Yeni kullanıcı kaydı. Rate limit: 5 istek / 30 saniye"
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.token) {",
+									"    pm.collectionVariables.set('access_token', jsonData.token);",
+									"    console.log('Token saved successfully');",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password123!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Auth", "login"]
+						},
+						"description": "Kullanıcı girişi. Başarılı girişte JWT token otomatik olarak collection variable'a kaydedilir. Rate limit: 5 istek / 30 saniye"
+					},
+					"response": []
+				},
+				{
+					"name": "Change Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"currentPassword\": \"OldPassword123!\",\n  \"newPassword\": \"NewPassword456!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Auth/change-password",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Auth", "change-password"]
+						},
+						"description": "Kullanıcı şifre değiştirme. Authorization gerektirir."
+					},
+					"response": []
+				},
+				{
+					"name": "Forgot Password",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Auth/forgot-password",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Auth", "forgot-password"]
+						},
+						"description": "Şifremi unuttum - e-posta ile sıfırlama kodu gönderir. Rate limit: 5 istek / 30 saniye"
+					},
+					"response": []
+				},
+				{
+					"name": "Verify Reset Code",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"code\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Auth/verify-reset-code",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Auth", "verify-reset-code"]
+						},
+						"description": "Şifre sıfırlama kodunu doğrular. Rate limit: 5 istek / 30 saniye"
+					},
+					"response": []
+				},
+				{
+					"name": "Reset Password",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"code\": \"123456\",\n  \"newPassword\": \"NewPassword123!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Auth/reset-password",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Auth", "reset-password"]
+						},
+						"description": "Doğrulanan kod ile şifre sıfırlama"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Profile",
+			"description": "Kullanıcı profil yönetimi",
+			"item": [
+				{
+					"name": "Get Profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Profile",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Profile"]
+						},
+						"description": "Giriş yapmış kullanıcının profil bilgilerini getirir"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Profile",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Profile"]
+						},
+						"description": "Kullanıcı profil bilgilerini günceller"
+					},
+					"response": []
+				},
+				{
+					"name": "Change Password (Profile)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"currentPassword\": \"OldPassword123!\",\n  \"newPassword\": \"NewPassword456!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Profile/change-password",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Profile", "change-password"]
+						},
+						"description": "Profil üzerinden şifre değiştirme"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users (Admin)",
+			"description": "Kullanıcı yönetimi - Sadece Admin rolü",
+			"item": [
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Users",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Users"]
+						},
+						"description": "Tüm kullanıcıları listeler. Sadece Admin rolü."
+					},
+					"response": []
+				},
+				{
+					"name": "Create User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Doe\",\n  \"email\": \"jane@example.com\",\n  \"password\": \"Password123!\",\n  \"role\": \"Trader\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Users",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Users"]
+						},
+						"description": "Yeni kullanıcı oluşturur. Sadece Admin rolü. Roller: Admin, Trader, Viewer"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Users/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Users", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "Kullanıcı ID"
+								}
+							]
+						},
+						"description": "Kullanıcı siler. Sadece Admin rolü."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Bots",
+			"description": "Bot yönetimi - Oluşturma, başlatma, durdurma",
+			"item": [
+				{
+					"name": "Get All Bots",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Bots",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Bots"]
+						},
+						"description": "Kullanıcıya ait tüm botları listeler"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bot by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Bots/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Bots", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "Bot ID"
+								}
+							]
+						},
+						"description": "Belirli bir botun detaylarını getirir"
+					},
+					"response": []
+				},
+				{
+					"name": "Start Bot",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"symbol\": \"BTCUSDT\",\n  \"strategyId\": \"rsi\",\n  \"amount\": 1000,\n  \"interval\": \"1h\",\n  \"takeProfit\": 5.0,\n  \"stopLoss\": 3.0,\n  \"isTrailingStop\": false,\n  \"trailingStopDistance\": 1.5,\n  \"strategyParameters\": {\n    \"period\": 14,\n    \"overbought\": 70,\n    \"oversold\": 30\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Bots/start",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Bots", "start"]
+						},
+						"description": "Yeni bot başlatır. Roller: Admin, Trader"
+					},
+					"response": []
+				},
+				{
+					"name": "Stop Bot",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Bots/:id/stop",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Bots", ":id", "stop"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "Bot ID"
+								}
+							]
+						},
+						"description": "Belirli bir botu durdurur. Roller: Admin, Trader"
+					},
+					"response": []
+				},
+				{
+					"name": "Stop All Bots",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Bots/stop-all",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Bots", "stop-all"]
+						},
+						"description": "Tüm aktif botları durdurur. Roller: Admin, Trader"
+					},
+					"response": []
+				},
+				{
+					"name": "Clear Bot Logs",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Bots/:id/clear-logs",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Bots", ":id", "clear-logs"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "Bot ID"
+								}
+							]
+						},
+						"description": "Belirli bir botun loglarını temizler. Roller: Admin, Trader"
+					},
+					"response": []
+				},
+				{
+					"name": "Clear Bot History",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Bots/clear-history",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Bots", "clear-history"]
+						},
+						"description": "Tüm bot geçmişini temizler. Roller: Admin, Trader"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Backtest",
+			"description": "Strateji backtesting, optimizasyon ve Monte Carlo simülasyonu",
+			"item": [
+				{
+					"name": "Run Backtest",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"symbol\": \"BTCUSDT\",\n  \"strategyId\": \"rsi\",\n  \"period\": 14,\n  \"startDate\": \"2024-01-01\",\n  \"endDate\": \"2024-12-31\",\n  \"interval\": \"1h\",\n  \"initialBalance\": 10000,\n  \"strategyParameters\": {\n    \"period\": 14,\n    \"overbought\": 70,\n    \"oversold\": 30\n  },\n  \"commissionRate\": 0.001,\n  \"slippageRate\": 0.0005\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Backtest/run",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Backtest", "run"]
+						},
+						"description": "Backtest çalıştırır. Public endpoint."
+					},
+					"response": []
+				},
+				{
+					"name": "Batch Scan",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"symbols\": [\"BTCUSDT\", \"ETHUSDT\", \"BNBUSDT\"],\n  \"strategyId\": \"rsi\",\n  \"startDate\": \"2024-01-01\",\n  \"endDate\": \"2024-12-31\",\n  \"interval\": \"1h\",\n  \"initialBalance\": 10000,\n  \"strategyParameters\": {\n    \"period\": 14,\n    \"overbought\": 70,\n    \"oversold\": 30\n  },\n  \"commissionRate\": 0.001,\n  \"slippageRate\": 0.0005\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Backtest/scan",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Backtest", "scan"]
+						},
+						"description": "Birden fazla sembol için toplu backtest çalıştırır"
+					},
+					"response": []
+				},
+				{
+					"name": "Optimize Strategy",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"symbol\": \"BTCUSDT\",\n  \"strategyId\": \"rsi\",\n  \"startDate\": \"2024-01-01\",\n  \"endDate\": \"2024-12-31\",\n  \"interval\": \"1h\",\n  \"initialBalance\": 10000,\n  \"strategyParameters\": {\n    \"period\": 14,\n    \"overbought\": 70,\n    \"oversold\": 30\n  },\n  \"commissionRate\": 0.001,\n  \"slippageRate\": 0.0005\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Backtest/optimize",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Backtest", "optimize"]
+						},
+						"description": "Strateji parametrelerini optimize eder"
+					},
+					"response": []
+				},
+				{
+					"name": "Optimize With Progress",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"symbol\": \"BTCUSDT\",\n  \"strategyId\": \"rsi\",\n  \"startDate\": \"2024-01-01\",\n  \"endDate\": \"2024-12-31\",\n  \"interval\": \"1h\",\n  \"initialBalance\": 10000,\n  \"strategyParameters\": {\n    \"period\": 14,\n    \"overbought\": 70,\n    \"oversold\": 30\n  },\n  \"commissionRate\": 0.001,\n  \"slippageRate\": 0.0005\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Backtest/optimize-with-progress/:sessionId",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Backtest", "optimize-with-progress", ":sessionId"],
+							"variable": [
+								{
+									"key": "sessionId",
+									"value": "session-001",
+									"description": "SignalR üzerinden progress takibi için session ID"
+								}
+							]
+						},
+						"description": "İlerleme takipli strateji optimizasyonu. SignalR (backtest-hub) üzerinden progress güncellemeleri alınır."
+					},
+					"response": []
+				},
+				{
+					"name": "Save Backtest Result",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"request\": {\n    \"symbol\": \"BTCUSDT\",\n    \"strategyId\": \"rsi\",\n    \"startDate\": \"2024-01-01\",\n    \"endDate\": \"2024-12-31\",\n    \"interval\": \"1h\",\n    \"initialBalance\": 10000\n  },\n  \"result\": {\n    \"totalTrades\": 50,\n    \"winningTrades\": 30,\n    \"losingTrades\": 20,\n    \"totalPnl\": 1500,\n    \"totalPnlPercent\": 15.0,\n    \"winRate\": 60.0,\n    \"maxDrawdown\": 5.2,\n    \"sharpeRatio\": 1.8,\n    \"profitFactor\": 2.1\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Backtest/save",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Backtest", "save"]
+						},
+						"description": "Backtest sonucunu kaydeder"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Backtest History",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Backtest/history?skip=0&take=50",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Backtest", "history"],
+							"query": [
+								{
+									"key": "skip",
+									"value": "0",
+									"description": "Atlanacak kayıt sayısı"
+								},
+								{
+									"key": "take",
+									"value": "50",
+									"description": "Alınacak kayıt sayısı"
+								}
+							]
+						},
+						"description": "Kaydedilmiş backtest geçmişini getirir (sayfalama destekli)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Backtest by ID",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Backtest/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Backtest", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "Backtest ID"
+								}
+							]
+						},
+						"description": "Belirli bir backtest sonucunu getirir"
+					},
+					"response": []
+				},
+				{
+					"name": "Toggle Favorite",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Backtest/:id/favorite",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Backtest", ":id", "favorite"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "Backtest ID"
+								}
+							]
+						},
+						"description": "Backtest sonucunu favori olarak işaretler/kaldırır"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Backtest",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Backtest/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Backtest", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "Backtest ID"
+								}
+							]
+						},
+						"description": "Backtest sonucunu siler"
+					},
+					"response": []
+				},
+				{
+					"name": "Run Monte Carlo Simulation",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"backtestResult\": {\n    \"totalTrades\": 50,\n    \"winningTrades\": 30,\n    \"losingTrades\": 20,\n    \"totalPnl\": 1500,\n    \"totalPnlPercent\": 15.0,\n    \"winRate\": 60.0,\n    \"maxDrawdown\": 5.2,\n    \"initialBalance\": 10000,\n    \"trades\": []\n  },\n  \"options\": {\n    \"simulationCount\": 1000,\n    \"tradesPerSimulation\": 100,\n    \"initialBalance\": 10000,\n    \"ruinThreshold\": 0.5\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Backtest/monte-carlo",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Backtest", "monte-carlo"]
+						},
+						"description": "Monte Carlo simülasyonu çalıştırır. Backtest sonuçlarına dayalı risk analizi."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Strategies",
+			"description": "Trading stratejileri listesi",
+			"item": [
+				{
+					"name": "Get All Strategies",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Strategies",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Strategies"]
+						},
+						"description": "Tüm stratejileri listeler. Public endpoint."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Strategies by Category",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Strategies?category=momentum",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Strategies"],
+							"query": [
+								{
+									"key": "category",
+									"value": "momentum",
+									"description": "Strateji kategorisi filtresi"
+								}
+							]
+						},
+						"description": "Kategoriye göre filtrelenmiş strateji listesi"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Strategy by ID",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Strategies/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Strategies", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "rsi",
+									"description": "Strateji ID (ör: rsi, macd, bollinger)"
+								}
+							]
+						},
+						"description": "Belirli bir stratejinin detaylarını getirir"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Scanner",
+			"description": "Piyasa tarama ve favori listeler",
+			"item": [
+				{
+					"name": "Scan Market",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"symbols\": [\"BTCUSDT\", \"ETHUSDT\", \"BNBUSDT\", \"SOLUSDT\", \"ADAUSDT\"],\n  \"strategyId\": \"rsi\",\n  \"interval\": \"1h\",\n  \"minScore\": 50,\n  \"strategyParameters\": {\n    \"period\": 14,\n    \"overbought\": 70,\n    \"oversold\": 30\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Scanner/scan",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Scanner", "scan"]
+						},
+						"description": "Seçilen semboller ve strateji ile piyasa taraması yapar"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Favorite Lists",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Scanner/favorites",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Scanner", "favorites"]
+						},
+						"description": "Kullanıcının favori sembol listelerini getirir"
+					},
+					"response": []
+				},
+				{
+					"name": "Save Favorite List",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Top Coins\",\n  \"symbols\": [\"BTCUSDT\", \"ETHUSDT\", \"BNBUSDT\", \"SOLUSDT\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Scanner/favorites",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Scanner", "favorites"]
+						},
+						"description": "Yeni favori sembol listesi oluşturur veya günceller"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Favorite List",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Scanner/favorites/:id",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Scanner", "favorites", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "Favori liste ID (GUID)"
+								}
+							]
+						},
+						"description": "Favori sembol listesini siler"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Analytics",
+			"description": "Analitik veriler, dashboard istatistikleri ve duygu analizi",
+			"item": [
+				{
+					"name": "Test AI Integration",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Analytics/test-ai",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Analytics", "test-ai"]
+						},
+						"description": "AI entegrasyonunu test eder"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Dashboard Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Analytics/stats",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Analytics", "stats"]
+						},
+						"description": "Dashboard istatistiklerini getirir"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Equity Curve",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Analytics/equity",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Analytics", "equity"]
+						},
+						"description": "Sermaye eğrisi verilerini getirir"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Strategy Performance",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Analytics/performance",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Analytics", "performance"]
+						},
+						"description": "Strateji performans verilerini getirir"
+					},
+					"response": []
+				},
+				{
+					"name": "Get News",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Analytics/news?symbol=BTC",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Analytics", "news"],
+							"query": [
+								{
+									"key": "symbol",
+									"value": "BTC",
+									"description": "Kripto sembolü (varsayılan: BTC)"
+								}
+							]
+						},
+						"description": "Kripto haberleri getirir"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current Sentiment",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Analytics/sentiment",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Analytics", "sentiment"]
+						},
+						"description": "Güncel piyasa duygu analizi"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Sentiment History",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Analytics/sentiment-history?hours=24",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Analytics", "sentiment-history"],
+							"query": [
+								{
+									"key": "hours",
+									"value": "24",
+									"description": "Kaç saatlik geçmiş (varsayılan: 24)"
+								}
+							]
+						},
+						"description": "Duygu analizi geçmişi"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Market Analysis",
+			"description": "Piyasa genel görünümü ve metrikler",
+			"item": [
+				{
+					"name": "Get Market Overview",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/market-analysis/overview",
+							"host": ["{{base_url}}"],
+							"path": ["api", "market-analysis", "overview"]
+						},
+						"description": "Piyasa genel görünümü - Market cap, hacim, BTC dominansı"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Top Gainers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/market-analysis/top-gainers?count=5",
+							"host": ["{{base_url}}"],
+							"path": ["api", "market-analysis", "top-gainers"],
+							"query": [
+								{
+									"key": "count",
+									"value": "5",
+									"description": "Kaç adet (varsayılan: 5)"
+								}
+							]
+						},
+						"description": "En çok yükselen coinler"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Top Losers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/market-analysis/top-losers?count=5",
+							"host": ["{{base_url}}"],
+							"path": ["api", "market-analysis", "top-losers"],
+							"query": [
+								{
+									"key": "count",
+									"value": "5",
+									"description": "Kaç adet (varsayılan: 5)"
+								}
+							]
+						},
+						"description": "En çok düşen coinler"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Volume History",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/market-analysis/volume-history?hours=24",
+							"host": ["{{base_url}}"],
+							"path": ["api", "market-analysis", "volume-history"],
+							"query": [
+								{
+									"key": "hours",
+									"value": "24",
+									"description": "Kaç saatlik geçmiş (varsayılan: 24)"
+								}
+							]
+						},
+						"description": "İşlem hacmi geçmişi"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Market Metrics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/market-analysis/metrics",
+							"host": ["{{base_url}}"],
+							"path": ["api", "market-analysis", "metrics"]
+						},
+						"description": "Piyasa metrikleri - Fear & Greed Index, BTC/ETH fiyatları"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "AI Chat",
+			"description": "AI destekli kripto analiz asistanı",
+			"item": [
+				{
+					"name": "Ask AI",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"message\": \"Bitcoin için kısa vadeli tahminini nedir?\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/AiChat/ask",
+							"host": ["{{base_url}}"],
+							"path": ["api", "AiChat", "ask"]
+						},
+						"description": "AI asistana soru sorar. Duygu analizi ve işlem önerisi döner."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Quick Summary",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/AiChat/summary",
+							"host": ["{{base_url}}"],
+							"path": ["api", "AiChat", "summary"]
+						},
+						"description": "Piyasa hızlı özeti"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "AI Test",
+			"description": "AI test endpoint'leri - Public",
+			"item": [
+				{
+					"name": "Run ChatDev Workflow",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "\"Bitcoin piyasa analizi yap\""
+						},
+						"url": {
+							"raw": "{{base_url}}/api/AiTest/chatdev-workflow?workflow=analysis",
+							"host": ["{{base_url}}"],
+							"path": ["api", "AiTest", "chatdev-workflow"],
+							"query": [
+								{
+									"key": "workflow",
+									"value": "analysis",
+									"description": "Workflow tipi"
+								}
+							]
+						},
+						"description": "ChatDev workflow testi"
+					},
+					"response": []
+				},
+				{
+					"name": "Analyze Sentiment",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "\"Bitcoin rallied to new all-time highs as institutional adoption increases\""
+						},
+						"url": {
+							"raw": "{{base_url}}/api/AiTest/analyze-sentiment",
+							"host": ["{{base_url}}"],
+							"path": ["api", "AiTest", "analyze-sentiment"]
+						},
+						"description": "Haber metni üzerinden duygu analizi"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Arbitrage",
+			"description": "Arbitraj fırsatları",
+			"item": [
+				{
+					"name": "Get Arbitrage Opportunities",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Arbitrage/opportunities",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Arbitrage", "opportunities"]
+						},
+						"description": "Mevcut arbitraj fırsatlarını listeler"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Stocks",
+			"description": "Kripto coin listesi",
+			"item": [
+				{
+					"name": "Get All Coins",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Stocks",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Stocks"]
+						},
+						"description": "Tüm desteklenen coinleri listeler. Public endpoint."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Wallet",
+			"description": "Cüzdan ve işlem geçmişi",
+			"item": [
+				{
+					"name": "Get Wallet",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Wallet",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Wallet"]
+						},
+						"description": "Kullanıcının cüzdan bilgilerini getirir - bakiye, kilitli bakiye, toplam PnL"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Transactions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Wallet/transactions",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Wallet", "transactions"]
+						},
+						"description": "İşlem geçmişini getirir"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Whale Tracker",
+			"description": "Büyük balina işlemlerini takip",
+			"item": [
+				{
+					"name": "Get Whale Trades",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/WhaleTracker?minUsdValue=100000&count=20",
+							"host": ["{{base_url}}"],
+							"path": ["api", "WhaleTracker"],
+							"query": [
+								{
+									"key": "minUsdValue",
+									"value": "100000",
+									"description": "Minimum USD değeri (varsayılan: 100000)"
+								},
+								{
+									"key": "count",
+									"value": "20",
+									"description": "Sonuç sayısı (varsayılan: 20)"
+								}
+							]
+						},
+						"description": "Büyük hacimli balina işlemlerini getirir"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Notifications",
+			"description": "Bildirim yönetimi ve push notification",
+			"item": [
+				{
+					"name": "Get Unread Notifications",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Notifications",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Notifications"]
+						},
+						"description": "Okunmamış bildirimleri getirir"
+					},
+					"response": []
+				},
+				{
+					"name": "Mark as Read",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Notifications/:id/read",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Notifications", ":id", "read"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "Bildirim ID"
+								}
+							]
+						},
+						"description": "Bildirimi okundu olarak işaretler"
+					},
+					"response": []
+				},
+				{
+					"name": "Mark All as Read",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Notifications/read-all",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Notifications", "read-all"]
+						},
+						"description": "Tüm bildirimleri okundu olarak işaretler"
+					},
+					"response": []
+				},
+				{
+					"name": "Test Notification",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Notifications/test",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Notifications", "test"]
+						},
+						"description": "Test bildirimi gönderir"
+					},
+					"response": []
+				},
+				{
+					"name": "Test Push Direct",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Notifications/test-push",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Notifications", "test-push"]
+						},
+						"description": "Direkt push notification testi"
+					},
+					"response": []
+				},
+				{
+					"name": "Firebase Diagnostics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Notifications/firebase-diagnostics",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Notifications", "firebase-diagnostics"]
+						},
+						"description": "Firebase yapılandırma durumunu kontrol eder"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Devices",
+			"description": "Cihaz yönetimi (Push notification için)",
+			"item": [
+				{
+					"name": "Register Device",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"fcmToken\": \"firebase-cloud-messaging-token\",\n  \"deviceType\": \"ios\",\n  \"deviceModel\": \"iPhone 15 Pro\",\n  \"appVersion\": \"1.0.0\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Devices/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Devices", "register"]
+						},
+						"description": "Cihazı push notification için kaydeder"
+					},
+					"response": []
+				},
+				{
+					"name": "Unregister Device",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Devices/:fcmToken",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Devices", ":fcmToken"],
+							"variable": [
+								{
+									"key": "fcmToken",
+									"value": "",
+									"description": "FCM Token"
+								}
+							]
+						},
+						"description": "Cihaz kaydını siler"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Devices",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Devices",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Devices"]
+						},
+						"description": "Kullanıcının kayıtlı cihazlarını listeler"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Settings",
+			"description": "Uygulama ayarları - API anahtarları, bildirim ayarları, sistem ayarları",
+			"item": [
+				{
+					"name": "Get API Keys",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Settings/keys",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Settings", "keys"]
+						},
+						"description": "Kullanıcının API key bilgilerini getirir. Roller: Admin, Trader"
+					},
+					"response": []
+				},
+				{
+					"name": "Save API Keys",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"apiKey\": \"your-binance-api-key\",\n  \"secretKey\": \"your-binance-secret-key\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Settings/keys",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Settings", "keys"]
+						},
+						"description": "Binance API key'lerini kaydeder. Roller: Admin, Trader"
+					},
+					"response": []
+				},
+				{
+					"name": "Get General Settings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Settings/general",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Settings", "general"]
+						},
+						"description": "Sistem genel ayarlarını getirir. Sadece Admin."
+					},
+					"response": []
+				},
+				{
+					"name": "Save General Settings",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"key\": \"setting_name\",\n  \"value\": \"setting_value\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Settings/general",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Settings", "general"]
+						},
+						"description": "Sistem genel ayarlarını kaydeder. Sadece Admin."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Notification Settings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Settings/notifications",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Settings", "notifications"]
+						},
+						"description": "Bildirim ayarlarını getirir. Roller: Admin, Trader"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Notification Settings",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"notifyBuySignals\": true,\n  \"notifySellSignals\": true,\n  \"notifyStopLoss\": true,\n  \"notifyTakeProfit\": true,\n  \"notifyGeneral\": true,\n  \"notifyErrors\": false,\n  \"enablePushNotifications\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Settings/notifications",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Settings", "notifications"]
+						},
+						"description": "Bildirim ayarlarını günceller. Roller: Admin, Trader"
+					},
+					"response": []
+				},
+				{
+					"name": "Update FCM Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"fcmToken\": \"firebase-cloud-messaging-token\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/Settings/fcm-token",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Settings", "fcm-token"]
+						},
+						"description": "FCM token'ı günceller. Roller: Admin, Trader"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Audit Logs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Settings/audit-logs",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Settings", "audit-logs"]
+						},
+						"description": "Denetim kayıtlarını getirir. Sadece Admin."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Logs (Admin)",
+			"description": "Sistem log yönetimi - Sadece Admin",
+			"item": [
+				{
+					"name": "Get Logs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Logs?limit=100&level=Error",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Logs"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "100",
+									"description": "Maksimum kayıt sayısı (varsayılan: 100)"
+								},
+								{
+									"key": "level",
+									"value": "Error",
+									"description": "Log seviyesi filtresi (opsiyonel)"
+								}
+							]
+						},
+						"description": "Sistem loglarını getirir. Sadece Admin."
+					},
+					"response": []
+				},
+				{
+					"name": "Clear Logs",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/Logs",
+							"host": ["{{base_url}}"],
+							"path": ["api", "Logs"]
+						},
+						"description": "Tüm sistem loglarını temizler. Sadece Admin."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Summary Stats",
+			"description": "Genel özet istatistikler",
+			"item": [
+				{
+					"name": "Get Summary Stats",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/SummaryStats",
+							"host": ["{{base_url}}"],
+							"path": ["api", "SummaryStats"]
+						},
+						"description": "Genel platform istatistikleri - toplam bot, aktif bot, durdurulan bot, toplam hacim. Public endpoint."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

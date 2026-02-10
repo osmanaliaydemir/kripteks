@@ -2,6 +2,7 @@ using Kripteks.Core.Entities;
 using Kripteks.Core.Interfaces;
 using Kripteks.Infrastructure.Data;
 using FirebaseAdmin;
+using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -113,10 +114,10 @@ public class NotificationsController(
     }
 
     /// <summary>
-    /// Firebase durumunu ve dosya yollarını göster (debug amaçlı)
+    /// Firebase durumunu, dosya yollarını ve credential doğrulamasını göster (debug amaçlı)
     /// </summary>
     [HttpGet("firebase-diagnostics")]
-    public IActionResult FirebaseDiagnostics()
+    public async Task<IActionResult> FirebaseDiagnostics()
     {
         var firebaseConfigPath = configuration["Firebase:ServiceAccountPath"] ?? "";
         var hasJsonConfig = !string.IsNullOrEmpty(configuration["Firebase:ServiceAccountJson"]);
@@ -130,9 +131,45 @@ public class NotificationsController(
             firebaseConfigPath
         };
 
+        // Credential validation
+        string? tokenStatus = null;
+        string? credentialError = null;
+        string? projectId = null;
+        string? serviceAccountEmail = null;
+
+        if (FirebaseApp.DefaultInstance != null)
+        {
+            try
+            {
+                var options = FirebaseApp.DefaultInstance.Options;
+                projectId = options.ProjectId;
+                if (options.Credential.UnderlyingCredential is ServiceAccountCredential saCred)
+                    serviceAccountEmail = saCred.Id;
+
+                // OAuth token almayı dene
+                var token = await options.Credential
+                    .CreateScoped("https://www.googleapis.com/auth/firebase.messaging")
+                    .UnderlyingCredential
+                    .GetAccessTokenForRequestAsync();
+
+                tokenStatus = !string.IsNullOrEmpty(token)
+                    ? $"Valid (token: {token.Substring(0, Math.Min(30, token.Length))}...)"
+                    : "Empty token returned";
+            }
+            catch (Exception ex)
+            {
+                credentialError = ex.Message;
+                tokenStatus = "FAILED";
+            }
+        }
+
         return Ok(new
         {
             firebaseInitialized = FirebaseApp.DefaultInstance != null,
+            projectId,
+            serviceAccountEmail,
+            tokenStatus,
+            credentialError,
             hasServiceAccountJson = hasJsonConfig,
             serviceAccountPath = firebaseConfigPath,
             appBaseDirectory = AppContext.BaseDirectory,

@@ -20,40 +20,84 @@ var builder = WebApplication.CreateBuilder(args);
 // Initialize Firebase Admin SDK
 if (FirebaseApp.DefaultInstance == null)
 {
-    // 1. Önce JSON string'den dene (environment variable: Firebase__ServiceAccountJson)
-    var firebaseJson = builder.Configuration["Firebase:ServiceAccountJson"];
-    if (!string.IsNullOrEmpty(firebaseJson))
+    try
     {
-        FirebaseApp.Create(new AppOptions
-        {
-            Credential = GoogleCredential.FromJson(firebaseJson)
-        });
-    }
-    else
-    {
-        // 2. Dosyadan yükle - birden fazla olası dizini tara
-        var firebaseConfigPath = builder.Configuration["Firebase:ServiceAccountPath"];
-        if (!string.IsNullOrEmpty(firebaseConfigPath))
-        {
-            var searchPaths = new[]
-            {
-                Path.Combine(AppContext.BaseDirectory, firebaseConfigPath),
-                Path.Combine(builder.Environment.ContentRootPath, firebaseConfigPath),
-                Path.Combine(builder.Environment.WebRootPath ?? "", firebaseConfigPath),
-                Path.Combine(builder.Environment.ContentRootPath, "wwwroot", firebaseConfigPath),
-                firebaseConfigPath
-            };
+        GoogleCredential? firebaseCredential = null;
 
-            var filePath = searchPaths.FirstOrDefault(File.Exists);
-
-            if (filePath != null)
+        // 1. Önce JSON string'den dene (environment variable: Firebase__ServiceAccountJson)
+        var firebaseJson = builder.Configuration["Firebase:ServiceAccountJson"];
+        if (!string.IsNullOrEmpty(firebaseJson))
+        {
+            firebaseCredential = GoogleCredential.FromJson(firebaseJson);
+            Console.WriteLine("[Firebase] Credential loaded from JSON string configuration.");
+        }
+        else
+        {
+            // 2. Dosyadan yükle - birden fazla olası dizini tara
+            var firebaseConfigPath = builder.Configuration["Firebase:ServiceAccountPath"];
+            if (!string.IsNullOrEmpty(firebaseConfigPath))
             {
-                FirebaseApp.Create(new AppOptions
+                var searchPaths = new[]
                 {
-                    Credential = GoogleCredential.FromFile(filePath)
-                });
+                    Path.Combine(AppContext.BaseDirectory, firebaseConfigPath),
+                    Path.Combine(builder.Environment.ContentRootPath, firebaseConfigPath),
+                    Path.Combine(builder.Environment.WebRootPath ?? "", firebaseConfigPath),
+                    Path.Combine(builder.Environment.ContentRootPath, "wwwroot", firebaseConfigPath),
+                    firebaseConfigPath
+                };
+
+                var filePath = searchPaths.FirstOrDefault(File.Exists);
+
+                if (filePath != null)
+                {
+                    firebaseCredential = GoogleCredential.FromFile(filePath);
+                    Console.WriteLine($"[Firebase] Credential loaded from file: {filePath}");
+                }
+                else
+                {
+                    Console.WriteLine($"[Firebase] WARNING: Service account file not found! Searched paths:");
+                    foreach (var p in searchPaths)
+                        Console.WriteLine($"  - {p} (exists: {File.Exists(p)})");
+                }
+            }
+            else
+            {
+                Console.WriteLine("[Firebase] WARNING: No Firebase configuration found (ServiceAccountJson or ServiceAccountPath).");
             }
         }
+
+        if (firebaseCredential != null)
+        {
+            // Messaging scope ekleyerek credential oluştur
+            var scopedCredential = firebaseCredential
+                .CreateScoped("https://www.googleapis.com/auth/firebase.messaging");
+
+            FirebaseApp.Create(new AppOptions
+            {
+                Credential = scopedCredential
+            });
+
+            // Credential'ı doğrulamak için token almayı dene
+            try
+            {
+                var token = await scopedCredential.UnderlyingCredential.GetAccessTokenForRequestAsync();
+                Console.WriteLine($"[Firebase] Initialization SUCCESS. OAuth token obtained ({token?.Substring(0, 20)}...)");
+            }
+            catch (Exception tokenEx)
+            {
+                Console.WriteLine($"[Firebase] WARNING: Firebase initialized but token generation failed: {tokenEx.Message}");
+                Console.WriteLine("[Firebase] Check: 1) Service account key is valid 2) FCM API is enabled in Google Cloud Console");
+            }
+        }
+        else
+        {
+            Console.WriteLine("[Firebase] ERROR: Firebase NOT initialized - no credentials available.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Firebase] FATAL: Firebase initialization failed: {ex.Message}");
+        Console.WriteLine($"[Firebase] Stack: {ex.StackTrace}");
     }
 }
 
