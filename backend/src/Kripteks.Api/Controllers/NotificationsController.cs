@@ -20,9 +20,9 @@ public class NotificationsController(
     IConfiguration configuration) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<List<Notification>>> GetUnreadNotifications()
+    public async Task<ActionResult<List<Notification>>> GetAllNotifications()
     {
-        var notifications = await notificationService.GetUnreadNotificationsAsync();
+        var notifications = await notificationService.GetAllNotificationsAsync();
         return Ok(notifications);
     }
 

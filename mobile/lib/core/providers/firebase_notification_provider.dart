@@ -8,11 +8,8 @@ final firebaseNotificationServiceProvider = Provider<FirebaseNotificationService
 ) {
   final service = FirebaseNotificationService();
   final notificationService = ref.read(notificationServiceProvider);
-  final isAuth = ref.watch(authStateProvider);
+  final isAuth = ref.watch(authStateProvider).value ?? false;
 
-  // Initialize the service if authorized.
-  // Note: initialize() handles internally if it's already initialized if we modify it,
-  // or we just call it once and it registers if token is available.
   if (isAuth) {
     service.initialize(notificationService);
   }

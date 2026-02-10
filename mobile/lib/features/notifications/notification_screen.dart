@@ -13,6 +13,7 @@ class NotificationScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notificationsAsync = ref.watch(notificationsProvider);
+    final hasUnread = notificationsAsync.asData?.value.any((n) => !n.isRead) ?? false;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -20,18 +21,19 @@ class NotificationScreen extends ConsumerWidget {
       appBar: AppHeader(
         title: 'Bildirimler',
         actions: [
-          TextButton(
-            onPressed: () =>
-                ref.read(notificationsProvider.notifier).markAllAsRead(),
-            child: Text(
-              'Tümünü Oku',
-              style: GoogleFonts.plusJakartaSans(
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
+          if (hasUnread)
+            TextButton(
+              onPressed: () =>
+                  ref.read(notificationsProvider.notifier).markAllAsRead(),
+              child: Text(
+                'Tümünü Oku',
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
               ),
             ),
-          ),
         ],
       ),
       body: Stack(
@@ -152,20 +154,11 @@ class NotificationScreen extends ConsumerWidget {
         color = AppColors.textSecondary;
     }
 
-    return Dismissible(
-      key: Key(notification.id),
-      background: Container(
-        decoration: BoxDecoration(
-          color: AppColors.error.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        child: const Icon(Icons.delete_outline, color: AppColors.error),
-      ),
-      direction: DismissDirection.endToStart,
-      onDismissed: (_) {
-        ref.read(notificationsProvider.notifier).markAsRead(notification.id);
+    return GestureDetector(
+      onTap: () {
+        if (!notification.isRead) {
+          ref.read(notificationsProvider.notifier).markAsRead(notification.id);
+        }
       },
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -211,12 +204,27 @@ class NotificationScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      Text(
-                        DateFormat('HH:mm').format(notification.createdAt),
-                        style: GoogleFonts.plusJakartaSans(
-                          color: AppColors.textDisabled,
-                          fontSize: 11,
-                        ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (!notification.isRead)
+                            Container(
+                              width: 8,
+                              height: 8,
+                              margin: const EdgeInsets.only(right: 6),
+                              decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          Text(
+                            DateFormat('HH:mm').format(notification.createdAt),
+                            style: GoogleFonts.plusJakartaSans(
+                              color: AppColors.textDisabled,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

@@ -115,6 +115,14 @@ public class NotificationService(
             .ToListAsync();
     }
 
+    public async Task<List<Notification>> GetAllNotificationsAsync()
+    {
+        return await context.Notifications
+            .OrderByDescending(n => n.CreatedAt)
+            .Take(50)
+            .ToListAsync();
+    }
+
     public async Task MarkAsReadAsync(Guid id)
     {
         var notification = await context.Notifications.FindAsync(id);

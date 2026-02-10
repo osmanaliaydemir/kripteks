@@ -19,27 +19,35 @@ class NotificationsNotifier extends AsyncNotifier<List<NotificationModel>> {
   @override
   Future<List<NotificationModel>> build() async {
     final service = ref.read(notificationServiceProvider);
-    return service.getUnreadNotifications();
+    return service.getNotifications();
   }
 
   Future<void> markAsRead(String id) async {
     final service = ref.read(notificationServiceProvider);
     await service.markAsRead(id);
 
-    // Optimistic update
+    // Optimistic update: isRead = true yap, listeden silme
     final previousState = state.asData?.value;
     if (previousState != null) {
-      state = AsyncData(previousState.where((n) => n.id != id).toList());
-    } else {
-      // Refresh if no previous state
-      ref.invalidateSelf();
+      state = AsyncData(
+        previousState
+            .map((n) => n.id == id ? n.copyWith(isRead: true) : n)
+            .toList(),
+      );
     }
   }
 
   Future<void> markAllAsRead() async {
     final service = ref.read(notificationServiceProvider);
     await service.markAllAsRead();
-    state = const AsyncData([]);
+
+    // Optimistic update: tüm bildirimleri okundu yap
+    final previousState = state.asData?.value;
+    if (previousState != null) {
+      state = AsyncData(
+        previousState.map((n) => n.copyWith(isRead: true)).toList(),
+      );
+    }
   }
 
   Future<void> refresh() async {

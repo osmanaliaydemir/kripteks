@@ -31,20 +31,27 @@ import 'package:mobile/core/network/auth_state_provider.dart';
 final navigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
+  final authAsync = ref.watch(authStateProvider);
+  final isAuthenticated = authAsync.value ?? false;
+  final isLoading = authAsync.isLoading;
 
   return GoRouter(
     navigatorKey: navigatorKey,
     initialLocation: '/',
-    refreshListenable: null, // We handle redirection via build-level watch
+    refreshListenable: null,
     redirect: (context, state) {
-      final isLoggingIn =
+      final isAuthRoute =
           state.matchedLocation == '/login' ||
           state.matchedLocation == '/signup' ||
           state.matchedLocation == '/forgot-password' ||
           state.matchedLocation == '/';
 
-      if (!authState && !isLoggingIn) {
+      // Auth state henüz yüklenmediyse splash'te bekle
+      if (isLoading && state.matchedLocation != '/') {
+        return '/';
+      }
+
+      if (!isAuthenticated && !isAuthRoute) {
         return '/login';
       }
       return null;

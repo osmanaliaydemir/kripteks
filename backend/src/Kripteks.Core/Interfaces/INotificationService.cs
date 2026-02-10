@@ -7,6 +7,7 @@ public interface INotificationService
     Task SendNotificationAsync(string title, string message, NotificationType type,
         Guid? relatedBotId = null, string? userId = null);
     Task<List<Notification>> GetUnreadNotificationsAsync();
+    Task<List<Notification>> GetAllNotificationsAsync();
     Task MarkAsReadAsync(Guid id);
     Task MarkAllAsReadAsync();
 

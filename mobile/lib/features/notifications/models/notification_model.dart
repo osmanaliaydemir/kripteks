@@ -30,20 +30,40 @@ class NotificationModel {
     this.relatedBotId,
   });
 
+  NotificationModel copyWith({bool? isRead}) {
+    return NotificationModel(
+      id: id,
+      title: title,
+      message: message,
+      type: type,
+      isRead: isRead ?? this.isRead,
+      createdAt: createdAt,
+      relatedBotId: relatedBotId,
+    );
+  }
+
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     return NotificationModel(
       id: json['id'].toString(),
       title: json['title'] ?? '',
       message: json['message'] ?? '',
-      type:
-          NotificationType.values[json['type']
-              as int], // Enum is int in backend usually, or string? Controller sends object list. Assuming int index or string match. Backend shows enum. Let's verify serialization.
-      // Usually default json serialization for enums is integer unless configured otherwise.
-      // Let's assume integer for now as per C# defaults, or try to parse string if fails.
-      // Actually standard API default is usually integer value.
+      type: _parseNotificationType(json['type']),
       isRead: json['isRead'] ?? false,
       createdAt: DateTime.parse(json['createdAt']),
       relatedBotId: json['relatedBotId']?.toString(),
     );
+  }
+
+  static NotificationType _parseNotificationType(dynamic value) {
+    if (value is int) {
+      return NotificationType.values[value];
+    }
+    if (value is String) {
+      return NotificationType.values.firstWhere(
+        (e) => e.name.toLowerCase() == value.toLowerCase(),
+        orElse: () => NotificationType.Info,
+      );
+    }
+    return NotificationType.Info;
   }
 }

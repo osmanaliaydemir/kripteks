@@ -6,7 +6,7 @@ class NotificationService {
 
   NotificationService(this._dio);
 
-  Future<List<NotificationModel>> getUnreadNotifications() async {
+  Future<List<NotificationModel>> getNotifications() async {
     try {
       final response = await _dio.get('/notifications');
       final List<dynamic> data = response.data;
