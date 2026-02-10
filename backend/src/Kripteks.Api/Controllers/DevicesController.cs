@@ -31,21 +31,33 @@ public class DevicesController : ControllerBase
             return Unauthorized();
         }
 
+        // 1. Önce aynı kullanıcı + aynı cihaz modeli ile eşleşen kayıt ara
         var device = await _context.UserDevices
+            .FirstOrDefaultAsync(d => d.UserId == userId
+                && d.DeviceType == dto.DeviceType
+                && d.DeviceModel == dto.DeviceModel);
+
+        // 2. Bulunamazsa, aynı FcmToken ile ara (başka kullanıcıdan gelebilir)
+        device ??= await _context.UserDevices
             .FirstOrDefaultAsync(d => d.FcmToken == dto.FcmToken);
 
         if (device != null)
         {
-            // Device already exists - update it
-            device.UserId = userId; // Update in case user changed
+            // Mevcut cihazı güncelle (FcmToken dahil)
+            device.UserId = userId;
+            device.FcmToken = dto.FcmToken;
             device.LastUsedAt = DateTime.UtcNow;
             device.IsActive = true;
             device.DeviceModel = dto.DeviceModel;
             device.AppVersion = dto.AppVersion;
+
+            _logger.LogInformation(
+                "Device updated for user {UserId}: {DeviceModel} - token refreshed",
+                userId, dto.DeviceModel);
         }
         else
         {
-            // New device registration
+            // Yeni cihaz kaydı
             device = new UserDevice
             {
                 UserId = userId,
@@ -59,15 +71,13 @@ public class DevicesController : ControllerBase
             };
 
             _context.UserDevices.Add(device);
+
+            _logger.LogInformation(
+                "New device registered for user {UserId}: {DeviceType} - {DeviceModel}",
+                userId, dto.DeviceType, dto.DeviceModel);
         }
 
         await _context.SaveChangesAsync();
-
-        _logger.LogInformation(
-            "Device registered for user {UserId}: {DeviceType} - {Token}",
-            userId,
-            dto.DeviceType,
-            dto.FcmToken.Substring(0, Math.Min(20, dto.FcmToken.Length)));
 
         return Ok(new { message = "Device registered successfully" });
     }
