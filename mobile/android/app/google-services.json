@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1083332594930:android:234a498c5bbb7419b9146b",
+        "mobilesdk_app_id": "1:1083332594930:android:d544c319acbb5049b9146b",
         "android_client_info": {
-          "package_name": "com.kripteks.app"
+          "package_name": "com.kripteks.mobile"
         }
       },
       "oauth_client": [],
