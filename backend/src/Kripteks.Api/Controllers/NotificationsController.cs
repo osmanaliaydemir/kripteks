@@ -30,4 +30,15 @@ public class NotificationsController(INotificationService notificationService) :
         await notificationService.MarkAllAsReadAsync();
         return Ok();
     }
+
+    [HttpPost("test")]
+    public async Task<IActionResult> TestNotification()
+    {
+        await notificationService.SendNotificationAsync(
+            "Test Bildirimi",
+            "Bu bir push notification testidir! 🚀",
+            NotificationType.Info);
+
+        return Ok(new { message = "Test notification sent" });
+    }
 }
