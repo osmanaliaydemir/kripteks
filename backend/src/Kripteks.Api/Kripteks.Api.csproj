@@ -21,4 +21,12 @@
     <ProjectReference Include="..\Kripteks.Core\Kripteks.Core.csproj" />
   </ItemGroup>
 
+  <!-- Firebase Service Account JSON - publish'e dahil et -->
+  <ItemGroup>
+    <None Update="kripteks-6ad86-firebase-adminsdk-fbsvc-6ddbce40d4.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

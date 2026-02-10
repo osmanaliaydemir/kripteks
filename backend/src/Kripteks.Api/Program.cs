@@ -21,16 +21,22 @@ var builder = WebApplication.CreateBuilder(args);
 if (FirebaseApp.DefaultInstance == null)
 {
     var firebaseConfigPath = builder.Configuration["Firebase:ServiceAccountPath"];
+    var initialized = false;
+
+    // 1. Dosya yolundan yükle (lokal + publish output)
     if (!string.IsNullOrEmpty(firebaseConfigPath) && File.Exists(firebaseConfigPath))
     {
         FirebaseApp.Create(new AppOptions
         {
             Credential = GoogleCredential.FromFile(firebaseConfigPath)
         });
+        initialized = true;
+        Console.WriteLine($"[Firebase] Initialized from file: {firebaseConfigPath}");
     }
-    else
+
+    // 2. Fallback: appsettings veya environment variable'dan JSON string
+    if (!initialized)
     {
-        // Fallback: Try using environment variable or appsettings JSON string
         var firebaseJson = builder.Configuration["Firebase:ServiceAccountJson"];
         if (!string.IsNullOrEmpty(firebaseJson))
         {
@@ -38,7 +44,14 @@ if (FirebaseApp.DefaultInstance == null)
             {
                 Credential = GoogleCredential.FromJson(firebaseJson)
             });
+            initialized = true;
+            Console.WriteLine("[Firebase] Initialized from ServiceAccountJson config");
         }
+    }
+
+    if (!initialized)
+    {
+        Console.WriteLine($"[Firebase] WARNING: Could not initialize! Path='{firebaseConfigPath}', Exists={(!string.IsNullOrEmpty(firebaseConfigPath) && File.Exists(firebaseConfigPath))}");
     }
 }
 
