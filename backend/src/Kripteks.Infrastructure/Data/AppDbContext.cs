@@ -18,6 +18,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<SentimentHistory> SentimentHistories { get; set; }
     public DbSet<BacktestResult> BacktestResults { get; set; }
     public DbSet<UserFavoriteList> UserFavoriteLists { get; set; }
+    public DbSet<UserDevice> UserDevices { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -121,5 +122,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
         modelBuilder.Entity<BacktestResult>()
             .Property(b => b.AverageLoss)
             .HasPrecision(18, 8);
+
+        // UserDevice configuration
+        modelBuilder.Entity<UserDevice>()
+            .HasIndex(ud => ud.FcmToken)
+            .IsUnique();
+
+        modelBuilder.Entity<UserDevice>()
+            .HasOne(ud => ud.User)
+            .WithMany()
+            .HasForeignKey(ud => ud.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

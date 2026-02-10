@@ -7,8 +7,20 @@ import 'package:mobile/core/error/error_service.dart';
 import 'package:mobile/core/widgets/network_status_banner.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:mobile/l10n/app_localizations.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:mobile/core/services/firebase_notification_service.dart';
+import 'package:mobile/core/providers/firebase_notification_provider.dart';
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
+  await Firebase.initializeApp();
+
+  // Register background message handler
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
   final errorHandler = GlobalErrorHandler(errorService);
 
   await errorHandler.handle(() async {
@@ -22,6 +34,8 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    // Initialize notification service
+    ref.watch(firebaseNotificationServiceProvider);
 
     return MaterialApp.router(
       title: 'Kripteks Mobile',

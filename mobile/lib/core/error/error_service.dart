@@ -118,7 +118,5 @@ class FirebaseErrorService implements ErrorService {
 }
 
 // Global accessor
-// We decide here which one to use.
-// TODO: Firebase'i yapılandırdığında (GoogleService-Info.plist + firebase_options.dart)
-// FirebaseErrorService()'e geri dön.
-final ErrorService errorService = ConsoleErrorService();
+// We use FirebaseErrorService as it handles initialization and fallback automatically.
+final ErrorService errorService = FirebaseErrorService();

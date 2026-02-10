@@ -1,0 +1,21 @@
+## Build Results
+bin/
+obj/
+
+## Firebase Service Account (NEVER commit this!)
+*firebase*.json
+kripteks-*-firebase-adminsdk-*.json
+
+## User Secrets
+appsettings.Development.json
+*.user
+*.suo
+
+## IDEs
+.vs/
+.vscode/
+.idea/
+
+## OS
+.DS_Store
+Thumbs.db

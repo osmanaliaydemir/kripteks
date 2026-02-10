@@ -31,4 +31,33 @@ class NotificationService {
       throw Exception('Failed to mark all as read: $e');
     }
   }
+
+  Future<void> registerDeviceToken({
+    required String fcmToken,
+    required String deviceType,
+    String? deviceModel,
+    String? appVersion,
+  }) async {
+    try {
+      await _dio.post(
+        '/devices/register',
+        data: {
+          'fcmToken': fcmToken,
+          'deviceType': deviceType,
+          'deviceModel': deviceModel,
+          'appVersion': appVersion,
+        },
+      );
+    } catch (e) {
+      throw Exception('Failed to register device token: $e');
+    }
+  }
+
+  Future<void> unregisterDeviceToken(String fcmToken) async {
+    try {
+      await _dio.delete('/devices/$fcmToken');
+    } catch (e) {
+      throw Exception('Failed to unregister device token: $e');
+    }
+  }
 }

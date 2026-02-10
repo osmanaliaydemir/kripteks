@@ -12,8 +12,35 @@ using Binance.Net.Objects.Options;
 using CryptoExchange.Net.Objects.Options;
 using System.Net;
 using System.Threading.RateLimiting;
+using FirebaseAdmin;
+using Google.Apis.Auth.OAuth2;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Initialize Firebase Admin SDK
+if (FirebaseApp.DefaultInstance == null)
+{
+    var firebaseConfigPath = builder.Configuration["Firebase:ServiceAccountPath"];
+    if (!string.IsNullOrEmpty(firebaseConfigPath) && File.Exists(firebaseConfigPath))
+    {
+        FirebaseApp.Create(new AppOptions
+        {
+            Credential = GoogleCredential.FromFile(firebaseConfigPath)
+        });
+    }
+    else
+    {
+        // Fallback: Try using environment variable or appsettings JSON string
+        var firebaseJson = builder.Configuration["Firebase:ServiceAccountJson"];
+        if (!string.IsNullOrEmpty(firebaseJson))
+        {
+            FirebaseApp.Create(new AppOptions
+            {
+                Credential = GoogleCredential.FromJson(firebaseJson)
+            });
+        }
+    }
+}
 
 // Mac/Development için Global SSL Bypass (.NET 9 uyumlu)
 builder.Services.AddHttpClient("Binance").ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
@@ -126,6 +153,9 @@ builder.Services.AddScoped<IAiService, AiOrchestratorService>();
 builder.Services.AddScoped<INewsService, CryptoPanicNewsService>(sp => sp.GetRequiredService<CryptoPanicNewsService>());
 builder.Services.AddHostedService<SentimentAnalysisJob>();
 
+// Firebase Cloud Messaging
+builder.Services.AddScoped<IFirebaseNotificationService, FirebaseNotificationService>();
+
 
 // Stratejiler
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.GoldenRoseStrategy>();
@@ -209,10 +239,7 @@ builder.Services.AddCors(options =>
         });
 });
 
-builder.Services.AddSignalR(hubOptions =>
-{
-    hubOptions.EnableDetailedErrors = builder.Environment.IsDevelopment();
-});
+builder.Services.AddSignalR(hubOptions => { hubOptions.EnableDetailedErrors = builder.Environment.IsDevelopment(); });
 
 var app = builder.Build();
 
@@ -226,6 +253,7 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
+
 app.UseCors("AllowAll");
 app.UseRateLimiter();
 app.UseAuthentication();

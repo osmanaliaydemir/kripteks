@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/features/auth/login_screen.dart';
@@ -27,10 +28,13 @@ import 'package:mobile/features/education/models/education_models.dart';
 
 import 'package:mobile/core/network/auth_state_provider.dart';
 
+final navigatorKey = GlobalKey<NavigatorState>();
+
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
 
   return GoRouter(
+    navigatorKey: navigatorKey,
     initialLocation: '/',
     refreshListenable: null, // We handle redirection via build-level watch
     redirect: (context, state) {

@@ -47,6 +47,11 @@
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Giriş yapmak için Face ID kullanın.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+		<string>fetch</string>
+	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 </dict>

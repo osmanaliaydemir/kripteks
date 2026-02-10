@@ -122,7 +122,10 @@ public class BotEngineService : BackgroundService
     {
         using var scope = _serviceProvider.CreateScope();
         var logService = scope.ServiceProvider.GetRequiredService<ILogService>();
+        var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+
         await logService.LogWarningAsync($"{message}", botId);
+        await notificationService.SendNotificationAsync("⚠️ Bot Uyarısı", message, NotificationType.Warning, botId);
     }
 
     private async Task ClosePositionPanic(Guid botId, CancellationToken stoppingToken)
@@ -287,6 +290,12 @@ public class BotEngineService : BackgroundService
                 await notificationService.NotifyBotUpdate(ToDto(botToUpdate));
                 await notificationService.NotifyWalletUpdate(wallet);
                 await notificationService.NotifyLog(botToUpdate.Id.ToString(), successLog);
+
+                await notificationService.SendNotificationAsync(
+                    $"⚡ Alım Yapıldı: {botToUpdate.Symbol}",
+                    $"Fiyat: ${currentPrice} | Strateji: {botToUpdate.StrategyName}",
+                    NotificationType.Trade,
+                    botToUpdate.Id);
 
                 await dbContext.SaveChangesAsync(stoppingToken);
             }
@@ -512,6 +521,12 @@ public class BotEngineService : BackgroundService
         await notificationService.NotifyLog(bot.Id.ToString(), log1);
         await notificationService.NotifyLog(bot.Id.ToString(), log2);
         await notificationService.NotifyBotUpdate(ToDto(bot));
+
+        await notificationService.SendNotificationAsync(
+            $"🏁 İşlem Sonlandı: {bot.Symbol}",
+            $"{reason} | PNL: ${pnlAmount:F2} (%{bot.CurrentPnlPercent:F2})",
+            pnlAmount >= 0 ? NotificationType.Info : NotificationType.Warning,
+            bot.Id);
     }
 
     private async Task HandleGridClose(Bot bot, string reason, decimal pnlAmount,
@@ -646,14 +661,24 @@ public class BotEngineService : BackgroundService
 
         // Notify
         await notificationService.NotifyWalletUpdate(wallet);
-        await notificationService.NotifyLog(bot.Id.ToString(), new LogDto
+
+        var logDto = new LogDto
         {
             Id = log.Id,
             Message = log.Message,
             Level = log.Level.ToString(),
             Timestamp = DateTime.SpecifyKind(log.Timestamp, DateTimeKind.Utc)
-        });
+        };
+
+        await notificationService.NotifyLog(bot.Id.ToString(), logDto);
         await notificationService.NotifyBotUpdate(ToDto(bot));
+
+        await notificationService.SendNotificationAsync(
+            $"➕ DCA Ekleme: {bot.Symbol}",
+            $"Kademe {bot.CurrentDcaStep} | Yeni Ort: ${newEntryPrice:F8}",
+            NotificationType.Trade,
+            bot.Id);
+
         await logService.LogInfoAsync(
             $"DCA Yatırımı: {bot.Symbol} | Tutar: ${costNew} | Yeni Ort: {newEntryPrice}", bot.Id);
     }
