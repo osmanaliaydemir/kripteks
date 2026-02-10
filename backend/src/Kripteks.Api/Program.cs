@@ -20,38 +20,34 @@ var builder = WebApplication.CreateBuilder(args);
 // Initialize Firebase Admin SDK
 if (FirebaseApp.DefaultInstance == null)
 {
-    var firebaseConfigPath = builder.Configuration["Firebase:ServiceAccountPath"];
-
-    // Dosya yolunu uygulama dizinine göre çöz (deploy ortamında çalışma dizini farklı olabilir)
-    var resolvedPath = !string.IsNullOrEmpty(firebaseConfigPath)
-        ? Path.Combine(AppContext.BaseDirectory, firebaseConfigPath)
-        : null;
-
-    if (resolvedPath != null && File.Exists(resolvedPath))
+    // 1. Önce JSON string'den dene (production appsettings veya env variable)
+    var firebaseJson = builder.Configuration["Firebase:ServiceAccountJson"];
+    if (!string.IsNullOrEmpty(firebaseJson))
     {
         FirebaseApp.Create(new AppOptions
         {
-            Credential = GoogleCredential.FromFile(resolvedPath)
-        });
-    }
-    else if (!string.IsNullOrEmpty(firebaseConfigPath) && File.Exists(firebaseConfigPath))
-    {
-        // Orijinal yol ile de dene (lokal geliştirme ortamı)
-        FirebaseApp.Create(new AppOptions
-        {
-            Credential = GoogleCredential.FromFile(firebaseConfigPath)
+            Credential = GoogleCredential.FromJson(firebaseJson)
         });
     }
     else
     {
-        // Fallback: appsettings veya environment variable'dan JSON string
-        var firebaseJson = builder.Configuration["Firebase:ServiceAccountJson"];
-        if (!string.IsNullOrEmpty(firebaseJson))
+        // 2. Dosyadan yükle (lokal geliştirme ortamı)
+        var firebaseConfigPath = builder.Configuration["Firebase:ServiceAccountPath"];
+        if (!string.IsNullOrEmpty(firebaseConfigPath))
         {
-            FirebaseApp.Create(new AppOptions
+            // Uygulama dizinine göre çöz
+            var resolvedPath = Path.Combine(AppContext.BaseDirectory, firebaseConfigPath);
+            var filePath = File.Exists(resolvedPath) ? resolvedPath
+                         : File.Exists(firebaseConfigPath) ? firebaseConfigPath
+                         : null;
+
+            if (filePath != null)
             {
-                Credential = GoogleCredential.FromJson(firebaseJson)
-            });
+                FirebaseApp.Create(new AppOptions
+                {
+                    Credential = GoogleCredential.FromFile(filePath)
+                });
+            }
         }
     }
 }
