@@ -138,14 +138,14 @@ public class NotificationsController(
             appBaseDirectory = AppContext.BaseDirectory,
             contentRootPath = env.ContentRootPath,
             webRootPath = env.WebRootPath,
-            currentDirectory = Directory.GetCurrentDirectory(),
+            currentDirectory = System.IO.Directory.GetCurrentDirectory(),
             searchResults = searchPaths.Select(p => new
             {
                 path = p,
-                exists = !string.IsNullOrEmpty(p) && File.Exists(p)
+                exists = !string.IsNullOrEmpty(p) && System.IO.File.Exists(p)
             }),
-            wwwrootFiles = Directory.Exists(env.WebRootPath)
-                ? Directory.GetFiles(env.WebRootPath).Select(Path.GetFileName)
+            wwwrootFiles = System.IO.Directory.Exists(env.WebRootPath)
+                ? System.IO.Directory.GetFiles(env.WebRootPath).Select(Path.GetFileName)
                 : Enumerable.Empty<string>()
         });
     }
