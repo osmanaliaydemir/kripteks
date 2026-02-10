@@ -68,14 +68,26 @@ if (FirebaseApp.DefaultInstance == null)
 
         if (firebaseCredential != null)
         {
+            // Scope eklemeden önce ProjectId'yi credential'dan al
+            // (CreateScoped sonrası bu bilgi kaybolabiliyor)
+            string? firebaseProjectId = null;
+            if (firebaseCredential.UnderlyingCredential is ServiceAccountCredential saCredential)
+            {
+                firebaseProjectId = saCredential.ProjectId;
+                Console.WriteLine($"[Firebase] Service Account: {saCredential.Id}, Project: {firebaseProjectId}");
+            }
+
             // Messaging scope ekleyerek credential oluştur
             var scopedCredential = firebaseCredential
                 .CreateScoped("https://www.googleapis.com/auth/firebase.messaging");
 
             FirebaseApp.Create(new AppOptions
             {
-                Credential = scopedCredential
+                Credential = scopedCredential,
+                ProjectId = firebaseProjectId
             });
+
+            Console.WriteLine($"[Firebase] AppOptions.ProjectId = {firebaseProjectId}");
 
             // Credential'ı doğrulamak için token almayı dene
             try
