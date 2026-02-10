@@ -21,22 +21,30 @@ var builder = WebApplication.CreateBuilder(args);
 if (FirebaseApp.DefaultInstance == null)
 {
     var firebaseConfigPath = builder.Configuration["Firebase:ServiceAccountPath"];
-    var initialized = false;
 
-    // 1. Dosya yolundan yükle (lokal + publish output)
-    if (!string.IsNullOrEmpty(firebaseConfigPath) && File.Exists(firebaseConfigPath))
+    // Dosya yolunu uygulama dizinine göre çöz (deploy ortamında çalışma dizini farklı olabilir)
+    var resolvedPath = !string.IsNullOrEmpty(firebaseConfigPath)
+        ? Path.Combine(AppContext.BaseDirectory, firebaseConfigPath)
+        : null;
+
+    if (resolvedPath != null && File.Exists(resolvedPath))
     {
+        FirebaseApp.Create(new AppOptions
+        {
+            Credential = GoogleCredential.FromFile(resolvedPath)
+        });
+    }
+    else if (!string.IsNullOrEmpty(firebaseConfigPath) && File.Exists(firebaseConfigPath))
+    {
+        // Orijinal yol ile de dene (lokal geliştirme ortamı)
         FirebaseApp.Create(new AppOptions
         {
             Credential = GoogleCredential.FromFile(firebaseConfigPath)
         });
-        initialized = true;
-        Console.WriteLine($"[Firebase] Initialized from file: {firebaseConfigPath}");
     }
-
-    // 2. Fallback: appsettings veya environment variable'dan JSON string
-    if (!initialized)
+    else
     {
+        // Fallback: appsettings veya environment variable'dan JSON string
         var firebaseJson = builder.Configuration["Firebase:ServiceAccountJson"];
         if (!string.IsNullOrEmpty(firebaseJson))
         {
@@ -44,14 +52,7 @@ if (FirebaseApp.DefaultInstance == null)
             {
                 Credential = GoogleCredential.FromJson(firebaseJson)
             });
-            initialized = true;
-            Console.WriteLine("[Firebase] Initialized from ServiceAccountJson config");
         }
-    }
-
-    if (!initialized)
-    {
-        Console.WriteLine($"[Firebase] WARNING: Could not initialize! Path='{firebaseConfigPath}', Exists={(!string.IsNullOrEmpty(firebaseConfigPath) && File.Exists(firebaseConfigPath))}");
     }
 }
 
