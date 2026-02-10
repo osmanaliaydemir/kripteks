@@ -1,5 +1,8 @@
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using FirebaseAdmin;
-using FirebaseAdmin.Messaging;
 using Kripteks.Core.Interfaces;
 using Kripteks.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -7,17 +10,30 @@ using Microsoft.Extensions.Logging;
 
 namespace Kripteks.Infrastructure.Services;
 
+/// <summary>
+/// Firebase Cloud Messaging servisi.
+/// FirebaseAdmin SDK'nın HTTP client sorunu nedeniyle doğrudan FCM v1 API kullanılır.
+/// </summary>
 public class FirebaseNotificationService : IFirebaseNotificationService
 {
     private readonly AppDbContext _context;
     private readonly ILogger<FirebaseNotificationService> _logger;
+    private readonly HttpClient _httpClient;
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
 
     public FirebaseNotificationService(
         AppDbContext context,
-        ILogger<FirebaseNotificationService> logger)
+        ILogger<FirebaseNotificationService> logger,
+        IHttpClientFactory httpClientFactory)
     {
         _context = context;
         _logger = logger;
+        _httpClient = httpClientFactory.CreateClient("Firebase");
     }
 
     public async Task<string> SendToDeviceAsync(
@@ -28,23 +44,19 @@ public class FirebaseNotificationService : IFirebaseNotificationService
     {
         try
         {
-            var message = BuildMessage(fcmToken, title, body, data);
-            var response = await FirebaseMessaging.DefaultInstance.SendAsync(message);
-
-            _logger.LogInformation("Successfully sent notification to device: {Token}", fcmToken.Substring(0, 20));
+            var response = await SendFcmMessageAsync(fcmToken, title, body, data);
+            _logger.LogInformation("Successfully sent notification to device: {Token}", fcmToken[..Math.Min(20, fcmToken.Length)]);
             return response;
         }
-        catch (FirebaseMessagingException ex)
+        catch (FcmException ex) when (ex.ErrorCode is "UNREGISTERED" or "INVALID_ARGUMENT")
         {
-            _logger.LogError(ex, "Failed to send notification to device: {Token}", fcmToken.Substring(0, 20));
-
-            // If token is invalid, mark device as inactive
-            if (ex.MessagingErrorCode == MessagingErrorCode.Unregistered ||
-                ex.MessagingErrorCode == MessagingErrorCode.InvalidArgument)
-            {
-                await MarkDeviceInactiveAsync(fcmToken);
-            }
-
+            _logger.LogWarning("Invalid FCM token, marking device inactive: {Token}", fcmToken[..Math.Min(20, fcmToken.Length)]);
+            await MarkDeviceInactiveAsync(fcmToken);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send notification to device: {Token}", fcmToken[..Math.Min(20, fcmToken.Length)]);
             throw;
         }
     }
@@ -76,86 +88,148 @@ public class FirebaseNotificationService : IFirebaseNotificationService
         Dictionary<string, string>? data = null)
     {
         if (!fcmTokens.Any())
-        {
             return 0;
-        }
 
-        try
+        var successCount = 0;
+
+        foreach (var token in fcmTokens)
         {
-            var messages = fcmTokens.Select(token => BuildMessage(token, title, body, data)).ToList();
-            var response = await FirebaseMessaging.DefaultInstance.SendEachAsync(messages);
-
-            _logger.LogInformation(
-                "Bulk send result: {SuccessCount}/{TotalCount} successful",
-                response.SuccessCount,
-                fcmTokens.Count);
-
-            // Handle failed tokens
-            if (response.FailureCount > 0)
+            try
             {
-                for (int i = 0; i < response.Responses.Count; i++)
-                {
-                    var sendResponse = response.Responses[i];
-                    if (!sendResponse.IsSuccess)
-                    {
-                        var exception = sendResponse.Exception;
-                        if (exception is FirebaseMessagingException fmEx &&
-                            (fmEx.MessagingErrorCode == MessagingErrorCode.Unregistered ||
-                             fmEx.MessagingErrorCode == MessagingErrorCode.InvalidArgument))
-                        {
-                            await MarkDeviceInactiveAsync(fcmTokens[i]);
-                        }
-                    }
-                }
+                await SendFcmMessageAsync(token, title, body, data);
+                successCount++;
             }
+            catch (FcmException ex) when (ex.ErrorCode is "UNREGISTERED" or "INVALID_ARGUMENT")
+            {
+                await MarkDeviceInactiveAsync(token);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send to token: {Token}", token[..Math.Min(20, token.Length)]);
+            }
+        }
 
-            return response.SuccessCount;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to send bulk notifications");
-            throw;
-        }
+        _logger.LogInformation("Bulk send result: {SuccessCount}/{TotalCount} successful", successCount, fcmTokens.Count);
+        return successCount;
     }
 
-    private static Message BuildMessage(
+    /// <summary>
+    /// FCM v1 API'sine doğrudan HTTP POST ile mesaj gönderir.
+    /// Firebase SDK'nın internal HTTP client'ı yerine kendi HttpClient'ımızı kullanır.
+    /// </summary>
+    private async Task<string> SendFcmMessageAsync(
         string fcmToken,
         string title,
         string body,
         Dictionary<string, string>? data)
     {
-        return new Message
+        var app = FirebaseApp.DefaultInstance
+            ?? throw new InvalidOperationException("Firebase is not initialized");
+
+        var projectId = app.Options.ProjectId
+            ?? throw new InvalidOperationException("Firebase ProjectId is not configured");
+
+        // OAuth 2 token al
+        var credential = app.Options.Credential;
+        var accessToken = await credential.UnderlyingCredential.GetAccessTokenForRequestAsync();
+
+        if (string.IsNullOrEmpty(accessToken))
+            throw new InvalidOperationException("Failed to obtain Firebase OAuth access token");
+
+        // FCM v1 API payload oluştur
+        var payload = new
         {
-            Token = fcmToken,
-            Notification = new Notification
+            message = new
             {
-                Title = title,
-                Body = body
-            },
-            Data = data,
-            Android = new AndroidConfig
-            {
-                Priority = Priority.High,
-                Notification = new AndroidNotification
+                token = fcmToken,
+                notification = new { title, body },
+                data,
+                android = new
                 {
-                    Sound = "default",
-                    ChannelId = "kripteks_channel"
-                }
-            },
-            Apns = new ApnsConfig
-            {
-                Aps = new Aps
-                {
-                    Sound = "default",
-                    Badge = 1,
-                    Alert = new ApsAlert
+                    priority = "HIGH",
+                    notification = new
                     {
-                        Title = title,
-                        Body = body
+                        sound = "default",
+                        channel_id = "kripteks_channel"
+                    }
+                },
+                apns = new
+                {
+                    payload = new
+                    {
+                        aps = new
+                        {
+                            sound = "default",
+                            badge = 1,
+                            alert = new { title, body }
+                        }
                     }
                 }
             }
         };
+
+        var json = JsonSerializer.Serialize(payload, JsonOptions);
+        var url = $"https://fcm.googleapis.com/v1/projects/{projectId}/messages:send";
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        using var response = await _httpClient.SendAsync(request);
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("FCM API error: {StatusCode} - {Body}", response.StatusCode, responseBody);
+
+            // FCM error code'unu parse et
+            var errorCode = TryParseErrorCode(responseBody);
+            throw new FcmException(
+                $"FCM API returned {response.StatusCode}: {responseBody}",
+                errorCode);
+        }
+
+        // Response'dan message name'i al
+        var messageId = TryParseMessageName(responseBody) ?? "success";
+        return messageId;
+    }
+
+    private static string? TryParseErrorCode(string responseBody)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(responseBody);
+            if (doc.RootElement.TryGetProperty("error", out var error) &&
+                error.TryGetProperty("details", out var details))
+            {
+                foreach (var detail in details.EnumerateArray())
+                {
+                    if (detail.TryGetProperty("errorCode", out var code))
+                        return code.GetString();
+                }
+            }
+
+            // Alternatif: status field
+            if (doc.RootElement.TryGetProperty("error", out var err) &&
+                err.TryGetProperty("status", out var status))
+            {
+                return status.GetString();
+            }
+        }
+        catch { }
+        return null;
+    }
+
+    private static string? TryParseMessageName(string responseBody)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(responseBody);
+            if (doc.RootElement.TryGetProperty("name", out var name))
+                return name.GetString();
+        }
+        catch { }
+        return null;
     }
 
     private async Task MarkDeviceInactiveAsync(string fcmToken)
@@ -167,7 +241,20 @@ public class FirebaseNotificationService : IFirebaseNotificationService
         {
             device.IsActive = false;
             await _context.SaveChangesAsync();
-            _logger.LogInformation("Marked device as inactive: {Token}", fcmToken.Substring(0, 20));
+            _logger.LogInformation("Marked device as inactive: {Token}", fcmToken[..Math.Min(20, fcmToken.Length)]);
         }
+    }
+}
+
+/// <summary>
+/// FCM API hata exception'ı
+/// </summary>
+public class FcmException : Exception
+{
+    public string? ErrorCode { get; }
+
+    public FcmException(string message, string? errorCode = null) : base(message)
+    {
+        ErrorCode = errorCode;
     }
 }

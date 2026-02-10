@@ -111,6 +111,9 @@ builder.Services.AddHttpClient(string.Empty).ConfigurePrimaryHttpMessageHandler(
     ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
 });
 
+// Firebase FCM API için HttpClient
+builder.Services.AddHttpClient("Firebase");
+
 // Add services to the container.
 builder.Services.AddHttpContextAccessor();
 
