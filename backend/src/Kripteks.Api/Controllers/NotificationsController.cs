@@ -117,28 +117,21 @@ public class NotificationsController(
     }
 
     /// <summary>
-    /// Firebase durumunu, dosya yollarını ve credential doğrulamasını göster (debug amaçlı)
+    /// Firebase durumunu, credential doğrulamasını ve FCM API testini göster
     /// </summary>
+    [AllowAnonymous]
     [HttpGet("firebase-diagnostics")]
     public async Task<IActionResult> FirebaseDiagnostics()
     {
-        var firebaseConfigPath = configuration["Firebase:ServiceAccountPath"] ?? "";
-        var hasJsonConfig = !string.IsNullOrEmpty(configuration["Firebase:ServiceAccountJson"]);
-
-        var searchPaths = new[]
-        {
-            Path.Combine(AppContext.BaseDirectory, firebaseConfigPath),
-            Path.Combine(env.ContentRootPath, firebaseConfigPath),
-            Path.Combine(env.WebRootPath ?? "", firebaseConfigPath),
-            Path.Combine(env.ContentRootPath, "wwwroot", firebaseConfigPath),
-            firebaseConfigPath
-        };
-
-        // Credential validation
         string? tokenStatus = null;
         string? credentialError = null;
         string? projectId = null;
         string? serviceAccountEmail = null;
+
+        // FCM API direct test
+        string? fcmTestStatus = null;
+        string? fcmTestResponse = null;
+        int? fcmTestHttpCode = null;
 
         if (FirebaseApp.DefaultInstance != null)
         {
@@ -149,15 +142,40 @@ public class NotificationsController(
                 if (options.Credential.UnderlyingCredential is ServiceAccountCredential saCred)
                     serviceAccountEmail = saCred.Id;
 
-                // OAuth token almayı dene
-                var token = await options.Credential
-                    .CreateScoped("https://www.googleapis.com/auth/firebase.messaging")
-                    .UnderlyingCredential
-                    .GetAccessTokenForRequestAsync();
+                // Scoped OAuth token al
+                var scopedCredential = options.Credential.CreateScoped(
+                    "https://www.googleapis.com/auth/firebase.messaging",
+                    "https://www.googleapis.com/auth/cloud-platform");
+                var accessToken = await scopedCredential.UnderlyingCredential.GetAccessTokenForRequestAsync();
 
-                tokenStatus = !string.IsNullOrEmpty(token)
-                    ? $"Valid (token: {token.Substring(0, Math.Min(30, token.Length))}...)"
+                tokenStatus = !string.IsNullOrEmpty(accessToken)
+                    ? $"Valid ({accessToken.Length} chars)"
                     : "Empty token returned";
+
+                // FCM API'ye validate_only (dry-run) test yap
+                if (!string.IsNullOrEmpty(accessToken) && !string.IsNullOrEmpty(projectId))
+                {
+                    using var httpClient = new HttpClient();
+                    var testPayload = "{\"validate_only\":true,\"message\":{\"token\":\"fake-token\",\"notification\":{\"title\":\"test\",\"body\":\"test\"}}}";
+                    var url = $"https://fcm.googleapis.com/v1/projects/{projectId}/messages:send";
+
+                    using var request = new HttpRequestMessage(HttpMethod.Post, url);
+                    request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+                    request.Content = new StringContent(testPayload, System.Text.Encoding.UTF8, "application/json");
+
+                    var response = await httpClient.SendAsync(request);
+                    fcmTestHttpCode = (int)response.StatusCode;
+                    fcmTestResponse = await response.Content.ReadAsStringAsync();
+
+                    fcmTestStatus = fcmTestHttpCode switch
+                    {
+                        200 => "SUCCESS - FCM API fully working",
+                        400 => "AUTH_OK - Token auth works (400 = fake token rejected, expected)",
+                        401 => "FAILED - OAuth token rejected",
+                        403 => "FAILED - FCM API not enabled or no permission",
+                        _ => $"HTTP {fcmTestHttpCode}"
+                    };
+                }
             }
             catch (Exception ex)
             {
@@ -173,20 +191,7 @@ public class NotificationsController(
             serviceAccountEmail,
             tokenStatus,
             credentialError,
-            hasServiceAccountJson = hasJsonConfig,
-            serviceAccountPath = firebaseConfigPath,
-            appBaseDirectory = AppContext.BaseDirectory,
-            contentRootPath = env.ContentRootPath,
-            webRootPath = env.WebRootPath,
-            currentDirectory = System.IO.Directory.GetCurrentDirectory(),
-            searchResults = searchPaths.Select(p => new
-            {
-                path = p,
-                exists = !string.IsNullOrEmpty(p) && System.IO.File.Exists(p)
-            }),
-            wwwrootFiles = System.IO.Directory.Exists(env.WebRootPath)
-                ? System.IO.Directory.GetFiles(env.WebRootPath).Select(Path.GetFileName)
-                : Enumerable.Empty<string>()
+            fcmApiTest = new { status = fcmTestStatus, httpCode = fcmTestHttpCode, response = fcmTestResponse }
         });
     }
 }
