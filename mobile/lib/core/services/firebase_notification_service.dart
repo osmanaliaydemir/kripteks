@@ -12,7 +12,6 @@ import '../../features/notifications/services/notification_service.dart';
 /// Top-level function for background message handling
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Firebase initialization is handled automatically
   Logger(
     'FirebaseNotification',
   ).info('Background message received: ${message.messageId}');
@@ -36,9 +35,6 @@ class FirebaseNotificationService {
   /// Initialize Firebase Messaging and Local Notifications
   Future<void> initialize(NotificationService notificationService) async {
     if (_isInitialized) {
-      _logger.info(
-        'Firebase Notification Service already initialized, checking token registration...',
-      );
       await _checkAndRegisterToken(notificationService);
       return;
     }
@@ -65,11 +61,8 @@ class FirebaseNotificationService {
         if (androidPlugin != null) {
           final granted =
               await androidPlugin.requestNotificationsPermission() ?? false;
-          _logger.info('Android notification permission granted: $granted');
           if (!granted) {
-            _logger.warning(
-              'Android notification permission denied by user',
-            );
+            _logger.warning('Android notification permission denied');
             return;
           }
         }
@@ -109,28 +102,50 @@ class FirebaseNotificationService {
     }
   }
 
+  /// iOS'ta APNs token hazır olmadan getToken() hata verir.
+  /// Retry mekanizması ile getToken()'ı tekrar deneriz.
   Future<void> _checkAndRegisterToken(
     NotificationService notificationService,
   ) async {
-    try {
-      _fcmToken = await _firebaseMessaging.getToken();
-      if (_fcmToken != null) {
-        _logger.info('FCM Token obtained: ${_fcmToken?.substring(0, 20)}...');
+    const maxRetries = 10;
+    const retryDelay = Duration(seconds: 3);
 
-        // Cihaz bilgilerini topla
-        final deviceModel = await _getDeviceModel();
-        final appVersion = await _getAppVersion();
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        _fcmToken = await _firebaseMessaging.getToken();
 
-        await _registerTokenWithBackend(
-          notificationService,
-          _fcmToken!,
-          deviceModel: deviceModel,
-          appVersion: appVersion,
-        );
+        if (_fcmToken != null) {
+          _logger.info(
+            'FCM Token obtained: ${_fcmToken!.substring(0, 20)}...',
+          );
+
+          final deviceModel = await _getDeviceModel();
+          final appVersion = await _getAppVersion();
+
+          await _registerTokenWithBackend(
+            notificationService,
+            _fcmToken!,
+            deviceModel: deviceModel,
+            appVersion: appVersion,
+          );
+          return;
+        }
+      } catch (e) {
+        final isApnsError = e.toString().contains('apns-token-not-set');
+        if (isApnsError && attempt < maxRetries) {
+          _logger.info(
+            'APNs token not ready, retrying ($attempt/$maxRetries)...',
+          );
+          await Future.delayed(retryDelay);
+          continue;
+        }
+        _logger.severe('Failed to get FCM token after $attempt attempts: $e');
+        return;
       }
-    } catch (e) {
-      _logger.warning('Failed to get/register FCM token: $e');
     }
+    _logger.warning(
+      'FCM token could not be obtained after $maxRetries retries',
+    );
   }
 
   /// Cihaz model bilgisini al
@@ -298,7 +313,6 @@ class FirebaseNotificationService {
     String? appVersion,
   }) async {
     try {
-      _logger.info('Attempting to register FCM token with backend...');
       await notificationService.registerDeviceToken(
         fcmToken: token,
         deviceType: _getDeviceType(),
@@ -313,8 +327,6 @@ class FirebaseNotificationService {
 
   /// Get device type
   String _getDeviceType() {
-    // You can use platform detection here
-    // For now, returning a placeholder
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       return 'iOS';
     } else if (defaultTargetPlatform == TargetPlatform.android) {
@@ -324,7 +336,9 @@ class FirebaseNotificationService {
   }
 
   /// Unregister device on logout
-  Future<void> unregisterDevice(NotificationService notificationService) async {
+  Future<void> unregisterDevice(
+    NotificationService notificationService,
+  ) async {
     if (_fcmToken != null) {
       try {
         await notificationService.unregisterDeviceToken(_fcmToken!);
