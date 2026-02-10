@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { X, ArrowUpRight, ArrowDownLeft, Wallet, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { WalletService } from "@/lib/api";
+import { PagedResult } from "@/types";
 
 interface Transaction {
     id: string;
@@ -20,24 +21,47 @@ interface Props {
 export default function WalletModal({ isOpen, onClose }: Props) {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(false);
+    const [hasMore, setHasMore] = useState(false);
+    const [page, setPage] = useState(1);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (isOpen) {
-            fetchTransactions();
+            setTransactions([]);
+            setPage(1);
+            setHasMore(false);
+            fetchTransactions(1);
         }
     }, [isOpen]);
 
-    const fetchTransactions = async () => {
-        setLoading(true);
+    const fetchTransactions = async (p: number = 1) => {
+        if (p === 1) setLoading(true);
+        else setIsLoadingMore(true);
         try {
-            const data = await WalletService.getTransactions();
-            setTransactions(data);
+            const result = await WalletService.getTransactions(p, 20) as PagedResult<Transaction>;
+            if (p === 1) {
+                setTransactions(result.items ?? []);
+            } else {
+                setTransactions(prev => [...prev, ...(result.items ?? [])]);
+            }
+            setPage(result.page);
+            setHasMore(result.hasMore);
         } catch (error) {
             console.error(error);
         } finally {
             setLoading(false);
+            setIsLoadingMore(false);
         }
     };
+
+    const handleScroll = useCallback(() => {
+        const el = scrollRef.current;
+        if (!el || isLoadingMore || !hasMore) return;
+        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 100) {
+            fetchTransactions(page + 1);
+        }
+    }, [isLoadingMore, hasMore, page]);
 
     return (
         <AnimatePresence>
@@ -73,7 +97,7 @@ export default function WalletModal({ isOpen, onClose }: Props) {
                         </div>
 
                         {/* List Area */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                        <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-4 space-y-2">
                             {loading ? (
                                 <div className="flex justify-center items-center h-40 text-slate-500 gap-2 font-mono text-xs">
                                     <RefreshCw className="animate-spin text-primary" size={16} /> İşlemler yükleniyor...
@@ -86,28 +110,40 @@ export default function WalletModal({ isOpen, onClose }: Props) {
                                     <span className="text-sm font-medium">Herhangi bir işlem bulunamadı.</span>
                                 </div>
                             ) : (
-                                transactions.map((tx) => (
-                                    <div key={tx.id} className="glass-card p-4 rounded-xl flex items-center justify-between hover:bg-white/5 transition-colors group">
-                                        <div className="flex items-center gap-4">
-                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${tx.amount > 0
-                                                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                                                : "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                                <>
+                                    {transactions.map((tx) => (
+                                        <div key={tx.id} className="glass-card p-4 rounded-xl flex items-center justify-between hover:bg-white/5 transition-colors group">
+                                            <div className="flex items-center gap-4">
+                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${tx.amount > 0
+                                                    ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                                                    : "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                                                    }`}>
+                                                    {tx.amount > 0 ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
+                                                </div>
+                                                <div>
+                                                    <p className="text-white font-bold text-sm">{tx.description}</p>
+                                                    <p className="text-[10px] text-slate-500 font-mono uppercase tracking-wider mt-0.5">
+                                                        {new Date(tx.createdAt).toLocaleString()}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className={`font-mono font-bold text-sm ${tx.amount > 0 ? "text-emerald-400" : "text-slate-200"
                                                 }`}>
-                                                {tx.amount > 0 ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
-                                            </div>
-                                            <div>
-                                                <p className="text-white font-bold text-sm">{tx.description}</p>
-                                                <p className="text-[10px] text-slate-500 font-mono uppercase tracking-wider mt-0.5">
-                                                    {new Date(tx.createdAt).toLocaleString()}
-                                                </p>
+                                                {tx.amount > 0 ? '+' : ''}{tx.amount.toFixed(2)} USDT
                                             </div>
                                         </div>
-                                        <div className={`font-mono font-bold text-sm ${tx.amount > 0 ? "text-emerald-400" : "text-slate-200"
-                                            }`}>
-                                            {tx.amount > 0 ? '+' : ''}{tx.amount.toFixed(2)} USDT
+                                    ))}
+                                    {isLoadingMore && (
+                                        <div className="flex justify-center items-center py-4 text-slate-500 gap-2 font-mono text-xs">
+                                            <RefreshCw className="animate-spin text-primary" size={14} /> Daha fazla yükleniyor...
                                         </div>
-                                    </div>
-                                ))
+                                    )}
+                                    {!hasMore && transactions.length > 0 && (
+                                        <div className="text-center py-3">
+                                            <span className="text-slate-600 text-xs">Tüm işlemler yüklendi</span>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     </motion.div>

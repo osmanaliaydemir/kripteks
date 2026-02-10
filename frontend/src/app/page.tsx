@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Bot, Strategy, Coin, Wallet, User, DashboardStats } from "@/types";
+import { Bot, Strategy, Coin, Wallet, User, DashboardStats, PagedResult } from "@/types";
 import { BotService, MarketService, WalletService, HUB_URL } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -90,12 +90,13 @@ export default function Dashboard() {
     // --- API HANDLERS (Moved UP) ---
     const fetchInitialData = async () => {
         try {
-            const [botsData, strategiesData, walletData, statsData] = await Promise.all([
+            const [botsResult, strategiesData, walletData, statsData] = await Promise.all([
                 BotService.getAll(),
                 MarketService.getStrategies(),
                 WalletService.get(),
                 MarketService.getStats()
             ]);
+            const botsData = (botsResult as PagedResult<Bot>).items ?? botsResult;
             setBots(botsData);
             setStrategies(strategiesData);
             setWallet(walletData);
@@ -108,7 +109,8 @@ export default function Dashboard() {
 
     const fetchLiveUpdates = async () => {
         try {
-            const [botsData, walletData, statsData] = await Promise.all([BotService.getAll(), WalletService.get(), MarketService.getStats()]);
+            const [botsResult, walletData, statsData] = await Promise.all([BotService.getAll(), WalletService.get(), MarketService.getStats()]);
+            const botsData = (botsResult as PagedResult<Bot>).items ?? botsResult;
             setBots(botsData); setWallet(walletData); setStats(statsData);
         } catch (e) { console.error(e) }
     };

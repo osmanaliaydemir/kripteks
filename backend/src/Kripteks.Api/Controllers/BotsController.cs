@@ -20,10 +20,10 @@ public class BotsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<BotDto>>> GetBots()
+    public async Task<ActionResult<PagedResult<BotDto>>> GetBots([FromQuery] PaginationRequest pagination)
     {
-        var bots = await _botService.GetAllBotsAsync();
-        return Ok(bots);
+        var result = await _botService.GetAllBotsAsync(pagination.Page, pagination.PageSize);
+        return Ok(result);
     }
 
     [HttpGet("{id}")]
@@ -32,6 +32,13 @@ public class BotsController : ControllerBase
         var bot = await _botService.GetBotByIdAsync(id);
         if (bot == null) return NotFound();
         return Ok(bot);
+    }
+
+    [HttpGet("{id}/logs")]
+    public async Task<ActionResult<PagedResult<LogDto>>> GetBotLogs(Guid id, [FromQuery] PaginationRequest pagination)
+    {
+        var result = await _botService.GetBotLogsAsync(id, pagination.Page, pagination.PageSize);
+        return Ok(result);
     }
 
     [Authorize(Roles = "Admin,Trader")]

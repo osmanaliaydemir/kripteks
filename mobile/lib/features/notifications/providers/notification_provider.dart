@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/models/paged_result.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/providers/paginated_provider.dart';
 import '../services/notification_service.dart';
 import '../models/notification_model.dart';
 
@@ -9,38 +12,55 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
   return NotificationService(dio);
 });
 
-// Using a notifier to allow manual refresh and optimistic updates
-final notificationsProvider =
-    AsyncNotifierProvider<NotificationsNotifier, List<NotificationModel>>(
-      NotificationsNotifier.new,
-    );
+/// Sayfalanmış bildirimler provider'ı.
+final paginatedNotificationsProvider =
+    AsyncNotifierProvider<
+      PaginatedNotificationsNotifier,
+      PaginatedState<NotificationModel>
+    >(PaginatedNotificationsNotifier.new);
 
-/// Okunmamış bildirim sayısı (badge için)
+/// Okunmamış bildirim sayısı (badge için).
 final unreadNotificationCountProvider = Provider<int>((ref) {
-  final notifications = ref.watch(notificationsProvider);
-  return notifications.asData?.value.where((n) => !n.isRead).length ?? 0;
+  final notificationsState = ref.watch(paginatedNotificationsProvider);
+  return notificationsState.asData?.value.items
+          .where((n) => !n.isRead)
+          .length ??
+      0;
 });
 
-class NotificationsNotifier extends AsyncNotifier<List<NotificationModel>> {
+class PaginatedNotificationsNotifier
+    extends PaginatedAsyncNotifier<NotificationModel> {
   @override
-  Future<List<NotificationModel>> build() async {
+  int get pageSize => 20;
+
+  @override
+  Future<PagedResult<NotificationModel>> fetchPage(int page, int pageSize) {
     final service = ref.read(notificationServiceProvider);
-    return service.getNotifications();
+    return service.getNotifications(page: page, pageSize: pageSize);
   }
 
-  /// SignalR'dan gelen bildirimi listeye ekle (DashboardScreen'den çağrılır)
+  /// SignalR'dan gelen bildirimi listeye ekle.
   void addFromSignalR(Map<String, dynamic> json) {
     try {
       final notification = NotificationModel.fromJson(json);
-      final currentList = state.asData?.value ?? [];
+      final currentState = state.asData?.value;
+      if (currentState == null) return;
 
       // Duplicate kontrolü
-      if (currentList.any((n) => n.id == notification.id)) return;
+      if (currentState.items.any((n) => n.id == notification.id)) return;
 
       // Yeni bildirimi listenin başına ekle
-      state = AsyncData([notification, ...currentList]);
-    } catch (_) {
-      // Parse hatası olursa sessizce geç
+      state = AsyncData(
+        currentState.copyWith(
+          items: [notification, ...currentState.items],
+          totalCount: currentState.totalCount + 1,
+        ),
+      );
+    } catch (e, stack) {
+      if (kDebugMode) {
+        debugPrint('🔴 [NotificationProvider] SignalR parse error: $e');
+        debugPrint('$stack');
+      }
     }
   }
 
@@ -48,13 +68,14 @@ class NotificationsNotifier extends AsyncNotifier<List<NotificationModel>> {
     final service = ref.read(notificationServiceProvider);
     await service.markAsRead(id);
 
-    // Optimistic update: isRead = true yap, listeden silme
-    final previousState = state.asData?.value;
-    if (previousState != null) {
+    final currentState = state.asData?.value;
+    if (currentState != null) {
       state = AsyncData(
-        previousState
-            .map((n) => n.id == id ? n.copyWith(isRead: true) : n)
-            .toList(),
+        currentState.copyWith(
+          items: currentState.items
+              .map((n) => n.id == id ? n.copyWith(isRead: true) : n)
+              .toList(),
+        ),
       );
     }
   }
@@ -63,16 +84,15 @@ class NotificationsNotifier extends AsyncNotifier<List<NotificationModel>> {
     final service = ref.read(notificationServiceProvider);
     await service.markAllAsRead();
 
-    // Optimistic update: tüm bildirimleri okundu yap
-    final previousState = state.asData?.value;
-    if (previousState != null) {
+    final currentState = state.asData?.value;
+    if (currentState != null) {
       state = AsyncData(
-        previousState.map((n) => n.copyWith(isRead: true)).toList(),
+        currentState.copyWith(
+          items: currentState.items
+              .map((n) => n.copyWith(isRead: true))
+              .toList(),
+        ),
       );
     }
-  }
-
-  Future<void> refresh() async {
-    ref.invalidateSelf();
   }
 }

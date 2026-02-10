@@ -62,9 +62,9 @@ class DashboardPanel extends ConsumerWidget {
                     builder: (context, ref, child) {
                       // Calculate approximate total invested from bot list amount sum
                       // This is 'Total Invested' in ACTIVE/HISTORY bots known to client
-                      final botListAsync = ref.watch(botListProvider);
+                      final botListAsync = ref.watch(paginatedBotListProvider);
                       final totalInvested =
-                          botListAsync.asData?.value
+                          botListAsync.asData?.value.items
                               .map((b) => b.amount)
                               .fold(0.0, (sum, amount) => sum + amount) ??
                           0.0;
@@ -90,8 +90,8 @@ class DashboardPanel extends ConsumerWidget {
             // Let's add 'En Çok Kazandıran Bot' as a full width or half width card here.
             Consumer(
               builder: (context, ref, child) {
-                final botListAsync = ref.watch(botListProvider);
-                final bots = botListAsync.asData?.value ?? [];
+                final botListAsync = ref.watch(paginatedBotListProvider);
+                final bots = botListAsync.asData?.value.items ?? [];
 
                 // Find bot with max PnL
                 Bot? bestBot;
@@ -185,9 +185,9 @@ class DashboardPanel extends ConsumerWidget {
                 ),
                 child: Consumer(
                   builder: (context, ref, child) {
-                    final botListAsync = ref.watch(botListProvider);
+                    final botListAsync = ref.watch(paginatedBotListProvider);
                     final activeBotCount =
-                        botListAsync.asData?.value
+                        botListAsync.asData?.value.items
                             .where(
                               (b) =>
                                   b.status == 'Running' ||

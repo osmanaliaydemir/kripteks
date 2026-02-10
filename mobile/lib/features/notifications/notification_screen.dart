@@ -7,13 +7,43 @@ import 'package:google_fonts/google_fonts.dart';
 import 'providers/notification_provider.dart';
 import 'models/notification_model.dart';
 
-class NotificationScreen extends ConsumerWidget {
+class NotificationScreen extends ConsumerStatefulWidget {
   const NotificationScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final notificationsAsync = ref.watch(notificationsProvider);
-    final hasUnread = notificationsAsync.asData?.value.any((n) => !n.isRead) ?? false;
+  ConsumerState<NotificationScreen> createState() => _NotificationScreenState();
+}
+
+class _NotificationScreenState extends ConsumerState<NotificationScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    if (maxScroll - currentScroll <= 200) {
+      ref.read(paginatedNotificationsProvider.notifier).loadMore();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final notificationsAsync = ref.watch(paginatedNotificationsProvider);
+    final hasUnread =
+        notificationsAsync.asData?.value.items.any((n) => !n.isRead) ?? false;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -23,8 +53,9 @@ class NotificationScreen extends ConsumerWidget {
         actions: [
           if (hasUnread)
             TextButton(
-              onPressed: () =>
-                  ref.read(notificationsProvider.notifier).markAllAsRead(),
+              onPressed: () => ref
+                  .read(paginatedNotificationsProvider.notifier)
+                  .markAllAsRead(),
               child: Text(
                 'Tümünü Oku',
                 style: GoogleFonts.plusJakartaSans(
@@ -59,12 +90,14 @@ class NotificationScreen extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: RefreshIndicator(
-                onRefresh: () async =>
-                    ref.read(notificationsProvider.notifier).refresh(),
+                onRefresh: () =>
+                    ref.read(paginatedNotificationsProvider.notifier).refresh(),
                 color: AppColors.primary,
                 backgroundColor: AppColors.surface,
                 child: notificationsAsync.when(
-                  data: (notifications) {
+                  data: (paginatedState) {
+                    final notifications = paginatedState.items;
+
                     if (notifications.isEmpty) {
                       return ListView(
                         children: [
@@ -95,15 +128,53 @@ class NotificationScreen extends ConsumerWidget {
                     }
 
                     return ListView.separated(
+                      controller: _scrollController,
+                      physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.only(top: 16, bottom: 32),
-                      itemCount: notifications.length,
+                      itemCount:
+                          notifications.length +
+                          (paginatedState.isLoadingMore ||
+                                  !paginatedState.hasMore
+                              ? 1
+                              : 0),
                       separatorBuilder: (context, index) =>
                           const SizedBox(height: 12),
-                      itemBuilder: (context, index) => _buildNotificationTile(
-                        context,
-                        ref,
-                        notifications[index],
-                      ),
+                      itemBuilder: (context, index) {
+                        if (index >= notifications.length) {
+                          if (paginatedState.isLoadingMore) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              child: Center(
+                                child: SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Center(
+                              child: Text(
+                                'Tüm bildirimler yüklendi',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.3),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                        return _buildNotificationTile(
+                          context,
+                          ref,
+                          notifications[index],
+                        );
+                      },
                     );
                   },
                   loading: () => const Center(
@@ -157,7 +228,9 @@ class NotificationScreen extends ConsumerWidget {
     return GestureDetector(
       onTap: () {
         if (!notification.isRead) {
-          ref.read(notificationsProvider.notifier).markAsRead(notification.id);
+          ref
+              .read(paginatedNotificationsProvider.notifier)
+              .markAsRead(notification.id);
         }
       },
       child: Container(

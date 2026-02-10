@@ -1,18 +1,122 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/error/error_handler.dart';
+import 'package:mobile/core/providers/paginated_provider.dart';
 import 'package:mobile/features/bots/providers/bot_provider.dart';
 import 'package:mobile/features/bots/models/bot_model.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-class BotDetailScreen extends ConsumerWidget {
+class BotDetailScreen extends ConsumerStatefulWidget {
   final String botId;
 
   const BotDetailScreen({super.key, required this.botId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final botAsync = ref.watch(botDetailProvider(botId));
+  ConsumerState<BotDetailScreen> createState() => _BotDetailScreenState();
+}
+
+class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  // Bot logları state (widget-level pagination yönetimi)
+  PaginatedState<BotLog>? _logsState;
+  bool _isLogsLoading = true;
+  Object? _logsError;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    _loadInitialLogs();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadInitialLogs() async {
+    try {
+      final botService = ref.read(botServiceProvider);
+      final result = await botService.getBotLogs(
+        widget.botId,
+        page: 1,
+        pageSize: 50,
+      );
+      if (mounted) {
+        setState(() {
+          _logsState = PaginatedState<BotLog>(
+            items: result.items,
+            currentPage: 1,
+            pageSize: 50,
+            totalCount: result.totalCount,
+            hasMore: result.hasMore,
+          );
+          _isLogsLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _logsError = e;
+          _isLogsLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadMoreLogs() async {
+    final current = _logsState;
+    if (current == null || current.isLoadingMore || !current.hasMore) return;
+
+    setState(() {
+      _logsState = current.copyWith(isLoadingMore: true);
+    });
+
+    try {
+      final botService = ref.read(botServiceProvider);
+      final nextPage = current.currentPage + 1;
+      final result = await botService.getBotLogs(
+        widget.botId,
+        page: nextPage,
+        pageSize: 50,
+      );
+
+      if (mounted) {
+        setState(() {
+          _logsState = current.copyWith(
+            items: [...current.items, ...result.items],
+            currentPage: nextPage,
+            totalCount: result.totalCount,
+            hasMore: result.hasMore,
+            isLoadingMore: false,
+          );
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _logsState = current.copyWith(isLoadingMore: false, error: e);
+        });
+      }
+    }
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    if (maxScroll - currentScroll <= 200) {
+      _loadMoreLogs();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final botAsync = ref.watch(botDetailProvider(widget.botId));
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -69,6 +173,7 @@ class BotDetailScreen extends ConsumerWidget {
 
   Widget _buildContent(BuildContext context, WidgetRef ref, Bot bot) {
     return SingleChildScrollView(
+      controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -256,102 +361,165 @@ class BotDetailScreen extends ConsumerWidget {
 
           const SizedBox(height: 16),
 
-          if (bot.logs != null && bot.logs!.isNotEmpty) ...[
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: bot.logs!.length,
-              itemBuilder: (context, index) {
-                final log = bot.logs![index];
-                final isInfo = log.logLevel == 'INFO';
-                final isError = log.logLevel == 'ERROR';
-
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B).withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white10),
+          Builder(
+            builder: (context) {
+              if (_isLogsLoading) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: CircularProgressIndicator(color: Color(0xFFF59E0B)),
                   ),
+                );
+              }
+
+              if (_logsError != null) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Text(
+                      'Log yüklenemedi: $_logsError',
+                      style: const TextStyle(color: Colors.redAccent),
+                    ),
+                  ),
+                );
+              }
+
+              final logsState = _logsState;
+              if (logsState == null || logsState.items.isEmpty) {
+                return Container(
+                  height: 200,
+                  alignment: Alignment.center,
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isInfo
-                                  ? const Color(
-                                      0xFF10B981,
-                                    ).withValues(alpha: 0.2)
-                                  : isError
-                                  ? const Color(
-                                      0xFFEF4444,
-                                    ).withValues(alpha: 0.2)
-                                  : const Color(
-                                      0xFF3B82F6,
-                                    ).withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              log.logLevel,
-                              style: TextStyle(
-                                color: isInfo
-                                    ? const Color(0xFF10B981)
-                                    : isError
-                                    ? const Color(0xFFEF4444)
-                                    : const Color(0xFF3B82F6),
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _formatDate(log.timestamp),
-                            style: const TextStyle(
-                              color: Colors.white38,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ],
+                      Icon(
+                        Icons.terminal_rounded,
+                        size: 48,
+                        color: Colors.white10,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        log.message,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          height: 1.4,
-                        ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        "Henüz log kaydı yok",
+                        style: TextStyle(color: Colors.white38),
                       ),
                     ],
                   ),
-                ).animate().fadeIn(delay: (50 * index).ms).slideX();
-              },
-            ),
-          ] else ...[
-            Container(
-              height: 200,
-              alignment: Alignment.center,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                ).animate().fadeIn(delay: 400.ms);
+              }
+
+              return Column(
                 children: [
-                  Icon(Icons.terminal_rounded, size: 48, color: Colors.white10),
-                  const SizedBox(height: 16),
-                  const Text(
-                    "Henüz log kaydı yok",
-                    style: TextStyle(color: Colors.white38),
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: logsState.items.length,
+                    itemBuilder: (context, index) {
+                      final log = logsState.items[index];
+                      final isInfo =
+                          log.logLevel == 'INFO' || log.logLevel == 'Info';
+                      final isError =
+                          log.logLevel == 'ERROR' || log.logLevel == 'Error';
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E293B).withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white10),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isInfo
+                                        ? const Color(
+                                            0xFF10B981,
+                                          ).withValues(alpha: 0.2)
+                                        : isError
+                                        ? const Color(
+                                            0xFFEF4444,
+                                          ).withValues(alpha: 0.2)
+                                        : const Color(
+                                            0xFF3B82F6,
+                                          ).withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    log.logLevel,
+                                    style: TextStyle(
+                                      color: isInfo
+                                          ? const Color(0xFF10B981)
+                                          : isError
+                                          ? const Color(0xFFEF4444)
+                                          : const Color(0xFF3B82F6),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _formatDate(log.timestamp),
+                                  style: const TextStyle(
+                                    color: Colors.white38,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              log.message,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ).animate().fadeIn(delay: (50 * index).ms).slideX();
+                    },
                   ),
+                  if (logsState.isLoadingMore)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Center(
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFFF59E0B),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (!logsState.hasMore && logsState.items.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Center(
+                        child: Text(
+                          'Tüm loglar yüklendi',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
-              ),
-            ).animate().fadeIn(delay: 400.ms),
-          ],
+              );
+            },
+          ),
         ],
       ),
     );
@@ -438,11 +606,11 @@ class BotDetailScreen extends ConsumerWidget {
         ).showSnackBar(const SnackBar(content: Text('Bot durduruluyor...')));
       }
 
-      await ref.read(botServiceProvider).stopBot(botId);
+      await ref.read(botServiceProvider).stopBot(widget.botId);
 
       // Refresh bot details
-      ref.invalidate(botDetailProvider(botId));
-      ref.invalidate(botListProvider);
+      ref.invalidate(botDetailProvider(widget.botId));
+      ref.invalidate(paginatedBotListProvider);
 
       if (context.mounted) {
         ScaffoldMessenger.of(
@@ -451,9 +619,7 @@ class BotDetailScreen extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hata: $e'), backgroundColor: Colors.red),
-        );
+        ErrorHandler.showError(context, e);
       }
     }
   }

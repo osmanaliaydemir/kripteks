@@ -1,8 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-final authStateProvider =
-    AsyncNotifierProvider<AuthStateNotifier, bool>(AuthStateNotifier.new);
+final authStateProvider = AsyncNotifierProvider<AuthStateNotifier, bool>(
+  AuthStateNotifier.new,
+);
 
 class AuthStateNotifier extends AsyncNotifier<bool> {
   final _storage = const FlutterSecureStorage();

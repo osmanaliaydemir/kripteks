@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:mobile/core/error/error_handler.dart';
 import '../models/coin_pair.dart';
 
 class MarketDataService {
@@ -25,9 +26,9 @@ class MarketDataService {
             .map((e) => CoinPair(symbol: e.toString(), price: 0))
             .toList();
       }
-      throw Exception('Failed to load pairs');
-    } catch (e) {
-      throw Exception('Failed to load pairs: $e');
+      return [];
+    } on DioException catch (e, stack) {
+      throw ErrorHandler.handle(e, stack);
     }
   }
 }

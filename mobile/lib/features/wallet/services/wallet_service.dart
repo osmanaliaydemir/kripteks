@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:mobile/core/error/error_handler.dart';
+import 'package:mobile/core/models/paged_result.dart';
 import '../../wallet/models/wallet_model.dart';
 
 class WalletService {
@@ -10,18 +12,26 @@ class WalletService {
     try {
       final response = await _dio.get('/wallet');
       return WalletDetails.fromJson(response.data);
-    } catch (e) {
-      throw Exception('Failed to fetch wallet details: $e');
+    } on DioException catch (e, stack) {
+      throw ErrorHandler.handle(e, stack);
     }
   }
 
-  Future<List<WalletTransaction>> getTransactions() async {
+  Future<PagedResult<WalletTransaction>> getTransactions({
+    int page = 1,
+    int pageSize = 20,
+  }) async {
     try {
-      final response = await _dio.get('/wallet/transactions');
-      final List<dynamic> data = response.data;
-      return data.map((json) => WalletTransaction.fromJson(json)).toList();
-    } catch (e) {
-      throw Exception('Failed to fetch transactions: $e');
+      final response = await _dio.get(
+        '/wallet/transactions',
+        queryParameters: {'page': page, 'pageSize': pageSize},
+      );
+      return PagedResult.fromJson(
+        response.data as Map<String, dynamic>,
+        (json) => WalletTransaction.fromJson(json),
+      );
+    } on DioException catch (e, stack) {
+      throw ErrorHandler.handle(e, stack);
     }
   }
 }

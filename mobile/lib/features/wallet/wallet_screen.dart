@@ -18,11 +18,34 @@ class WalletScreen extends ConsumerStatefulWidget {
 
 class _WalletScreenState extends ConsumerState<WalletScreen> {
   int _selectedTabIndex = 0;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    if (maxScroll - currentScroll <= 200) {
+      ref.read(paginatedTransactionsProvider.notifier).loadMore();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final walletAsync = ref.watch(walletDetailsProvider);
-    final transactionsAsync = ref.watch(walletTransactionsProvider);
+    final transactionsAsync = ref.watch(paginatedTransactionsProvider);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -58,11 +81,14 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             child: RefreshIndicator(
               onRefresh: () async {
                 ref.invalidate(walletDetailsProvider);
-                ref.invalidate(walletTransactionsProvider);
+                await ref
+                    .read(paginatedTransactionsProvider.notifier)
+                    .refresh();
               },
               color: const Color(0xFFF59E0B),
               backgroundColor: const Color(0xFF1E293B),
               child: SingleChildScrollView(
+                controller: _scrollController,
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -97,9 +123,9 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
                     // Transactions List
                     transactionsAsync.when(
-                      data: (transactions) {
+                      data: (paginatedState) {
                         final filteredTransactions = _filterTransactions(
-                          transactions,
+                          paginatedState.items,
                         );
 
                         if (filteredTransactions.isEmpty) {
@@ -113,18 +139,56 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                             ),
                           );
                         }
-                        return ListView.separated(
-                          padding: EdgeInsets.zero,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: filteredTransactions.length,
-                          separatorBuilder: (context, index) =>
-                              const SizedBox(height: 8),
-                          itemBuilder: (context, index) =>
-                              _buildTransactionItem(filteredTransactions[index])
-                                  .animate()
-                                  .fadeIn(delay: (100 * index).ms)
-                                  .slideX(begin: 0.2, end: 0),
+                        return Column(
+                          children: [
+                            ListView.separated(
+                              padding: EdgeInsets.zero,
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: filteredTransactions.length,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 8),
+                              itemBuilder: (context, index) =>
+                                  _buildTransactionItem(
+                                        filteredTransactions[index],
+                                      )
+                                      .animate()
+                                      .fadeIn(delay: (100 * index).ms)
+                                      .slideX(begin: 0.2, end: 0),
+                            ),
+                            if (paginatedState.isLoadingMore)
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                child: Center(
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Color(0xFFF59E0B),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            if (!paginatedState.hasMore &&
+                                paginatedState.items.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    'Tüm işlemler yüklendi',
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.3,
+                                      ),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         );
                       },
                       loading: () => const Center(

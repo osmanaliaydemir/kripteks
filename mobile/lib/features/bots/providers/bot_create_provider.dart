@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/error/exceptions.dart';
 import '../models/bot_create_request_model.dart';
 import '../../../core/providers/market_data_provider.dart';
 import 'bot_provider.dart';
@@ -153,14 +154,15 @@ class BotCreateNotifier extends Notifier<BotCreateState> {
       await botService.createBot(request);
 
       // Refresh bot list
-      ref.invalidate(botListProvider);
+      ref.invalidate(paginatedBotListProvider);
 
       state = state.copyWith(isLoading: false);
       // Reset after successful creation
       reset();
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      final errorMessage = e is AppException ? e.message : e.toString();
+      state = state.copyWith(isLoading: false, error: errorMessage);
       return false;
     }
   }

@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Bell, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { NotificationService } from "@/lib/api";
 import { toast } from "sonner";
 import { NotificationItem } from "./NotificationItem";
 import { useSignalR } from "@/context/SignalRContext";
+import { PagedResult } from "@/types";
 
 interface NotificationCenterProps {
     user: any;
@@ -15,22 +16,44 @@ interface NotificationCenterProps {
 export function NotificationCenter({ user }: NotificationCenterProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [notifications, setNotifications] = useState<any[]>([]);
+    const [hasMore, setHasMore] = useState(false);
+    const [page, setPage] = useState(1);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const scrollRef = useRef<HTMLDivElement>(null);
     const { connection } = useSignalR();
     const unreadCount = notifications.filter(n => !n.isRead).length;
 
-    useEffect(() => {
-        const fetchNotifications = async () => {
-            if (user) {
-                try {
-                    const data = await NotificationService.getUnread();
-                    setNotifications(Array.isArray(data) ? data : []);
-                } catch (error) {
-                    console.error("Failed to fetch notifications", error);
-                }
+    const fetchNotifications = useCallback(async (p: number = 1, append: boolean = false) => {
+        if (!user) return;
+        if (append) setIsLoadingMore(true);
+        try {
+            const result = await NotificationService.getUnread(p, 20);
+            const paged = result as PagedResult<any>;
+            const items = paged.items ?? (Array.isArray(result) ? result : []);
+            if (append) {
+                setNotifications(prev => [...prev, ...items]);
+            } else {
+                setNotifications(items);
             }
-        };
+            setPage(paged.page ?? p);
+            setHasMore(paged.hasMore ?? false);
+        } catch (error) {
+            console.error("Failed to fetch notifications", error);
+        } finally {
+            setIsLoadingMore(false);
+        }
+    }, [user]);
 
-        fetchNotifications();
+    const handleNotificationScroll = useCallback(() => {
+        const el = scrollRef.current;
+        if (!el || isLoadingMore || !hasMore) return;
+        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
+            fetchNotifications(page + 1, true);
+        }
+    }, [isLoadingMore, hasMore, page, fetchNotifications]);
+
+    useEffect(() => {
+        fetchNotifications(1);
 
         if (connection) {
             connection.on("ReceiveNotification", (notification: any) => {
@@ -105,7 +128,7 @@ export function NotificationCenter({ user }: NotificationCenterProps) {
                                 )}
                             </div>
 
-                            <div className="max-h-80 overflow-y-auto scrollbar-hide">
+                            <div ref={scrollRef} onScroll={handleNotificationScroll} className="max-h-80 overflow-y-auto scrollbar-hide">
                                 {notifications.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center py-12 text-center opacity-60">
                                         <div className="w-12 h-12 bg-slate-800/50 rounded-2xl flex items-center justify-center mb-3 text-slate-600 border border-white/5">
@@ -122,6 +145,11 @@ export function NotificationCenter({ user }: NotificationCenterProps) {
                                                 onMarkAsRead={handleMarkAsRead}
                                             />
                                         ))}
+                                        {isLoadingMore && (
+                                            <div className="flex justify-center py-3">
+                                                <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>

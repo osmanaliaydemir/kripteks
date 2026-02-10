@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/error/error_handler.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/widgets/app_header.dart';
 import 'package:mobile/l10n/app_localizations.dart';
@@ -54,13 +55,7 @@ class _BinanceApiKeysScreenState extends ConsumerState<BinanceApiKeysScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Hata: $e'),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        ErrorHandler.showError(context, e);
       }
     }
   }

@@ -47,23 +47,30 @@ final volumeDataStreamProvider = StreamProvider<VolumeData>((ref) {
 });
 
 // Market Overview Provider (Combines initial fetch with real-time stream)
-final marketOverviewProvider = FutureProvider<MarketOverview>((ref) async {
+final marketOverviewProvider = FutureProvider.autoDispose<MarketOverview>((
+  ref,
+) async {
   final dio = ref.watch(dioProvider);
+  final cancelToken = ref.watch(cancelTokenProvider);
 
-  // Initial fetch
-  final response = await dio.get('/market-analysis/overview');
-  final initialData = MarketOverview.fromJson(response.data);
-
-  return initialData;
+  final response = await dio.get(
+    '/market-analysis/overview',
+    cancelToken: cancelToken,
+  );
+  return MarketOverview.fromJson(response.data);
 });
 
 // Top Gainers Provider
-final topGainersProvider = FutureProvider<List<TopMover>>((ref) async {
+final topGainersProvider = FutureProvider.autoDispose<List<TopMover>>((
+  ref,
+) async {
   final dio = ref.watch(dioProvider);
+  final cancelToken = ref.watch(cancelTokenProvider);
 
   final response = await dio.get(
     '/market-analysis/top-gainers',
     queryParameters: {'count': 5},
+    cancelToken: cancelToken,
   );
   final List<dynamic> data = response.data;
   return data
@@ -72,12 +79,16 @@ final topGainersProvider = FutureProvider<List<TopMover>>((ref) async {
 });
 
 // Top Losers Provider
-final topLosersProvider = FutureProvider<List<TopMover>>((ref) async {
+final topLosersProvider = FutureProvider.autoDispose<List<TopMover>>((
+  ref,
+) async {
   final dio = ref.watch(dioProvider);
+  final cancelToken = ref.watch(cancelTokenProvider);
 
   final response = await dio.get(
     '/market-analysis/top-losers',
     queryParameters: {'count': 5},
+    cancelToken: cancelToken,
   );
   final List<dynamic> data = response.data;
   return data
@@ -86,12 +97,16 @@ final topLosersProvider = FutureProvider<List<TopMover>>((ref) async {
 });
 
 // Volume History Provider
-final volumeHistoryProvider = FutureProvider<List<VolumeData>>((ref) async {
+final volumeHistoryProvider = FutureProvider.autoDispose<List<VolumeData>>((
+  ref,
+) async {
   final dio = ref.watch(dioProvider);
+  final cancelToken = ref.watch(cancelTokenProvider);
 
   final response = await dio.get(
     '/market-analysis/volume-history',
     queryParameters: {'hours': 24},
+    cancelToken: cancelToken,
   );
   final List<dynamic> data = response.data;
   return data
@@ -100,9 +115,15 @@ final volumeHistoryProvider = FutureProvider<List<VolumeData>>((ref) async {
 });
 
 // Market Metrics Provider
-final marketMetricsProvider = FutureProvider<MarketMetrics>((ref) async {
+final marketMetricsProvider = FutureProvider.autoDispose<MarketMetrics>((
+  ref,
+) async {
   final dio = ref.watch(dioProvider);
+  final cancelToken = ref.watch(cancelTokenProvider);
 
-  final response = await dio.get('/market-analysis/metrics');
+  final response = await dio.get(
+    '/market-analysis/metrics',
+    cancelToken: cancelToken,
+  );
   return MarketMetrics.fromJson(response.data);
 });

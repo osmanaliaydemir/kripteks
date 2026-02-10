@@ -100,7 +100,9 @@ class BotLog {
       id: (json['id'] as num?)?.toInt() ?? 0,
       botId: json['botId'] as String? ?? '',
       message: json['message'] as String? ?? '',
-      logLevel: json['logLevel'] as String? ?? 'INFO',
+      // Backend LogDto uses 'level', SignalR may also send 'logLevel' - check both
+      logLevel:
+          json['level'] as String? ?? json['logLevel'] as String? ?? 'INFO',
       timestamp:
           DateTime.tryParse(json['timestamp'] as String? ?? '') ??
           DateTime.now(),

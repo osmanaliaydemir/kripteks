@@ -1,11 +1,19 @@
 import 'dart:async';
+import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobile/core/constants.dart';
 import 'package:mobile/features/market_analysis/models/market_data.dart';
 
-/// Singleton service managing SignalR connection for real-time market data
+/// Singleton service managing SignalR connection for real-time market data.
+///
+/// Reconnection stratejisi:
+/// - Exponential backoff: 1s, 2s, 4s, 8s, 16s, 32s, 60s (max)
+/// - Maksimum 10 deneme sonrası durur
+/// - Jitter ile thundering herd önlenir
+/// - Manuel reconnect butonu desteği
 class MarketDataSignalRService {
   static final MarketDataSignalRService _instance =
       MarketDataSignalRService._internal();
@@ -17,6 +25,15 @@ class MarketDataSignalRService {
   HubConnection? _hubConnection;
   final _log = Logger('MarketDataSignalR');
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
+
+  // ─── Reconnection ayarları ────────────────────────────────────
+  static const int _maxReconnectAttempts = 10;
+  static const Duration _minReconnectDelay = Duration(seconds: 1);
+  static const Duration _maxReconnectDelay = Duration(seconds: 60);
+
+  int _reconnectAttempt = 0;
+  Timer? _reconnectTimer;
+  bool _isManuallyDisconnected = false;
 
   // Stream controllers for market data events
   final _marketOverviewController =
@@ -38,8 +55,9 @@ class MarketDataSignalRService {
 
   HubConnectionState get connectionState =>
       _hubConnection?.state ?? HubConnectionState.Disconnected;
-
   bool get isConnected => _hubConnection?.state == HubConnectionState.Connected;
+  int get reconnectAttempt => _reconnectAttempt;
+  int get maxReconnectAttempts => _maxReconnectAttempts;
 
   /// Initialize and start SignalR connection
   Future<void> connect() async {
@@ -48,41 +66,47 @@ class MarketDataSignalRService {
       return;
     }
 
+    _isManuallyDisconnected = false;
+    _reconnectAttempt = 0;
+
     try {
       _connectionStateController.add(HubConnectionState.Connecting);
-
-      final token = await _storage.read(key: 'auth_token');
 
       _hubConnection = HubConnectionBuilder()
           .withUrl(
             _hubUrl,
             options: HttpConnectionOptions(
-              accessTokenFactory: () async => token ?? '',
+              accessTokenFactory: () async {
+                final token = await _storage.read(key: 'auth_token');
+                return token ?? '';
+              },
               requestTimeout: 30000,
             ),
           )
-          .withAutomaticReconnect()
           .build();
 
       _setupEventHandlers();
       _setupConnectionLifecycle();
 
       await _hubConnection?.start();
-      _log.info('✅ Connected to market data hub');
+      _log.info('Connected to market data hub');
+      _reconnectAttempt = 0;
       _connectionStateController.add(HubConnectionState.Connected);
 
       // Subscribe to market data updates
       await _hubConnection?.invoke('SubscribeToMarketData');
     } catch (e) {
-      _log.severe('❌ Market data hub connection error: $e');
+      _log.severe('Market data hub connection error: $e');
       _connectionStateController.add(HubConnectionState.Disconnected);
-      rethrow;
+
+      if (!_isManuallyDisconnected) {
+        _scheduleReconnect();
+      }
     }
   }
 
   /// Setup SignalR event handlers for incoming data
   void _setupEventHandlers() {
-    // Market overview updates
     _hubConnection?.on('ReceiveMarketOverview', (arguments) {
       if (arguments != null && arguments.isNotEmpty) {
         try {
@@ -95,7 +119,6 @@ class MarketDataSignalRService {
       }
     });
 
-    // Top gainers updates
     _hubConnection?.on('ReceiveTopGainers', (arguments) {
       if (arguments != null && arguments.isNotEmpty) {
         try {
@@ -110,7 +133,6 @@ class MarketDataSignalRService {
       }
     });
 
-    // Top losers updates
     _hubConnection?.on('ReceiveTopLosers', (arguments) {
       if (arguments != null && arguments.isNotEmpty) {
         try {
@@ -125,7 +147,6 @@ class MarketDataSignalRService {
       }
     });
 
-    // Volume data updates
     _hubConnection?.on('ReceiveVolumeUpdate', (arguments) {
       if (arguments != null && arguments.isNotEmpty) {
         try {
@@ -144,6 +165,10 @@ class MarketDataSignalRService {
     _hubConnection?.onclose(({Exception? error}) {
       _log.warning('Market data connection closed', error);
       _connectionStateController.add(HubConnectionState.Disconnected);
+
+      if (!_isManuallyDisconnected) {
+        _scheduleReconnect();
+      }
     });
 
     _hubConnection?.onreconnecting(({Exception? error}) {
@@ -153,26 +178,87 @@ class MarketDataSignalRService {
 
     _hubConnection?.onreconnected(({String? connectionId}) {
       _log.info('Market data reconnected: $connectionId');
+      _reconnectAttempt = 0;
       _connectionStateController.add(HubConnectionState.Connected);
       // Re-subscribe after reconnection
       _hubConnection?.invoke('SubscribeToMarketData');
     });
   }
 
+  /// Exponential backoff ile yeniden bağlanma planlar.
+  void _scheduleReconnect() {
+    if (_isManuallyDisconnected) return;
+    if (_reconnectAttempt >= _maxReconnectAttempts) {
+      _log.severe(
+        'MarketData SignalR: Max reconnect attempts ($_maxReconnectAttempts) reached.',
+      );
+      return;
+    }
+
+    _reconnectTimer?.cancel();
+
+    final exponentialMs =
+        _minReconnectDelay.inMilliseconds * (1 << _reconnectAttempt);
+    final cappedMs = min(exponentialMs, _maxReconnectDelay.inMilliseconds);
+    final jitterMs = Random().nextInt(1000);
+    final delay = Duration(milliseconds: cappedMs + jitterMs);
+
+    _reconnectAttempt++;
+
+    if (kDebugMode) {
+      debugPrint(
+        '🔄 [MarketDataSignalR] Reconnect attempt '
+        '$_reconnectAttempt/$_maxReconnectAttempts in ${delay.inMilliseconds}ms',
+      );
+    }
+
+    _reconnectTimer = Timer(delay, () async {
+      if (_isManuallyDisconnected) return;
+
+      try {
+        try {
+          await _hubConnection?.stop();
+        } catch (_) {}
+
+        _hubConnection = null;
+        await connect();
+      } catch (e) {
+        _log.warning(
+          'Market data reconnect attempt $_reconnectAttempt failed: $e',
+        );
+      }
+    });
+  }
+
+  /// Manuel reconnect (kullanıcı tetikler)
+  Future<void> manualReconnect() async {
+    _reconnectAttempt = 0;
+    _isManuallyDisconnected = false;
+    _reconnectTimer?.cancel();
+    await connect();
+  }
+
   /// Disconnect from market data hub
   Future<void> disconnect() async {
+    _isManuallyDisconnected = true;
+    _reconnectTimer?.cancel();
+    _reconnectAttempt = 0;
+
     try {
       await _hubConnection?.invoke('UnsubscribeFromMarketData');
       await _hubConnection?.stop();
       _log.info('Disconnected from market data hub');
-      _connectionStateController.add(HubConnectionState.Disconnected);
     } catch (e) {
       _log.warning('Error disconnecting: $e');
     }
+
+    _connectionStateController.add(HubConnectionState.Disconnected);
   }
 
   /// Dispose all resources
   void dispose() {
+    _isManuallyDisconnected = true;
+    _reconnectTimer?.cancel();
     _marketOverviewController.close();
     _topGainersController.close();
     _topLosersController.close();

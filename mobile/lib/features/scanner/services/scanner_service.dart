@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:mobile/core/error/error_handler.dart';
 import '../models/scanner_model.dart';
 
 class ScannerService {
@@ -10,8 +11,8 @@ class ScannerService {
     try {
       final response = await _dio.post('/scanner/scan', data: request.toJson());
       return ScannerResult.fromJson(response.data);
-    } catch (e) {
-      throw Exception('Scan failed: $e');
+    } on DioException catch (e, stack) {
+      throw ErrorHandler.handle(e, stack);
     }
   }
 
@@ -20,10 +21,10 @@ class ScannerService {
       final response = await _dio.get('/scanner/favorites');
       final List<dynamic> data = response.data;
       return data.map((json) => ScannerFavoriteList.fromJson(json)).toList();
-    } catch (e) {
-      // Return empty list on simple failure to not block UI,
-      // or rethrow if strict error handling needed.
-      // For now, logging and returning empty is safer for initial Favorites rollout.
+    } on DioException catch (e, stack) {
+      // Favori listeleri yüklenemezse hatayı raporla ama boş liste dön
+      // UI bloke olmasın diye graceful degradation uyguluyoruz
+      ErrorHandler.handle(e, stack);
       return [];
     }
   }
@@ -34,8 +35,8 @@ class ScannerService {
         '/scanner/favorites',
         data: {'name': name, 'symbols': symbols},
       );
-    } catch (e) {
-      throw Exception('Failed to save favorites: $e');
+    } on DioException catch (e, stack) {
+      throw ErrorHandler.handle(e, stack);
     }
   }
 }

@@ -1,3 +1,13 @@
+// Generic paginated response from backend
+export interface PagedResult<T> {
+    items: T[];
+    page: number;
+    pageSize: number;
+    totalCount: number;
+    hasMore: boolean;
+    totalPages: number;
+}
+
 export interface Log {
     id: number | string;
     message: string;

@@ -8,7 +8,9 @@ final analyticsServiceProvider = Provider<AnalyticsService>((ref) {
   return AnalyticsService(dio);
 });
 
-final dashboardStatsProvider = FutureProvider<DashboardStats>((ref) async {
+final dashboardStatsProvider = FutureProvider.autoDispose<DashboardStats>((
+  ref,
+) async {
   final service = ref.watch(analyticsServiceProvider);
   return service.getDashboardStats();
 });

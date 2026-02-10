@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:mobile/core/error/error_handler.dart';
 import '../models/strategy_model.dart';
 import '../models/backtest_model.dart';
 
@@ -12,23 +13,17 @@ class BacktestService {
       final response = await _dio.get('/strategies');
       final List<dynamic> data = response.data;
       return data.map((json) => Strategy.fromJson(json)).toList();
-    } catch (e) {
-      throw Exception('Failed to fetch strategies: $e');
+    } on DioException catch (e, stack) {
+      throw ErrorHandler.handle(e, stack);
     }
   }
 
   Future<BacktestResult> runBacktest(BacktestRequest request) async {
     try {
-      // Backend endpoint is /api/backtest/run based on BacktestController
       final response = await _dio.post('/backtest/run', data: request.toJson());
       return BacktestResult.fromJson(response.data);
-    } catch (e) {
-      if (e is DioException) {
-        throw Exception(e.response?.data?.toString() ?? 'Backtest failed');
-      }
-      throw Exception('Backtest failed: $e');
+    } on DioException catch (e, stack) {
+      throw ErrorHandler.handle(e, stack);
     }
   }
-
-  // Future<List<BacktestResult>> getHistory() async { ... } // Implement later if needed
 }

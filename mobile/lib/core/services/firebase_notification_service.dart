@@ -115,9 +115,7 @@ class FirebaseNotificationService {
         _fcmToken = await _firebaseMessaging.getToken();
 
         if (_fcmToken != null) {
-          _logger.info(
-            'FCM Token obtained: ${_fcmToken!.substring(0, 20)}...',
-          );
+          _logger.info('FCM Token obtained: ${_fcmToken!.substring(0, 20)}...');
 
           final deviceModel = await _getDeviceModel();
           final appVersion = await _getAppVersion();
@@ -336,9 +334,7 @@ class FirebaseNotificationService {
   }
 
   /// Unregister device on logout
-  Future<void> unregisterDevice(
-    NotificationService notificationService,
-  ) async {
+  Future<void> unregisterDevice(NotificationService notificationService) async {
     if (_fcmToken != null) {
       try {
         await notificationService.unregisterDeviceToken(_fcmToken!);

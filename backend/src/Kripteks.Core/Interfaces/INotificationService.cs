@@ -1,3 +1,4 @@
+using Kripteks.Core.DTOs;
 using Kripteks.Core.Entities;
 
 namespace Kripteks.Core.Interfaces;
@@ -25,7 +26,7 @@ public interface INotificationService
     /// <summary>
     /// Kullanıcının tüm bildirimlerini getir (genel + kullanıcıya özel), per-user read status ile.
     /// </summary>
-    Task<List<NotificationDto>> GetNotificationsAsync(string userId);
+    Task<PagedResult<NotificationDto>> GetNotificationsAsync(string userId, int page = 1, int pageSize = 20);
 
     /// <summary>
     /// Kullanıcı için belirli bir bildirimi okundu olarak işaretle.

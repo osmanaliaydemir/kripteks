@@ -1,4 +1,5 @@
 using Kripteks.Api.Hubs;
+using Kripteks.Core.DTOs;
 using Kripteks.Core.Entities;
 using Kripteks.Infrastructure.Data;
 using Microsoft.AspNetCore.SignalR;
@@ -112,7 +113,7 @@ public class NotificationService(
         };
     }
 
-    public async Task<List<NotificationDto>> GetNotificationsAsync(string userId)
+    public async Task<PagedResult<NotificationDto>> GetNotificationsAsync(string userId, int page = 1, int pageSize = 20)
     {
         // Kullanıcının okuduğu bildirim ID'lerini al
         var readNotificationIds = await context.UserNotificationReads
@@ -122,14 +123,19 @@ public class NotificationService(
             .ToHashSetAsync();
 
         // Kullanıcıya ait bildirimler: genel (UserId=null) + kullanıcıya özel (UserId=userId)
-        var notifications = await context.Notifications
+        var query = context.Notifications
             .AsNoTracking()
             .Where(n => n.UserId == null || n.UserId == userId)
-            .OrderByDescending(n => n.CreatedAt)
-            .Take(50)
+            .OrderByDescending(n => n.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+
+        var notifications = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
 
-        return notifications.Select(n => new NotificationDto
+        var items = notifications.Select(n => new NotificationDto
         {
             Id = n.Id,
             Title = n.Title,
@@ -140,6 +146,14 @@ public class NotificationService(
             UserId = n.UserId,
             RelatedBotId = n.RelatedBotId
         }).ToList();
+
+        return new PagedResult<NotificationDto>
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task MarkAsReadAsync(Guid notificationId, string userId)

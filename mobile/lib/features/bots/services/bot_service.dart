@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:mobile/core/error/error_handler.dart';
+import 'package:mobile/core/models/paged_result.dart';
 import '../models/bot_model.dart';
 import '../models/bot_create_request_model.dart';
 
@@ -7,13 +9,18 @@ class BotService {
 
   BotService(this._dio);
 
-  Future<List<Bot>> getBots() async {
+  Future<PagedResult<Bot>> getBots({int page = 1, int pageSize = 20}) async {
     try {
-      final response = await _dio.get('/bots');
-      final List<dynamic> data = response.data;
-      return data.map((json) => Bot.fromJson(json)).toList();
-    } catch (e) {
-      throw Exception('Failed to fetch bots: $e');
+      final response = await _dio.get(
+        '/bots',
+        queryParameters: {'page': page, 'pageSize': pageSize},
+      );
+      return PagedResult.fromJson(
+        response.data as Map<String, dynamic>,
+        (json) => Bot.fromJson(json),
+      );
+    } on DioException catch (e, stack) {
+      throw ErrorHandler.handle(e, stack);
     }
   }
 
@@ -21,32 +28,51 @@ class BotService {
     try {
       final response = await _dio.get('/bots/$id');
       return Bot.fromJson(response.data);
-    } catch (e) {
-      throw Exception('Failed to fetch bot details: $e');
+    } on DioException catch (e, stack) {
+      throw ErrorHandler.handle(e, stack);
+    }
+  }
+
+  Future<PagedResult<BotLog>> getBotLogs(
+    String botId, {
+    int page = 1,
+    int pageSize = 50,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/bots/$botId/logs',
+        queryParameters: {'page': page, 'pageSize': pageSize},
+      );
+      return PagedResult.fromJson(
+        response.data as Map<String, dynamic>,
+        (json) => BotLog.fromJson(json),
+      );
+    } on DioException catch (e, stack) {
+      throw ErrorHandler.handle(e, stack);
     }
   }
 
   Future<void> stopBot(String id) async {
     try {
       await _dio.post('/bots/$id/stop');
-    } catch (e) {
-      throw Exception('Failed to stop bot: $e');
+    } on DioException catch (e, stack) {
+      throw ErrorHandler.handle(e, stack);
     }
   }
 
   Future<void> clearLogs(String id) async {
     try {
       await _dio.post('/bots/$id/clear-logs');
-    } catch (e) {
-      throw Exception('Failed to clear logs: $e');
+    } on DioException catch (e, stack) {
+      throw ErrorHandler.handle(e, stack);
     }
   }
 
   Future<void> createBot(BotCreateRequest request) async {
     try {
       await _dio.post('/bots/start', data: request.toJson());
-    } catch (e) {
-      throw Exception('Failed to create bot: $e');
+    } on DioException catch (e, stack) {
+      throw ErrorHandler.handle(e, stack);
     }
   }
 }

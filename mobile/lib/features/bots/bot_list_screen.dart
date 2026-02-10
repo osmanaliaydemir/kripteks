@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/widgets/app_header.dart';
+import 'package:mobile/core/error/error_handler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mobile/core/theme/app_colors.dart';
@@ -19,10 +20,33 @@ class BotListScreen extends ConsumerStatefulWidget {
 class _BotListScreenState extends ConsumerState<BotListScreen> {
   String _selectedTab = 'Aktif Botlar';
   String _activeFilter = 'Hepsi';
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    if (maxScroll - currentScroll <= 200) {
+      ref.read(paginatedBotListProvider.notifier).loadMore();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final botListAsync = ref.watch(botListProvider);
+    final botListAsync = ref.watch(paginatedBotListProvider);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -57,7 +81,8 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: botListAsync.when(
-        data: (bots) {
+        data: (paginatedState) {
+          final bots = paginatedState.items;
           final activeBots = bots
               .where(
                 (b) => b.status == 'Running' || b.status == 'WaitingForEntry',
@@ -155,11 +180,32 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
                         ),
                       )
                     : RefreshIndicator(
-                        onRefresh: () async => ref.refresh(botListProvider),
+                        onRefresh: () => ref
+                            .read(paginatedBotListProvider.notifier)
+                            .refresh(),
                         child: ListView.builder(
+                          controller: _scrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.all(16),
-                          itemCount: displayedBots.length,
+                          itemCount:
+                              displayedBots.length +
+                              (paginatedState.isLoadingMore ? 1 : 0),
                           itemBuilder: (context, index) {
+                            if (index >= displayedBots.length) {
+                              return const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                child: Center(
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
                             return _BotCardItem(
                               bot: displayedBots[index],
                               onStop: () =>
@@ -319,7 +365,7 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
               Navigator.pop(dialogContext);
               try {
                 await ref.read(botServiceProvider).stopBot(bot.id);
-                ref.invalidate(botListProvider);
+                ref.invalidate(paginatedBotListProvider);
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -330,12 +376,7 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Hata: $e'),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
+                  ErrorHandler.showError(context, e);
                 }
               }
             },

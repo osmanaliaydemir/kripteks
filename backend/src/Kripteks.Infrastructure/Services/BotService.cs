@@ -1,7 +1,9 @@
 using Kripteks.Core.DTOs;
 using Kripteks.Core.Entities;
+using Kripteks.Core.Extensions;
 using Kripteks.Core.Interfaces;
 using Kripteks.Infrastructure.Data;
+using Kripteks.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kripteks.Infrastructure.Services;
@@ -17,11 +19,17 @@ public class BotService : IBotService
         _notificationService = notificationService;
     }
 
-    public async Task<List<BotDto>> GetAllBotsAsync()
+    public async Task<PagedResult<BotDto>> GetAllBotsAsync(int page = 1, int pageSize = 20)
     {
-        return await _context.Bots
+        var query = _context.Bots
             .Where(b => !b.IsArchived)
-            .OrderByDescending(b => b.CreatedAt)
+            .OrderByDescending(b => b.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+
+        var bots = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(b => new BotDto
             {
                 Id = b.Id,
@@ -44,7 +52,7 @@ public class BotService : IBotService
                 IsArchived = b.IsArchived,
                 Logs = b.Logs
                     .OrderByDescending(l => l.Timestamp)
-                    .Take(50)
+                    .Take(10)
                     .Select(l => new LogDto
                     {
                         Id = l.Id,
@@ -55,6 +63,24 @@ public class BotService : IBotService
                     .ToList()
             })
             .ToListAsync();
+
+        return bots.ToPagedResult(page, pageSize, totalCount);
+    }
+
+    public async Task<PagedResult<LogDto>> GetBotLogsAsync(Guid botId, int page = 1, int pageSize = 50)
+    {
+        var query = _context.Logs
+            .Where(l => l.BotId == botId)
+            .OrderByDescending(l => l.Timestamp)
+            .Select(l => new LogDto
+            {
+                Id = l.Id,
+                Message = l.Message,
+                Level = l.Level.ToString(),
+                Timestamp = DateTime.SpecifyKind(l.Timestamp, DateTimeKind.Utc)
+            });
+
+        return await query.ToPagedResultAsync(page, pageSize);
     }
 
     public async Task<BotDto> GetBotByIdAsync(Guid id)

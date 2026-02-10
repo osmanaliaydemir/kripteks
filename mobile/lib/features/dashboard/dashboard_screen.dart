@@ -36,7 +36,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       // SignalR bağlantısı kurulduktan sonra notification listener'ı register et
       signalR.onNotification((data) {
         if (!mounted) return;
-        final notifier = ref.read(notificationsProvider.notifier);
+        final notifier = ref.read(paginatedNotificationsProvider.notifier);
         if (data is Map<String, dynamic>) {
           notifier.addFromSignalR(data);
         } else if (data is Map) {
@@ -201,9 +201,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         const SizedBox(width: 12),
         Consumer(
           builder: (context, ref, child) {
-            final notificationsAsync = ref.watch(notificationsProvider);
+            final notificationsAsync = ref.watch(
+              paginatedNotificationsProvider,
+            );
             final unreadCount =
-                notificationsAsync.asData?.value
+                notificationsAsync.asData?.value.items
                     .where((n) => !n.isRead)
                     .length ??
                 0;

@@ -61,8 +61,8 @@ const handleResponse = async (res: Response) => {
 };
 
 export const BotService = {
-    getAll: async () => {
-        const res = await fetchWithAuth(`${API_URL}/bots`);
+    getAll: async (page: number = 1, pageSize: number = 100) => {
+        const res = await fetchWithAuth(`${API_URL}/bots?page=${page}&pageSize=${pageSize}`);
         return handleResponse(res);
     },
     getById: async (id: string) => {
@@ -112,6 +112,10 @@ export const BotService = {
             method: "POST"
         });
         return handleResponse(res);
+    },
+    getBotLogs: async (botId: string, page: number = 1, pageSize: number = 50) => {
+        const res = await fetchWithAuth(`${API_URL}/bots/${botId}/logs?page=${page}&pageSize=${pageSize}`);
+        return handleResponse(res);
     }
 };
 
@@ -143,8 +147,8 @@ export const WalletService = {
         const res = await fetchWithAuth(`${API_URL}/wallet`);
         return handleResponse(res);
     },
-    getTransactions: async () => {
-        const res = await fetchWithAuth(`${API_URL}/wallet/transactions`);
+    getTransactions: async (page: number = 1, pageSize: number = 20) => {
+        const res = await fetchWithAuth(`${API_URL}/wallet/transactions?page=${page}&pageSize=${pageSize}`);
         return handleResponse(res);
     }
 };
@@ -350,8 +354,8 @@ export const UserService = {
 };
 
 export const NotificationService = {
-    getUnread: async () => {
-        const res = await fetchWithAuth(`${API_URL}/notifications`);
+    getUnread: async (page: number = 1, pageSize: number = 20) => {
+        const res = await fetchWithAuth(`${API_URL}/notifications?page=${page}&pageSize=${pageSize}`);
         return handleResponse(res);
     },
     markAsRead: async (id: string) => {

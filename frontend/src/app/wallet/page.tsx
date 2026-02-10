@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { WalletService } from "@/lib/api";
-import { Wallet, WalletTransaction, User } from "@/types";
-import { Wallet as WalletIcon, ArrowUpRight, ArrowDownLeft, Lock, DollarSign, Activity, CreditCard, History } from "lucide-react";
+import { Wallet, WalletTransaction, User, PagedResult } from "@/types";
+import { Wallet as WalletIcon, ArrowUpRight, ArrowDownLeft, Lock, DollarSign, Activity, CreditCard, History, RefreshCw } from "lucide-react";
 import Navbar from "@/components/ui/Navbar";
 import { toast } from "sonner";
 import { WalletCardSkeleton, TableSkeleton } from "@/components/ui/Skeletons";
@@ -14,6 +14,10 @@ export default function WalletPage() {
     const [wallet, setWallet] = useState<Wallet | null>(null);
     const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [txPage, setTxPage] = useState(1);
+    const [txTotalPages, setTxTotalPages] = useState(1);
+    const [txHasMore, setTxHasMore] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
 
     useEffect(() => {
         // Load User
@@ -29,17 +33,38 @@ export default function WalletPage() {
 
     const fetchData = async () => {
         try {
-            const [walletData, txData] = await Promise.all([
+            const [walletData, txResult] = await Promise.all([
                 WalletService.getWallet(),
-                WalletService.getTransactions()
+                WalletService.getTransactions(1, 20)
             ]);
             setWallet(walletData);
-            setTransactions(txData);
+            const paged = txResult as PagedResult<WalletTransaction>;
+            setTransactions(paged.items ?? txResult);
+            setTxPage(paged.page ?? 1);
+            setTxTotalPages(paged.totalPages ?? 1);
+            setTxHasMore(paged.hasMore ?? false);
         } catch (error) {
             console.error(error);
             toast.error("Cüzdan bilgileri alınamadı.");
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const loadMoreTransactions = async () => {
+        if (isLoadingMore || !txHasMore) return;
+        setIsLoadingMore(true);
+        try {
+            const nextPage = txPage + 1;
+            const txResult = await WalletService.getTransactions(nextPage, 20) as PagedResult<WalletTransaction>;
+            setTransactions(prev => [...prev, ...(txResult.items ?? [])]);
+            setTxPage(txResult.page);
+            setTxTotalPages(txResult.totalPages);
+            setTxHasMore(txResult.hasMore);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsLoadingMore(false);
         }
     };
 
@@ -208,6 +233,30 @@ export default function WalletPage() {
                         </tbody>
                     </table>
                 </div>
+                {/* Pagination Controls */}
+                {txHasMore && (
+                    <div className="px-6 py-4 border-t border-white/5 flex justify-center">
+                        <button
+                            onClick={loadMoreTransactions}
+                            disabled={isLoadingMore}
+                            className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 border border-white/5 text-slate-300 rounded-xl font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 flex items-center gap-2"
+                        >
+                            {isLoadingMore ? (
+                                <>
+                                    <RefreshCw size={14} className="animate-spin" />
+                                    Yükleniyor...
+                                </>
+                            ) : (
+                                'Daha Fazla Yükle'
+                            )}
+                        </button>
+                    </div>
+                )}
+                {!txHasMore && transactions.length > 0 && (
+                    <div className="px-6 py-3 border-t border-white/5 text-center">
+                        <span className="text-slate-600 text-xs">Tüm işlemler yüklendi</span>
+                    </div>
+                )}
             </div>
         </main>
     );

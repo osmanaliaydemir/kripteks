@@ -1,4 +1,6 @@
+using Kripteks.Core.DTOs;
 using Kripteks.Core.Entities;
+using Kripteks.Core.Extensions;
 using Kripteks.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -62,11 +64,10 @@ public class WalletController : ControllerBase
     }
 
     [HttpGet("transactions")]
-    public async Task<IActionResult> GetTransactions()
+    public async Task<IActionResult> GetTransactions([FromQuery] PaginationRequest pagination)
     {
-        var transactions = await _context.WalletTransactions
+        var query = _context.WalletTransactions
             .OrderByDescending(t => t.CreatedAt)
-            .Take(50) // Son 50 işlem
             .Select(t => new
             {
                 t.Id,
@@ -74,9 +75,21 @@ public class WalletController : ControllerBase
                 type = t.Type.ToString(),
                 t.Description,
                 t.CreatedAt
-            })
+            });
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .Skip((pagination.Page - 1) * pagination.PageSize)
+            .Take(pagination.PageSize)
             .ToListAsync();
 
-        return Ok(transactions);
+        return Ok(new PagedResult<object>
+        {
+            Items = items.Cast<object>().ToList(),
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
+            TotalCount = totalCount
+        });
     }
 }

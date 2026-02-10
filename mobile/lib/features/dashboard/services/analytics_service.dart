@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:mobile/core/error/error_handler.dart';
 import 'package:mobile/features/dashboard/models/dashboard_stats.dart';
 
 class AnalyticsService {
@@ -10,8 +11,8 @@ class AnalyticsService {
     try {
       final response = await _dio.get('/analytics/stats');
       return DashboardStats.fromJson(response.data);
-    } catch (e) {
-      throw Exception('Failed to load dashboard stats: $e');
+    } on DioException catch (e, stack) {
+      throw ErrorHandler.handle(e, stack);
     }
   }
 
@@ -19,8 +20,8 @@ class AnalyticsService {
     try {
       final response = await _dio.get('/analytics/equity');
       return response.data as List<dynamic>;
-    } catch (e) {
-      throw Exception('Failed to load equity curve: $e');
+    } on DioException catch (e, stack) {
+      throw ErrorHandler.handle(e, stack);
     }
   }
 
@@ -28,8 +29,8 @@ class AnalyticsService {
     try {
       final response = await _dio.get('/analytics/performance');
       return response.data as List<dynamic>;
-    } catch (e) {
-      throw Exception('Failed to load strategy performance: $e');
+    } on DioException catch (e, stack) {
+      throw ErrorHandler.handle(e, stack);
     }
   }
 }

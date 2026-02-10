@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:mobile/core/error/error_handler.dart';
 import 'package:mobile/core/services/firebase_notification_service.dart';
 import 'package:mobile/features/notifications/services/notification_service.dart';
 
@@ -24,11 +25,8 @@ class AuthService {
           await _storage.write(key: 'auth_token', value: token);
         }
       }
-    } catch (e) {
-      if (e is DioException) {
-        throw Exception(e.response?.data?.toString() ?? 'Giriş başarısız');
-      }
-      rethrow;
+    } on DioException catch (e, stack) {
+      throw ErrorHandler.handle(e, stack);
     }
   }
 
@@ -36,8 +34,12 @@ class AuthService {
     // Önce FCM token'ı backend'den kaldır
     try {
       await FirebaseNotificationService().unregisterDevice(notificationService);
-    } catch (_) {
-      // Unregister başarısız olsa bile logout devam etmeli
+    } on DioException catch (e, stack) {
+      // Unregister başarısız olsa bile logout devam etmeli,
+      // ama hatayı Crashlytics'e raporla
+      ErrorHandler.handle(e, stack);
+    } catch (e, stack) {
+      ErrorHandler.handle(e, stack);
     }
 
     await _storage.delete(key: 'auth_token');
@@ -50,11 +52,8 @@ class AuthService {
   Future<void> forgotPassword(String email) async {
     try {
       await _dio.post('/auth/forgot-password', data: {'email': email});
-    } catch (e) {
-      if (e is DioException) {
-        throw Exception(e.response?.data?['message'] ?? 'İşlem başarısız');
-      }
-      rethrow;
+    } on DioException catch (e, stack) {
+      throw ErrorHandler.handle(e, stack);
     }
   }
 
@@ -64,11 +63,8 @@ class AuthService {
         '/auth/verify-reset-code',
         data: {'email': email, 'code': code},
       );
-    } catch (e) {
-      if (e is DioException) {
-        throw Exception(e.response?.data?['message'] ?? 'Kod doğrulanamadı');
-      }
-      rethrow;
+    } on DioException catch (e, stack) {
+      throw ErrorHandler.handle(e, stack);
     }
   }
 
@@ -82,11 +78,8 @@ class AuthService {
         '/auth/reset-password',
         data: {'email': email, 'code': code, 'newPassword': newPassword},
       );
-    } catch (e) {
-      if (e is DioException) {
-        throw Exception(e.response?.data?['message'] ?? 'Şifre sıfırlanamadı');
-      }
-      rethrow;
+    } on DioException catch (e, stack) {
+      throw ErrorHandler.handle(e, stack);
     }
   }
 }

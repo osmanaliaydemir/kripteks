@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/core/error/error_handler.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/widgets/app_header.dart';
 import 'package:mobile/features/settings/services/profile_service.dart';
@@ -57,14 +58,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${AppLocalizations.of(context)!.errorNotifications}: ${e.toString().contains('400') ? AppLocalizations.of(context)!.passwordError : e}',
-            ),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ErrorHandler.showError(context, e);
       }
     } finally {
       if (mounted) {

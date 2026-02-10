@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/error/error_handler.dart';
 import 'package:mobile/core/widgets/app_header.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -48,13 +49,7 @@ class _BacktestConfigScreenState extends ConsumerState<BacktestConfigScreen> {
         );
       }
       if (next.hasError && !next.isLoading) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Hata: ${next.error}'),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        ErrorHandler.showError(context, next.error);
       }
     });
 
@@ -408,11 +403,9 @@ class _BacktestConfigScreenState extends ConsumerState<BacktestConfigScreen> {
 
         Strategy? selectedStrategy;
         if (_selectedStrategyId != null) {
-          try {
-            selectedStrategy = simulationStrategies.firstWhere(
-              (s) => s.id == _selectedStrategyId,
-            );
-          } catch (_) {}
+          selectedStrategy = simulationStrategies
+              .where((s) => s.id == _selectedStrategyId)
+              .firstOrNull;
         }
 
         selectedStrategy ??= simulationStrategies.isNotEmpty

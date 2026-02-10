@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Kripteks.Core.DTOs;
 using Kripteks.Core.Entities;
 using Kripteks.Core.Interfaces;
 using Kripteks.Infrastructure.Data;
@@ -25,11 +26,11 @@ public class NotificationsController(
         ?? throw new UnauthorizedAccessException("User ID not found in token");
 
     [HttpGet]
-    public async Task<IActionResult> GetNotifications()
+    public async Task<IActionResult> GetNotifications([FromQuery] PaginationRequest pagination)
     {
         var userId = GetUserId();
-        var notifications = await notificationService.GetNotificationsAsync(userId);
-        return Ok(notifications);
+        var result = await notificationService.GetNotificationsAsync(userId, pagination.Page, pagination.PageSize);
+        return Ok(result);
     }
 
     [HttpPut("{id}/read")]

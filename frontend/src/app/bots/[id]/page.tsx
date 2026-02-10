@@ -2,10 +2,10 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, use, useRef } from "react";
+import { useEffect, useState, use, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { BotService } from "@/lib/api";
-import { Bot, Log } from "@/types";
+import { Bot, Log, PagedResult } from "@/types";
 import { ArrowLeft, Activity, StopCircle, PlayCircle, Trash2, Clock, TrendingUp, DollarSign, BarChart2, Info, HelpCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/ui/Navbar";
@@ -45,13 +45,47 @@ export default function BotDetailPage({ params }: { params: Promise<{ id: string
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'trades' | 'logs'>('logs');
     const logScrollRef = useRef<HTMLDivElement>(null);
+    const [paginatedLogs, setPaginatedLogs] = useState<Log[]>([]);
+    const [logsPage, setLogsPage] = useState(1);
+    const [logsHasMore, setLogsHasMore] = useState(false);
+    const [isLogsLoading, setIsLogsLoading] = useState(false);
+    const [isLogsLoadingMore, setIsLogsLoadingMore] = useState(false);
+
+    const fetchBotLogs = useCallback(async (p: number = 1, append: boolean = false) => {
+        if (append) setIsLogsLoadingMore(true);
+        else setIsLogsLoading(true);
+        try {
+            const result = await BotService.getBotLogs(id, p, 50) as PagedResult<Log>;
+            const items = result.items ?? [];
+            if (append) {
+                setPaginatedLogs(prev => [...prev, ...items]);
+            } else {
+                setPaginatedLogs(items);
+            }
+            setLogsPage(result.page);
+            setLogsHasMore(result.hasMore);
+        } catch (error) {
+            console.error("Log yüklenemedi", error);
+        } finally {
+            setIsLogsLoading(false);
+            setIsLogsLoadingMore(false);
+        }
+    }, [id]);
+
+    const handleLogScroll = useCallback(() => {
+        const el = logScrollRef.current;
+        if (!el || isLogsLoadingMore || !logsHasMore) return;
+        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 100) {
+            fetchBotLogs(logsPage + 1, true);
+        }
+    }, [isLogsLoadingMore, logsHasMore, logsPage, fetchBotLogs]);
 
     // Yeni log geldiğinde en üste kaydır (Çünkü en yeni en üstte)
     useEffect(() => {
         if (activeTab === 'logs' && logScrollRef.current) {
             logScrollRef.current.scrollTop = 0;
         }
-    }, [bot?.logs, activeTab]);
+    }, [paginatedLogs, activeTab]);
 
     useEffect(() => {
         const storedUser = localStorage.getItem("user");
@@ -72,6 +106,7 @@ export default function BotDetailPage({ params }: { params: Promise<{ id: string
 
     useEffect(() => {
         fetchBot();
+        fetchBotLogs(1);
 
         if (connection) {
             connection.on("ReceiveBotUpdate", (updatedBot: any) => {
@@ -82,6 +117,12 @@ export default function BotDetailPage({ params }: { params: Promise<{ id: string
 
             connection.on("ReceiveLog", (botId: string, log: any) => {
                 if (botId === id) {
+                    // Update paginated logs (add to beginning since sorted desc)
+                    setPaginatedLogs(prev => {
+                        if (prev.find(l => l.id === log.id)) return prev;
+                        return [log, ...prev];
+                    });
+                    // Also update bot.logs for backward compat
                     setBot(prev => {
                         if (!prev) return prev;
                         const logs = prev.logs || [];
@@ -313,24 +354,43 @@ export default function BotDetailPage({ params }: { params: Promise<{ id: string
                     {activeTab === 'logs' && (
                         <div
                             ref={logScrollRef}
+                            onScroll={handleLogScroll}
                             className="max-h-[600px] overflow-y-auto p-4 space-y-2 font-mono text-sm scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent"
                         >
-                            {(bot.logs && bot.logs.length > 0) ? [...bot.logs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((log: Log) => (
-                                <div key={log.id} className="flex gap-3 text-xs p-2 hover:bg-white/5 rounded-lg transition-colors">
-                                    <span className="text-slate-500 shrink-0 select-none">
-                                        {new Date(log.timestamp).toLocaleTimeString()}
-                                    </span>
-                                    {(() => {
-                                        const l = String(log.level);
-                                        let lbl = 'INFO';
-                                        let col = 'text-emerald-500';
-                                        if (l === '2' || l === 'Error' || l === 'ERROR') { lbl = 'ERROR'; col = 'text-rose-500'; }
-                                        else if (l === '1' || l === 'Warning' || l === 'WARNING') { lbl = 'WARNING'; col = 'text-amber-500'; }
-                                        return <span className={`font-bold shrink-0 ${col}`}>[{lbl}]</span>;
-                                    })()}
-                                    <span className="text-slate-300 break-all">{log.message}</span>
+                            {isLogsLoading ? (
+                                <div className="flex justify-center items-center py-12 text-slate-500 gap-2 text-xs">
+                                    <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                                    Loglar yükleniyor...
                                 </div>
-                            )) : (
+                            ) : paginatedLogs.length > 0 ? (
+                                <>
+                                    {[...paginatedLogs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((log: Log) => (
+                                        <div key={log.id} className="flex gap-3 text-xs p-2 hover:bg-white/5 rounded-lg transition-colors">
+                                            <span className="text-slate-500 shrink-0 select-none">
+                                                {new Date(log.timestamp).toLocaleTimeString()}
+                                            </span>
+                                            {(() => {
+                                                const l = String(log.level);
+                                                let lbl = 'INFO';
+                                                let col = 'text-emerald-500';
+                                                if (l === '2' || l === 'Error' || l === 'ERROR') { lbl = 'ERROR'; col = 'text-rose-500'; }
+                                                else if (l === '1' || l === 'Warning' || l === 'WARNING') { lbl = 'WARNING'; col = 'text-amber-500'; }
+                                                return <span className={`font-bold shrink-0 ${col}`}>[{lbl}]</span>;
+                                            })()}
+                                            <span className="text-slate-300 break-all">{log.message}</span>
+                                        </div>
+                                    ))}
+                                    {isLogsLoadingMore && (
+                                        <div className="flex justify-center items-center py-4 text-slate-500 gap-2 text-xs">
+                                            <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                                            Daha fazla yükleniyor...
+                                        </div>
+                                    )}
+                                    {!logsHasMore && (
+                                        <p className="text-slate-600 text-center py-3 text-xs">Tüm loglar yüklendi</p>
+                                    )}
+                                </>
+                            ) : (
                                 <p className="text-slate-500 text-center py-8">Log kaydı bulunamadı.</p>
                             )}
                         </div>
