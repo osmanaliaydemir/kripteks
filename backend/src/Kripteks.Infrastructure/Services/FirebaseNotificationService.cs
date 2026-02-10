@@ -129,9 +129,12 @@ public class FirebaseNotificationService : IFirebaseNotificationService
         var projectId = app.Options.ProjectId
             ?? throw new InvalidOperationException("Firebase ProjectId is not configured");
 
-        // OAuth 2 token al
+        // OAuth 2 token al (scope'lu credential ile)
         var credential = app.Options.Credential;
-        var accessToken = await credential.UnderlyingCredential.GetAccessTokenForRequestAsync();
+        var scopedCredential = credential.CreateScoped(
+            "https://www.googleapis.com/auth/firebase.messaging",
+            "https://www.googleapis.com/auth/cloud-platform");
+        var accessToken = await scopedCredential.UnderlyingCredential.GetAccessTokenForRequestAsync();
 
         if (string.IsNullOrEmpty(accessToken))
             throw new InvalidOperationException("Failed to obtain Firebase OAuth access token");
