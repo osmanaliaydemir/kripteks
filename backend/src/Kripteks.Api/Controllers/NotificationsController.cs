@@ -95,7 +95,10 @@ public class NotificationsController(
                     {
                         device = device.DeviceModel ?? device.DeviceType,
                         success = false,
-                        error = ex.Message
+                        error = ex.Message,
+                        errorType = ex.GetType().Name,
+                        innerError = ex.InnerException?.Message,
+                        stackTrace = ex.StackTrace?.Split('\n').Take(3)
                     });
                 }
             }

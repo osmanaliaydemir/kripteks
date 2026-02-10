@@ -68,8 +68,7 @@ if (FirebaseApp.DefaultInstance == null)
 
         if (firebaseCredential != null)
         {
-            // Scope eklemeden önce ProjectId'yi credential'dan al
-            // (CreateScoped sonrası bu bilgi kaybolabiliyor)
+            // ProjectId'yi credential'dan al (service account JSON'daki project_id)
             string? firebaseProjectId = null;
             if (firebaseCredential.UnderlyingCredential is ServiceAccountCredential saCredential)
             {
@@ -77,29 +76,16 @@ if (FirebaseApp.DefaultInstance == null)
                 Console.WriteLine($"[Firebase] Service Account: {saCredential.Id}, Project: {firebaseProjectId}");
             }
 
-            // Messaging scope ekleyerek credential oluştur
-            var scopedCredential = firebaseCredential
-                .CreateScoped("https://www.googleapis.com/auth/firebase.messaging");
-
+            // SCOPE EKLEMEDEN Firebase'i başlat!
+            // Firebase Admin SDK kendi scope'larını ekler (cloud-platform + firebase)
+            // Manuel CreateScoped() SDK'nın scope yönetimini bozar
             FirebaseApp.Create(new AppOptions
             {
-                Credential = scopedCredential,
+                Credential = firebaseCredential,
                 ProjectId = firebaseProjectId
             });
 
-            Console.WriteLine($"[Firebase] AppOptions.ProjectId = {firebaseProjectId}");
-
-            // Credential'ı doğrulamak için token almayı dene
-            try
-            {
-                var token = await scopedCredential.UnderlyingCredential.GetAccessTokenForRequestAsync();
-                Console.WriteLine($"[Firebase] Initialization SUCCESS. OAuth token obtained ({token?.Substring(0, 20)}...)");
-            }
-            catch (Exception tokenEx)
-            {
-                Console.WriteLine($"[Firebase] WARNING: Firebase initialized but token generation failed: {tokenEx.Message}");
-                Console.WriteLine("[Firebase] Check: 1) Service account key is valid 2) FCM API is enabled in Google Cloud Console");
-            }
+            Console.WriteLine($"[Firebase] Initialization SUCCESS. ProjectId = {firebaseProjectId}");
         }
         else
         {
