@@ -78,6 +78,14 @@ class SignalRService {
     });
   }
 
+  void onNotification(void Function(Object?) handler) {
+    _hubConnection?.on('ReceiveNotification', (arguments) {
+      if (arguments != null && arguments.isNotEmpty) {
+        handler(arguments.first);
+      }
+    });
+  }
+
   Future<void> stopConnection() async {
     await _hubConnection?.stop();
     _updateStatus(SignalRConnectionStatus.disconnected);

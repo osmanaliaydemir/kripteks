@@ -15,11 +15,33 @@ final notificationsProvider =
       NotificationsNotifier.new,
     );
 
+/// Okunmamış bildirim sayısı (badge için)
+final unreadNotificationCountProvider = Provider<int>((ref) {
+  final notifications = ref.watch(notificationsProvider);
+  return notifications.asData?.value.where((n) => !n.isRead).length ?? 0;
+});
+
 class NotificationsNotifier extends AsyncNotifier<List<NotificationModel>> {
   @override
   Future<List<NotificationModel>> build() async {
     final service = ref.read(notificationServiceProvider);
     return service.getNotifications();
+  }
+
+  /// SignalR'dan gelen bildirimi listeye ekle (DashboardScreen'den çağrılır)
+  void addFromSignalR(Map<String, dynamic> json) {
+    try {
+      final notification = NotificationModel.fromJson(json);
+      final currentList = state.asData?.value ?? [];
+
+      // Duplicate kontrolü
+      if (currentList.any((n) => n.id == notification.id)) return;
+
+      // Yeni bildirimi listenin başına ekle
+      state = AsyncData([notification, ...currentList]);
+    } catch (_) {
+      // Parse hatası olursa sessizce geç
+    }
   }
 
   Future<void> markAsRead(String id) async {

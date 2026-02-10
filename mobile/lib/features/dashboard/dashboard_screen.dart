@@ -29,9 +29,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize SignalR connection once when Dashboard loads
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(signalRServiceProvider).initConnection();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final signalR = ref.read(signalRServiceProvider);
+      await signalR.initConnection();
+
+      // SignalR bağlantısı kurulduktan sonra notification listener'ı register et
+      signalR.onNotification((data) {
+        if (!mounted) return;
+        final notifier = ref.read(notificationsProvider.notifier);
+        if (data is Map<String, dynamic>) {
+          notifier.addFromSignalR(data);
+        } else if (data is Map) {
+          notifier.addFromSignalR(Map<String, dynamic>.from(data));
+        }
+      });
     });
   }
 

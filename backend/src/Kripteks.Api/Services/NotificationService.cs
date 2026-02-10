@@ -30,8 +30,15 @@ public class NotificationService(
         context.Notifications.Add(notification);
         await context.SaveChangesAsync();
 
-        // SignalR broadcast (client tarafta filtreleme yapılır)
-        await hubContext.Clients.All.ReceiveNotification(notification);
+        // SignalR: kullanıcıya özel ise sadece o kullanıcıya, genel ise herkese
+        if (!string.IsNullOrEmpty(userId))
+        {
+            await hubContext.Clients.User(userId).ReceiveNotification(notification);
+        }
+        else
+        {
+            await hubContext.Clients.All.ReceiveNotification(notification);
+        }
 
         // Push notification data payload
         var data = new Dictionary<string, string>
