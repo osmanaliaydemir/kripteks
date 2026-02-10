@@ -11,6 +11,7 @@ using System.Text;
 using Microsoft.AspNetCore.RateLimiting;
 using System.ComponentModel.DataAnnotations;
 using Kripteks.Core.Helpers;
+using NotificationType = Kripteks.Core.Entities.NotificationType;
 
 namespace Kripteks.Api.Controllers;
 
@@ -23,15 +24,20 @@ public class AuthController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly IAuditLogService _auditLogService;
     private readonly IEmailService _emailService;
+    private readonly INotificationService _notificationService;
+    private static readonly Dictionary<string, int> _failedLoginAttempts = new();
+    private const int FailedLoginThreshold = 3;
 
     public AuthController(UserManager<AppUser> userManager, SignInManager<AppUser> signInManager,
-        IConfiguration configuration, IAuditLogService auditLogService, IEmailService emailService)
+        IConfiguration configuration, IAuditLogService auditLogService, IEmailService emailService,
+        INotificationService notificationService)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _configuration = configuration;
         _auditLogService = auditLogService;
         _emailService = emailService;
+        _notificationService = notificationService;
     }
 
     [EnableRateLimiting("auth")]
@@ -68,6 +74,9 @@ public class AuthController : ControllerBase
 
         if (result.Succeeded)
         {
+            // Başarılı giriş - sayacı sıfırla
+            _failedLoginAttempts.Remove(user.Id);
+
             var roles = await _userManager.GetRolesAsync(user);
             var primaryRole = roles.FirstOrDefault() ?? "User";
             var token = GenerateJwtToken(user, roles);
@@ -86,8 +95,22 @@ public class AuthController : ControllerBase
             });
         }
 
+        // Başarısız giriş - sayacı artır
+        _failedLoginAttempts.TryGetValue(user.Id, out int count);
+        count++;
+        _failedLoginAttempts[user.Id] = count;
+
         await _auditLogService.LogAnonymousAsync("Giriş Denemesi Başarısız",
-            new { model.Email, Reason = "Hatalı şifre" });
+            new { model.Email, Reason = "Hatalı şifre", Attempt = count });
+
+        if (count == FailedLoginThreshold)
+        {
+            await _notificationService.SendNotificationAsync(
+                "🚫 Şüpheli Giriş Denemesi",
+                $"Hesabınıza {count} başarısız giriş denemesi yapıldı. Şifrenizi kontrol edin.",
+                NotificationType.Error,
+                userId: user.Id);
+        }
 
         return Unauthorized("Giriş başarısız");
     }
@@ -138,6 +161,11 @@ public class AuthController : ControllerBase
         if (result.Succeeded)
         {
             await _auditLogService.LogAsync(user.Id, "Şifre Değiştirildi");
+            await _notificationService.SendNotificationAsync(
+                "🔐 Şifre Değiştirildi",
+                "Hesap şifreniz başarıyla değiştirildi. Bu işlemi siz yapmadıysanız hemen destek ile iletişime geçin.",
+                NotificationType.Warning,
+                userId: userId);
             return Ok(new { message = "Şifre başarıyla değiştirildi." });
         }
 
@@ -193,6 +221,11 @@ public class AuthController : ControllerBase
             user.ResetCodeExpiry = null;
             await _userManager.UpdateAsync(user);
             await _auditLogService.LogAsync(user.Id, "Şifre Sıfırlandı");
+            await _notificationService.SendNotificationAsync(
+                "🔐 Şifre Sıfırlandı",
+                "Hesap şifreniz sıfırlama kodu ile başarıyla değiştirildi.",
+                NotificationType.Warning,
+                userId: user.Id);
             return Ok(new { message = "Şifreniz başarıyla sıfırlandı." });
         }
 

@@ -14,6 +14,7 @@ public class SentimentAnalysisJob : BackgroundService
     private readonly ILogger<SentimentAnalysisJob> _logger;
     private readonly IMarketSentimentState _sentimentState;
     private readonly IConfiguration _configuration;
+    private bool _wasPanicMode;
 
     public SentimentAnalysisJob(
         IServiceProvider serviceProvider,
@@ -78,6 +79,7 @@ public class SentimentAnalysisJob : BackgroundService
                         {
                             var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
+                            var previousAction = _sentimentState.CurrentSentiment?.RecommendedAction;
                             _sentimentState.UpdateSentiment(analysis);
 
                             var historyEntry = new SentimentHistory
@@ -92,6 +94,27 @@ public class SentimentAnalysisJob : BackgroundService
 
                             dbContext.SentimentHistories.Add(historyEntry);
                             await dbContext.SaveChangesAsync(stoppingToken);
+
+                            // Panik moda GİRİŞ bildirimi (sadece ilk geçişte)
+                            bool isPanicNow = analysis.RecommendedAction == "PANIC SELL";
+                            if (isPanicNow && !_wasPanicMode)
+                            {
+                                var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+                                await notificationService.SendNotificationAsync(
+                                    "🚨 PANIC MOD AKTİF",
+                                    $"AI piyasa riski tespit etti! Skor: {analysis.SentimentScore:F1} | Tüm alımlar durduruldu, açık pozisyonlar kapatılıyor.",
+                                    NotificationType.Error);
+                            }
+                            // Panik moddan ÇIKIŞ bildirimi
+                            else if (!isPanicNow && _wasPanicMode)
+                            {
+                                var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+                                await notificationService.SendNotificationAsync(
+                                    "✅ Panic Mod Sona Erdi",
+                                    $"Piyasa riski azaldı. Skor: {analysis.SentimentScore:F1} | Botlar normal çalışmaya devam ediyor.",
+                                    NotificationType.Success);
+                            }
+                            _wasPanicMode = isPanicNow;
 
                             _logger.LogInformation("Piyasa Duygu Durumu Güncellendi ve Kaydedildi: {Score} ({Action})",
                                 analysis.SentimentScore, analysis.RecommendedAction);

@@ -1,5 +1,5 @@
 using Kripteks.Core.Entities;
-using Kripteks.Core.Interfaces; // <--- EKLENDİ
+using Kripteks.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -17,17 +17,19 @@ namespace Kripteks.Api.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly UserManager<AppUser> _userManager;
-    private readonly IEmailService _emailService; // <--- EKLENDİ
+    private readonly IEmailService _emailService;
     private readonly ILogService _logger;
     private readonly IAuditLogService _auditLogService;
+    private readonly INotificationService _notificationService;
 
     public UsersController(UserManager<AppUser> userManager, IEmailService emailService,
-        ILogService logger, IAuditLogService auditLogService) // <--- EKLENDİ
+        ILogService logger, IAuditLogService auditLogService, INotificationService notificationService)
     {
         _userManager = userManager;
-        _emailService = emailService; // <--- EKLENDİ
+        _emailService = emailService;
         _logger = logger;
         _auditLogService = auditLogService;
+        _notificationService = notificationService;
     }
 
     // GET: api/users
@@ -88,6 +90,13 @@ public class UsersController : ControllerBase
             }
 
             await _logger.LogInfoAsync($"Yeni kullanıcı eklendi: {model.Email} ({role})");
+
+            // Kullanıcıya özel hoşgeldin bildirimi
+            await _notificationService.SendNotificationAsync(
+                "👋 Hoş Geldiniz!",
+                $"Selam, {model.FirstName}, Kripteks ailesine hoş geldiniz! Başlamak için ayarlardan API anahtarlarınızı ekleyin.",
+                NotificationType.Info,
+                userId: user.Id);
 
             // Şifre belirleme linki oluştur (şifre e-postada gönderilmez)
             try

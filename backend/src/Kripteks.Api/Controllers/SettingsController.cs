@@ -17,13 +17,15 @@ public class SettingsController : ControllerBase
     private readonly AppDbContext _context;
     private readonly IAuditLogService _auditLogService;
     private readonly IEncryptionService _encryptionService;
+    private readonly INotificationService _notificationService;
 
     public SettingsController(AppDbContext context, IAuditLogService auditLogService,
-        IEncryptionService encryptionService)
+        IEncryptionService encryptionService, INotificationService notificationService)
     {
         _context = context;
         _auditLogService = auditLogService;
         _encryptionService = encryptionService;
+        _notificationService = notificationService;
     }
 
     [Authorize(Roles = "Admin,Trader")]
@@ -85,6 +87,11 @@ public class SettingsController : ControllerBase
 
         await _context.SaveChangesAsync();
         await _auditLogService.LogAsync(userId, "API Anahtarları Güncellendi", new { Exchange = "Binance" });
+        await _notificationService.SendNotificationAsync(
+            "🔑 API Anahtarları Güncellendi",
+            "Binance API anahtarlarınız başarıyla güncellendi. Bu işlemi siz yapmadıysanız hemen anahtarlarınızı değiştirin.",
+            NotificationType.Warning,
+            userId: userId);
         return Ok(new { message = "API anahtarları başarıyla kaydedildi." });
     }
 
@@ -138,6 +145,11 @@ public class SettingsController : ControllerBase
 
         await _context.SaveChangesAsync();
         await _auditLogService.LogAsync(userId, "Sistem Ayarları Güncellendi");
+        await _notificationService.SendNotificationAsync(
+            "⚙️ Sistem Ayarları Güncellendi",
+            $"Maks bot: {model.MaxActiveBots} | Varsayılan tutar: ${model.DefaultAmount} | Global SL: %{model.GlobalStopLossPercent}",
+            NotificationType.Info,
+            userId: userId);
         return Ok(new { message = "Sistem ayarları başarıyla kaydedildi." });
     }
 

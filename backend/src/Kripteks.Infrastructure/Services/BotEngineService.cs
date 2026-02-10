@@ -19,6 +19,10 @@ public class BotEngineService : BackgroundService
     private readonly ILogger<BotEngineService> _logger;
     private readonly TimeSpan _checkInterval = TimeSpan.FromSeconds(5); // Socket sayesinde 5sn'ye düşürdük
     private readonly HashSet<Guid> _insufficientBalanceNotifiedBots = new();
+    private readonly Dictionary<Guid, int> _consecutiveErrorCounts = new();
+    private readonly HashSet<Guid> _apiErrorNotifiedBots = new();
+    private const int ApiErrorThreshold = 3;
+    private bool _criticalErrorNotified;
 
     public BotEngineService(IServiceProvider serviceProvider, ILogger<BotEngineService> logger)
     {
@@ -57,6 +61,24 @@ public class BotEngineService : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Bot Döngüsünde Kritik Hata!");
+
+                if (!_criticalErrorNotified)
+                {
+                    _criticalErrorNotified = true;
+                    try
+                    {
+                        using var scope = _serviceProvider.CreateScope();
+                        var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+                        await notificationService.SendNotificationAsync(
+                            "💀 Bot Engine Kritik Hata",
+                            $"Ana döngüde beklenmeyen hata: {ex.Message[..Math.Min(150, ex.Message.Length)]}",
+                            NotificationType.Error);
+                    }
+                    catch
+                    {
+                        // Bildirim gönderimi de başarısız olursa sessizce devam et
+                    }
+                }
             }
 
             await Task.Delay(_checkInterval, stoppingToken);
@@ -186,8 +208,12 @@ public class BotEngineService : BackgroundService
             if (!klines.Success)
             {
                 _logger.LogWarning("Bot {Symbol} veri çekemedi: {Error}", bot.Symbol, klines.Error);
+                await TrackApiErrorAsync(bot.Id, bot.Symbol, "Veri çekme hatası", klines.Error?.Message ?? "Bilinmeyen hata");
                 return;
             }
+
+            // Başarılı veri çekimi - hata sayacını sıfırla
+            ResetApiErrorCount(bot.Id);
 
             var candles = klines.Data.Select(k => new Candle
             {
@@ -233,6 +259,13 @@ public class BotEngineService : BackgroundService
                         botToUpdate.Logs.Add(log);
 
                         await notificationService.NotifyLog(botToUpdate.Id.ToString(), log);
+
+                        await notificationService.SendNotificationAsync(
+                            $"💰 Bakiye Yetersiz: {botToUpdate.Symbol}",
+                            $"Alım sinyali geldi ama bakiye yetmiyor! Gerekli: ${botToUpdate.Amount}, Mevcut: ${currentBalance}",
+                            NotificationType.Warning,
+                            botToUpdate.Id);
+
                         _ = Task.Run(() => mailService.SendInsufficientBalanceEmailAsync(botToUpdate.Symbol,
                             strategy.Name,
                             botToUpdate.Amount, currentBalance, botToUpdate.Amount - currentBalance));
@@ -303,6 +336,7 @@ public class BotEngineService : BackgroundService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Giriş kontrol hatası: {Symbol}", bot.Symbol);
+            await TrackApiErrorAsync(bot.Id, bot.Symbol, "Giriş kontrol hatası", ex.Message);
         }
     }
 
@@ -468,6 +502,7 @@ public class BotEngineService : BackgroundService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Çıkış kontrol hatası: {Symbol}", bot.Symbol);
+            await TrackApiErrorAsync(bot.Id, bot.Symbol, "Çıkış kontrol hatası", ex.Message);
         }
     }
 
@@ -615,6 +650,12 @@ public class BotEngineService : BackgroundService
             _logger.LogWarning("DCA için yetersiz bakiye! Gerekli: {Amount}, Mevcut: {Balance}", amountToBuy,
                 wallet?.Balance);
             await logService.LogWarningAsync($"DCA Step {bot.CurrentDcaStep + 1} Başarısız: Yetersiz Bakiye.", bot.Id);
+
+            await notificationService.SendNotificationAsync(
+                $"💰 DCA Bakiye Yetersiz: {bot.Symbol}",
+                $"Kademe {bot.CurrentDcaStep + 1} için ${amountToBuy:F2} gerekli, mevcut: ${wallet?.Balance:F2}",
+                NotificationType.Warning,
+                bot.Id);
             return;
         }
 
@@ -681,6 +722,45 @@ public class BotEngineService : BackgroundService
 
         await logService.LogInfoAsync(
             $"DCA Yatırımı: {bot.Symbol} | Tutar: ${costNew} | Yeni Ort: {newEntryPrice}", bot.Id);
+    }
+
+    /// <summary>
+    /// Art arda API hatalarını takip et, eşik aşılırsa bildirim gönder
+    /// </summary>
+    private async Task TrackApiErrorAsync(Guid botId, string symbol, string context, string errorMessage)
+    {
+        _consecutiveErrorCounts.TryGetValue(botId, out int count);
+        count++;
+        _consecutiveErrorCounts[botId] = count;
+
+        // Eşik aşıldı ve henüz bildirim gönderilmediyse
+        if (count >= ApiErrorThreshold && !_apiErrorNotifiedBots.Contains(botId))
+        {
+            _apiErrorNotifiedBots.Add(botId);
+            try
+            {
+                using var scope = _serviceProvider.CreateScope();
+                var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+                await notificationService.SendNotificationAsync(
+                    $"🔌 API Bağlantı Sorunu: {symbol}",
+                    $"{context}: Art arda {count} hata! Son hata: {errorMessage[..Math.Min(100, errorMessage.Length)]}",
+                    NotificationType.Error,
+                    botId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "API hata bildirimi gönderilemedi");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Bot başarılı işlem yaptığında hata sayacını sıfırla
+    /// </summary>
+    private void ResetApiErrorCount(Guid botId)
+    {
+        _consecutiveErrorCounts.Remove(botId);
+        _apiErrorNotifiedBots.Remove(botId);
     }
 
     private BotDto ToDto(Bot bot)

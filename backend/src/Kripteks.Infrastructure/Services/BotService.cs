@@ -171,6 +171,12 @@ public class BotService : IBotService
         _context.Bots.Add(bot);
         await _context.SaveChangesAsync();
 
+        await _notificationService.SendNotificationAsync(
+            $"🚀 Bot Başlatıldı: {request.Symbol}",
+            $"Strateji: {request.StrategyId} | Tutar: ${request.Amount} | Sinyal bekleniyor...",
+            NotificationType.Info,
+            bot.Id);
+
         return await GetBotByIdAsync(bot.Id);
     }
 
@@ -261,6 +267,12 @@ public class BotService : IBotService
                 Level = log.Level.ToString(),
                 Timestamp = DateTime.SpecifyKind(log.Timestamp, DateTimeKind.Utc)
             });
+
+            await _notificationService.SendNotificationAsync(
+                $"⏹️ Bot Durduruldu: {bot.Symbol}",
+                $"Manuel durdurma | PNL: ${bot.CurrentPnl:F2} (%{bot.CurrentPnlPercent:F2})",
+                NotificationType.Warning,
+                bot.Id);
         }
     }
 
@@ -273,6 +285,14 @@ public class BotService : IBotService
         foreach (var bot in activeBots)
         {
             await StopBotAsync(bot.Id);
+        }
+
+        if (activeBots.Count > 0)
+        {
+            await _notificationService.SendNotificationAsync(
+                "⏹️ Tüm Botlar Durduruldu",
+                $"{activeBots.Count} bot manuel olarak durduruldu.",
+                NotificationType.Warning);
         }
     }
 
