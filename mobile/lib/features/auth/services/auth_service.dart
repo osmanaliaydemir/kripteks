@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:mobile/core/services/firebase_notification_service.dart';
+import 'package:mobile/features/notifications/services/notification_service.dart';
 
 class AuthService {
   final Dio _dio;
@@ -20,8 +22,6 @@ class AuthService {
 
         if (token != null) {
           await _storage.write(key: 'auth_token', value: token);
-          // Optionally store user data
-          // await _storage.write(key: 'user_data', value: jsonEncode(data['user']));
         }
       }
     } catch (e) {
@@ -32,7 +32,14 @@ class AuthService {
     }
   }
 
-  Future<void> logout() async {
+  Future<void> logout(NotificationService notificationService) async {
+    // Önce FCM token'ı backend'den kaldır
+    try {
+      await FirebaseNotificationService().unregisterDevice(notificationService);
+    } catch (_) {
+      // Unregister başarısız olsa bile logout devam etmeli
+    }
+
     await _storage.delete(key: 'auth_token');
   }
 

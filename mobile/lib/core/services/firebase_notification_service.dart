@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:logging/logging.dart';
 import 'package:mobile/core/router/app_router.dart';
 import '../../features/notifications/services/notification_service.dart';
@@ -28,11 +31,20 @@ class FirebaseNotificationService {
 
   String? _fcmToken;
   String? get fcmToken => _fcmToken;
+  bool _isInitialized = false;
 
   /// Initialize Firebase Messaging and Local Notifications
   Future<void> initialize(NotificationService notificationService) async {
+    if (_isInitialized) {
+      _logger.info(
+        'Firebase Notification Service already initialized, checking token registration...',
+      );
+      await _checkAndRegisterToken(notificationService);
+      return;
+    }
+
     try {
-      // Request permission (iOS)
+      // Request permission (iOS + Android 13+)
       final settings = await _firebaseMessaging.requestPermission(
         alert: true,
         badge: true,
@@ -44,28 +56,50 @@ class FirebaseNotificationService {
         'Notification permission status: ${settings.authorizationStatus}',
       );
 
+      // Android 13+ (API 33): Request POST_NOTIFICATIONS permission explicitly
+      if (Platform.isAndroid) {
+        final androidPlugin = _localNotifications
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >();
+        if (androidPlugin != null) {
+          final granted =
+              await androidPlugin.requestNotificationsPermission() ?? false;
+          _logger.info('Android notification permission granted: $granted');
+          if (!granted) {
+            _logger.warning(
+              'Android notification permission denied by user',
+            );
+            return;
+          }
+        }
+      }
+
       if (settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional) {
-        // Get FCM token
-        _fcmToken = await _firebaseMessaging.getToken();
-        _logger.info('FCM Token obtained: ${_fcmToken?.substring(0, 20)}...');
-
-        // Register token with backend
-        if (_fcmToken != null) {
-          await _registerTokenWithBackend(notificationService, _fcmToken!);
-        }
-
         // Initialize local notifications
         await _initializeLocalNotifications();
 
         // Setup message handlers
         _setupMessageHandlers();
 
+        _isInitialized = true;
+
+        // Check and register token
+        await _checkAndRegisterToken(notificationService);
+
         // Listen for token refresh
         _firebaseMessaging.onTokenRefresh.listen((newToken) async {
           _logger.info('FCM Token refreshed');
           _fcmToken = newToken;
-          await _registerTokenWithBackend(notificationService, newToken);
+          final deviceModel = await _getDeviceModel();
+          final appVersion = await _getAppVersion();
+          await _registerTokenWithBackend(
+            notificationService,
+            newToken,
+            deviceModel: deviceModel,
+            appVersion: appVersion,
+          );
         });
       } else {
         _logger.warning('Notification permission denied');
@@ -73,6 +107,58 @@ class FirebaseNotificationService {
     } catch (e) {
       _logger.severe('Failed to initialize Firebase Messaging: $e');
     }
+  }
+
+  Future<void> _checkAndRegisterToken(
+    NotificationService notificationService,
+  ) async {
+    try {
+      _fcmToken = await _firebaseMessaging.getToken();
+      if (_fcmToken != null) {
+        _logger.info('FCM Token obtained: ${_fcmToken?.substring(0, 20)}...');
+
+        // Cihaz bilgilerini topla
+        final deviceModel = await _getDeviceModel();
+        final appVersion = await _getAppVersion();
+
+        await _registerTokenWithBackend(
+          notificationService,
+          _fcmToken!,
+          deviceModel: deviceModel,
+          appVersion: appVersion,
+        );
+      }
+    } catch (e) {
+      _logger.warning('Failed to get/register FCM token: $e');
+    }
+  }
+
+  /// Cihaz model bilgisini al
+  Future<String?> _getDeviceModel() async {
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      if (Platform.isIOS) {
+        final iosInfo = await deviceInfo.iosInfo;
+        return '${iosInfo.name} (${iosInfo.model})';
+      } else if (Platform.isAndroid) {
+        final androidInfo = await deviceInfo.androidInfo;
+        return '${androidInfo.brand} ${androidInfo.model}';
+      }
+    } catch (e) {
+      _logger.warning('Failed to get device model: $e');
+    }
+    return null;
+  }
+
+  /// Uygulama versiyon bilgisini al
+  Future<String?> _getAppVersion() async {
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      return '${packageInfo.version}+${packageInfo.buildNumber}';
+    } catch (e) {
+      _logger.warning('Failed to get app version: $e');
+    }
+    return null;
   }
 
   /// Initialize local notifications plugin
@@ -207,14 +293,19 @@ class FirebaseNotificationService {
   /// Register FCM token with backend
   Future<void> _registerTokenWithBackend(
     NotificationService notificationService,
-    String token,
-  ) async {
+    String token, {
+    String? deviceModel,
+    String? appVersion,
+  }) async {
     try {
+      _logger.info('Attempting to register FCM token with backend...');
       await notificationService.registerDeviceToken(
         fcmToken: token,
         deviceType: _getDeviceType(),
+        deviceModel: deviceModel,
+        appVersion: appVersion,
       );
-      _logger.info('FCM token registered with backend');
+      _logger.info('FCM token successfully registered with backend');
     } catch (e) {
       _logger.severe('Failed to register token with backend: $e');
     }

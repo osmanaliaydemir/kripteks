@@ -56,6 +56,8 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   local_auth: ^3.0.0
   toastification: ^3.0.3
+  device_info_plus: ^12.3.0
+  package_info_plus: ^9.0.0
 
 dependency_overrides:
   path_provider_foundation: 2.5.1

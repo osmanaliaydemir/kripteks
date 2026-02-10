@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobile/core/network/dio_client.dart';
 import 'package:mobile/core/network/auth_state_provider.dart';
 import 'package:mobile/features/auth/services/auth_service.dart';
+import 'package:mobile/features/notifications/providers/notification_provider.dart';
 
 final authServiceProvider = Provider<AuthService>((ref) {
   final dio = ref.watch(dioProvider);
@@ -33,8 +34,9 @@ class AuthController extends AsyncNotifier<void> {
 
   Future<void> logout() async {
     state = const AsyncLoading();
+    final notificationService = ref.read(notificationServiceProvider);
     state = await AsyncValue.guard(
-      () => ref.read(authServiceProvider).logout(),
+      () => ref.read(authServiceProvider).logout(notificationService),
     );
     ref.read(authStateProvider.notifier).setAuthenticated(false);
   }

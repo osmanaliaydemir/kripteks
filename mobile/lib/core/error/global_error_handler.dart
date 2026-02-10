@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:mobile/core/error/error_service.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 
@@ -10,7 +11,7 @@ class GlobalErrorHandler {
   GlobalErrorHandler(this._errorService);
 
   /// Initializes the error handler and runs the app within a guarded zone
-  Future<void> handle(Future<void> Function() appRunner) async {
+  void handle(void Function() appRunner) {
     runZonedGuarded(
       () async {
         WidgetsFlutterBinding.ensureInitialized();
@@ -22,12 +23,11 @@ class GlobalErrorHandler {
           if (kDebugMode) {
             FlutterError.dumpErrorToConsole(details);
           } else {
-            // In release mode, forward to error service
-            Zone.current.handleUncaughtError(details.exception, details.stack!);
+            FirebaseCrashlytics.instance.recordFlutterError(details);
           }
         };
 
-        await appRunner();
+        appRunner();
       },
       (error, stackTrace) {
         _errorService.recordError(

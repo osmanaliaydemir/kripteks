@@ -6,7 +6,7 @@ final authStateProvider = NotifierProvider<AuthStateNotifier, bool>(
 
 class AuthStateNotifier extends Notifier<bool> {
   @override
-  bool build() => true;
+  bool build() => false;
 
   void setAuthenticated(bool value) {
     state = value;
