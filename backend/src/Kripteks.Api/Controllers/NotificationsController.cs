@@ -1,6 +1,7 @@
 using Kripteks.Core.Entities;
 using Kripteks.Core.Interfaces;
 using Kripteks.Infrastructure.Data;
+using FirebaseAdmin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +14,9 @@ namespace Kripteks.Api.Controllers;
 public class NotificationsController(
     INotificationService notificationService,
     IFirebaseNotificationService firebaseNotificationService,
-    AppDbContext context) : ControllerBase
+    AppDbContext context,
+    IWebHostEnvironment env,
+    IConfiguration configuration) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<List<Notification>>> GetUnreadNotifications()
@@ -107,5 +110,43 @@ public class NotificationsController(
         {
             return StatusCode(500, new { success = false, error = ex.Message, stackTrace = ex.StackTrace });
         }
+    }
+
+    /// <summary>
+    /// Firebase durumunu ve dosya yollarını göster (debug amaçlı)
+    /// </summary>
+    [HttpGet("firebase-diagnostics")]
+    public IActionResult FirebaseDiagnostics()
+    {
+        var firebaseConfigPath = configuration["Firebase:ServiceAccountPath"] ?? "";
+        var hasJsonConfig = !string.IsNullOrEmpty(configuration["Firebase:ServiceAccountJson"]);
+
+        var searchPaths = new[]
+        {
+            Path.Combine(AppContext.BaseDirectory, firebaseConfigPath),
+            Path.Combine(env.ContentRootPath, firebaseConfigPath),
+            Path.Combine(env.WebRootPath ?? "", firebaseConfigPath),
+            Path.Combine(env.ContentRootPath, "wwwroot", firebaseConfigPath),
+            firebaseConfigPath
+        };
+
+        return Ok(new
+        {
+            firebaseInitialized = FirebaseApp.DefaultInstance != null,
+            hasServiceAccountJson = hasJsonConfig,
+            serviceAccountPath = firebaseConfigPath,
+            appBaseDirectory = AppContext.BaseDirectory,
+            contentRootPath = env.ContentRootPath,
+            webRootPath = env.WebRootPath,
+            currentDirectory = Directory.GetCurrentDirectory(),
+            searchResults = searchPaths.Select(p => new
+            {
+                path = p,
+                exists = !string.IsNullOrEmpty(p) && File.Exists(p)
+            }),
+            wwwrootFiles = Directory.Exists(env.WebRootPath)
+                ? Directory.GetFiles(env.WebRootPath).Select(Path.GetFileName)
+                : Enumerable.Empty<string>()
+        });
     }
 }

@@ -20,7 +20,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Initialize Firebase Admin SDK
 if (FirebaseApp.DefaultInstance == null)
 {
-    // 1. Önce JSON string'den dene (production appsettings veya env variable)
+    // 1. Önce JSON string'den dene (environment variable: Firebase__ServiceAccountJson)
     var firebaseJson = builder.Configuration["Firebase:ServiceAccountJson"];
     if (!string.IsNullOrEmpty(firebaseJson))
     {
@@ -31,15 +31,20 @@ if (FirebaseApp.DefaultInstance == null)
     }
     else
     {
-        // 2. Dosyadan yükle (lokal geliştirme ortamı)
+        // 2. Dosyadan yükle - birden fazla olası dizini tara
         var firebaseConfigPath = builder.Configuration["Firebase:ServiceAccountPath"];
         if (!string.IsNullOrEmpty(firebaseConfigPath))
         {
-            // Uygulama dizinine göre çöz
-            var resolvedPath = Path.Combine(AppContext.BaseDirectory, firebaseConfigPath);
-            var filePath = File.Exists(resolvedPath) ? resolvedPath
-                         : File.Exists(firebaseConfigPath) ? firebaseConfigPath
-                         : null;
+            var searchPaths = new[]
+            {
+                Path.Combine(AppContext.BaseDirectory, firebaseConfigPath),
+                Path.Combine(builder.Environment.ContentRootPath, firebaseConfigPath),
+                Path.Combine(builder.Environment.WebRootPath ?? "", firebaseConfigPath),
+                Path.Combine(builder.Environment.ContentRootPath, "wwwroot", firebaseConfigPath),
+                firebaseConfigPath
+            };
+
+            var filePath = searchPaths.FirstOrDefault(File.Exists);
 
             if (filePath != null)
             {
