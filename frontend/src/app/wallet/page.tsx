@@ -39,10 +39,10 @@ export default function WalletPage() {
             ]);
             setWallet(walletData);
             const paged = txResult as PagedResult<WalletTransaction>;
-            setTransactions(paged.items ?? txResult);
-            setTxPage(paged.page ?? 1);
-            setTxTotalPages(paged.totalPages ?? 1);
-            setTxHasMore(paged.hasMore ?? false);
+            setTransactions(Array.isArray(paged?.items) ? paged.items : (Array.isArray(txResult) ? txResult : []));
+            setTxPage(paged?.page ?? 1);
+            setTxTotalPages(paged?.totalPages ?? 1);
+            setTxHasMore(paged?.hasMore ?? false);
         } catch (error) {
             console.error(error);
             toast.error("Cüzdan bilgileri alınamadı.");
@@ -56,11 +56,13 @@ export default function WalletPage() {
         setIsLoadingMore(true);
         try {
             const nextPage = txPage + 1;
-            const txResult = await WalletService.getTransactions(nextPage, 20) as PagedResult<WalletTransaction>;
-            setTransactions(prev => [...prev, ...(txResult.items ?? [])]);
-            setTxPage(txResult.page);
-            setTxTotalPages(txResult.totalPages);
-            setTxHasMore(txResult.hasMore);
+            const txResult = await WalletService.getTransactions(nextPage, 20);
+            const paged = txResult as PagedResult<WalletTransaction>;
+            const newItems = Array.isArray(paged?.items) ? paged.items : (Array.isArray(txResult) ? txResult : []);
+            setTransactions(prev => [...prev, ...newItems]);
+            setTxPage(paged?.page);
+            setTxTotalPages(paged?.totalPages);
+            setTxHasMore(paged?.hasMore);
         } catch (error) {
             console.error(error);
         } finally {

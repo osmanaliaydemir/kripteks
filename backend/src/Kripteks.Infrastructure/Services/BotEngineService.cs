@@ -208,7 +208,8 @@ public class BotEngineService : BackgroundService
             if (!klines.Success)
             {
                 _logger.LogWarning("Bot {Symbol} veri çekemedi: {Error}", bot.Symbol, klines.Error);
-                await TrackApiErrorAsync(bot.Id, bot.Symbol, "Veri çekme hatası", klines.Error?.Message ?? "Bilinmeyen hata");
+                await TrackApiErrorAsync(bot.Id, bot.Symbol, "Veri çekme hatası",
+                    klines.Error?.Message ?? "Bilinmeyen hata");
                 return;
             }
 
@@ -300,14 +301,15 @@ public class BotEngineService : BackgroundService
                 decimal currentPrice = candles.Last().Close;
 
                 botToUpdate.Status = BotStatus.Running;
+                botToUpdate.EntryDate = DateTime.UtcNow;
                 botToUpdate.EntryPrice = currentPrice;
                 botToUpdate.CurrentPnl = 0;
                 botToUpdate.CurrentPnlPercent = 0;
                 botToUpdate.MaxPriceReached = currentPrice;
 
-                if (signal.TargetPrice > 0)
+                if (signal.TargetPrice > 0 && botToUpdate.TakeProfit == null)
                     botToUpdate.TakeProfit = ((signal.TargetPrice - currentPrice) / currentPrice) * 100;
-                if (signal.StopPrice > 0)
+                if (signal.StopPrice > 0 && botToUpdate.StopLoss == null)
                     botToUpdate.StopLoss = ((currentPrice - signal.StopPrice) / currentPrice) * 100;
 
                 var successLog = new Log
@@ -517,6 +519,7 @@ public class BotEngineService : BackgroundService
         }
 
         bot.Status = finalStatus;
+        bot.ExitDate = DateTime.UtcNow;
 
         var wallet = await context.Wallets.FirstOrDefaultAsync();
         if (wallet != null)
@@ -574,6 +577,8 @@ public class BotEngineService : BackgroundService
         // Şimdilik basitçe karı kasaya ekleyip, botu "WaitingForEntry" moduna çekerek tekrar alım yapmasını sağlayalım.
 
         bot.EntryPrice = 0; // Reset
+        bot.EntryDate = null;
+        bot.ExitDate = DateTime.UtcNow;
         bot.CurrentPnl = 0;
         bot.CurrentPnlPercent = 0;
         bot.Status = BotStatus.WaitingForEntry; // Tekrar sına
@@ -778,6 +783,8 @@ public class BotEngineService : BackgroundService
             CreatedAt = DateTime.SpecifyKind(bot.CreatedAt, DateTimeKind.Utc),
             Pnl = bot.CurrentPnl,
             PnlPercent = bot.CurrentPnlPercent,
+            EntryDate = bot.EntryDate.HasValue ? DateTime.SpecifyKind(bot.EntryDate.Value, DateTimeKind.Utc) : null,
+            ExitDate = bot.ExitDate.HasValue ? DateTime.SpecifyKind(bot.ExitDate.Value, DateTimeKind.Utc) : null,
             Logs = bot.Logs.Select(l => new LogDto
             {
                 Id = l.Id,

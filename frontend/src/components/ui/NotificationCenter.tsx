@@ -29,14 +29,17 @@ export function NotificationCenter({ user }: NotificationCenterProps) {
         try {
             const result = await NotificationService.getUnread(p, 20);
             const paged = result as PagedResult<any>;
-            const items = paged.items ?? (Array.isArray(result) ? result : []);
+            const items = Array.isArray(paged?.items) ? paged.items : (Array.isArray(result) ? result : []);
             if (append) {
-                setNotifications(prev => [...prev, ...items]);
+                setNotifications(prev => {
+                    const safePrev = Array.isArray(prev) ? prev : [];
+                    return [...safePrev, ...items];
+                });
             } else {
                 setNotifications(items);
             }
-            setPage(paged.page ?? p);
-            setHasMore(paged.hasMore ?? false);
+            setPage(paged?.page ?? p);
+            setHasMore(paged?.hasMore ?? false);
         } catch (error) {
             console.error("Failed to fetch notifications", error);
         } finally {
@@ -57,7 +60,10 @@ export function NotificationCenter({ user }: NotificationCenterProps) {
 
         if (connection) {
             connection.on("ReceiveNotification", (notification: any) => {
-                setNotifications(prev => [notification, ...prev]);
+                setNotifications(prev => {
+                    const safePrev = Array.isArray(prev) ? prev : [];
+                    return [notification, ...safePrev];
+                });
                 toast(notification.title, {
                     description: notification.message,
                     duration: 5000,

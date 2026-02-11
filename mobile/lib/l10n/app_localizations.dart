@@ -596,6 +596,12 @@ abstract class AppLocalizations {
   /// **'Email is required'**
   String get emailRequired;
 
+  /// Error message when email format is invalid
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid email address'**
+  String get emailInvalid;
+
   /// Error message when password is missing
   ///
   /// In en, this message translates to:

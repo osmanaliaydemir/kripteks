@@ -2,6 +2,7 @@
 _legacy_archive/
 
 # .NET
+backend/testsprite_tests/
 backend/**/bin/
 backend/**/obj/
 backend/**/*.user

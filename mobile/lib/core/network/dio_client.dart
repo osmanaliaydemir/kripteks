@@ -193,10 +193,11 @@ AppException _mapHttpStatusCode(DioException e) {
       );
 
     case 401:
+      final isLoginEndpoint = e.requestOptions.uri.path.contains('auth/login');
       return AuthException(
-        message:
-            serverMessage ??
-            'Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.',
+        message: isLoginEndpoint
+            ? 'E-posta adresi veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.'
+            : (serverMessage ?? 'Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.'),
         debugMessage: 'Unauthorized: ${e.requestOptions.uri}',
         statusCode: statusCode,
         originalError: e,

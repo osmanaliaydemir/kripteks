@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:mobile/l10n/app_localizations.dart';
 import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/error/error_handler.dart';
 import 'package:mobile/features/auth/providers/auth_provider.dart';
 import 'package:mobile/core/auth/biometric_service.dart';
 
@@ -100,12 +101,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           }
         },
         error: (err, stack) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(err.toString().replaceAll('Exception: ', '')),
-              backgroundColor: AppColors.error,
-            ),
-          );
+          ErrorHandler.showError(context, err);
         },
         loading: () {},
       );
@@ -207,6 +203,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     // Form Section
                     Form(
                       key: _formKey,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -221,11 +218,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   hint: AppLocalizations.of(context)!.emailHint,
                                   prefixIcon: Icons.mail_outline,
                                 ),
+                                onChanged: (_) => setState(() {}),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
                                     return AppLocalizations.of(
                                       context,
                                     )!.emailRequired;
+                                  }
+                                  if (!_isValidEmail(value.trim())) {
+                                    return AppLocalizations.of(
+                                      context,
+                                    )!.emailInvalid;
                                   }
                                   return null;
                                 },
@@ -260,6 +263,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     },
                                   ),
                                 ),
+                                onChanged: (_) => setState(() {}),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
                                     return AppLocalizations.of(
@@ -455,7 +459,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
       ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+      ),
+      errorStyle: const TextStyle(
+        color: AppColors.error,
+        fontSize: 12,
+      ),
       contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
     );
+  }
+
+  static bool _isValidEmail(String value) {
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    );
+    return emailRegex.hasMatch(value);
   }
 }

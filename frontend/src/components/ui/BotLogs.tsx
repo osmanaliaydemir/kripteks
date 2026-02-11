@@ -19,9 +19,11 @@ export default function BotLogs({ logs, compact = false }: Props) {
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // En yeni logları en üstte göster (Tarihe göre tersten diz)
-    const displayLogs = [...logs]
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-        .slice(0, compact ? 10 : 50);
+    const displayLogs = Array.isArray(logs)
+        ? [...logs]
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, compact ? 10 : 50)
+        : [];
 
     // Yeni log geldiğinde en üste kaydır
     useEffect(() => {

@@ -216,6 +216,7 @@ public class BotService : IBotService
         {
             var oldStatus = bot.Status;
             bot.Status = BotStatus.Stopped;
+            bot.ExitDate = DateTime.UtcNow; // ADDED
             // bot.UpdatedAt = DateTime.UtcNow; // Entity'de yok
 
             var log = new Log
@@ -277,6 +278,11 @@ public class BotService : IBotService
                 CreatedAt = DateTime.SpecifyKind(bot.CreatedAt, DateTimeKind.Utc),
                 Pnl = bot.CurrentPnl,
                 PnlPercent = bot.CurrentPnlPercent,
+                EntryDate = bot.EntryDate.HasValue ? DateTime.SpecifyKind(bot.EntryDate.Value, DateTimeKind.Utc) : null,
+                ExitDate = bot.ExitDate.HasValue ? DateTime.SpecifyKind(bot.ExitDate.Value, DateTimeKind.Utc) : null,
+                IsTrailingStop = bot.IsTrailingStop,
+                TrailingStopDistance = bot.TrailingStopDistance,
+                MaxPriceReached = bot.MaxPriceReached,
                 IsArchived = bot.IsArchived,
                 Logs = bot.Logs.Select(l => new LogDto
                 {

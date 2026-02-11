@@ -55,8 +55,9 @@ export default function BotDetailPage({ params }: { params: Promise<{ id: string
         if (append) setIsLogsLoadingMore(true);
         else setIsLogsLoading(true);
         try {
-            const result = await BotService.getBotLogs(id, p, 50) as PagedResult<Log>;
-            const items = result.items ?? [];
+            const result = await BotService.getBotLogs(id, p, 50);
+            const paged = result as PagedResult<Log>;
+            const items = Array.isArray(paged?.items) ? paged.items : (Array.isArray(result) ? result : []);
             if (append) {
                 setPaginatedLogs(prev => [...prev, ...items]);
             } else {

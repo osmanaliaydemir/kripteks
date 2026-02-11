@@ -83,6 +83,7 @@
     "loginTitle": "Kripteks'e Giriş Yap",
     "emailHint": "ornek@mail.com",
     "emailRequired": "E-posta gerekli",
+    "emailInvalid": "Geçerli bir e-posta adresi girin",
     "passwordRequired": "Şifre gerekli",
     "signupTitle": "Kripteks'e Kayıt Ol",
     "fullName": "Ad Soyad",

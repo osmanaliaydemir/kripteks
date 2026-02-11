@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:mobile/core/router/app_router.dart';
 import 'package:mobile/core/network/connectivity_service.dart';
 import 'package:mobile/core/theme/app_colors.dart';
-
 import 'package:mobile/core/network/signalr_service.dart';
 import 'package:mobile/core/providers/signalr_provider.dart';
 
@@ -32,6 +33,27 @@ class _NetworkStatusBannerState extends ConsumerState<NetworkStatusBanner> {
   Widget build(BuildContext context) {
     final statusAsync = ref.watch(connectionStatusProvider);
     final signalRStatusAsync = ref.watch(signalRStatusProvider);
+
+    // Auth ekranlarında banner gösterme (connectivity_plus iOS'ta yanlış offline dönebilir)
+    // GoRouterState.of(context) builder context'inde çalışmaz, navigatorKey üzerinden alıyoruz
+    String? location;
+    try {
+      final navContext = navigatorKey.currentContext;
+      if (navContext != null) {
+        location = GoRouterState.of(navContext).matchedLocation;
+      }
+    } on GoError {
+      // Router state henüz hazır değil
+      location = null;
+    }
+    final isAuthScreen = location == null ||
+        location == '/' ||
+        location == '/login' ||
+        location == '/signup' ||
+        location == '/forgot-password';
+    if (isAuthScreen) {
+      return widget.child;
+    }
 
     // Determines if we are truly offline
     // We are offline ONLY if connectivity says offline AND SignalR is disconnected

@@ -96,21 +96,33 @@ export default function Dashboard() {
                 WalletService.get(),
                 MarketService.getStats()
             ]);
-            const botsData = (botsResult as PagedResult<Bot>).items ?? botsResult;
+            const botsResultAsPaged = botsResult as PagedResult<Bot>;
+            const botsData = Array.isArray(botsResultAsPaged?.items) ? botsResultAsPaged.items : (Array.isArray(botsResult) ? botsResult : []);
             setBots(botsData);
-            setStrategies(strategiesData);
+            setStrategies(Array.isArray(strategiesData) ? strategiesData : []);
             setWallet(walletData);
             setStats(statsData);
 
         } catch (error) { console.error("Veri hatası", error); } finally { setIsLoading(false); }
     };
 
-    const refreshCoins = async () => { setIsCoinsLoading(true); try { const coinsData = await MarketService.getCoins(); setCoins(coinsData); } catch (e) { console.error(e); } setIsCoinsLoading(false); };
+    const refreshCoins = async () => {
+        setIsCoinsLoading(true);
+        try {
+            const coinsData = await MarketService.getCoins();
+            setCoins(Array.isArray(coinsData) ? coinsData : []);
+        } catch (e) {
+            console.error(e);
+            setCoins([]);
+        }
+        setIsCoinsLoading(false);
+    };
 
     const fetchLiveUpdates = async () => {
         try {
             const [botsResult, walletData, statsData] = await Promise.all([BotService.getAll(), WalletService.get(), MarketService.getStats()]);
-            const botsData = (botsResult as PagedResult<Bot>).items ?? botsResult;
+            const botsResultAsPaged = botsResult as PagedResult<Bot>;
+            const botsData = Array.isArray(botsResultAsPaged?.items) ? botsResultAsPaged.items : (Array.isArray(botsResult) ? botsResult : []);
             setBots(botsData); setWallet(walletData); setStats(statsData);
         } catch (e) { console.error(e) }
     };
@@ -139,7 +151,17 @@ export default function Dashboard() {
         const interval = setInterval(() => {
             if (isMounted) fetchLiveUpdates();
         }, 10000);
+
+        return () => {
+            isMounted = false;
+            clearInterval(interval);
+        };
     }, []);
+
+    // Bot Listesi Filtreleme ve Sıralama (En yeni en üstte)
+    const sortedBots = Array.isArray(bots)
+        ? [...bots].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        : [];
 
     useEffect(() => {
         if (!connection) return;
@@ -150,26 +172,31 @@ export default function Dashboard() {
         const handleBotUpdated = (updatedBot: Bot) => {
             if (!isMounted) return;
             setBots(prev => {
-                const index = prev.findIndex(b => b.id === updatedBot.id);
+                const safePrev = Array.isArray(prev) ? prev : [];
+                const index = safePrev.findIndex(b => b.id === updatedBot.id);
                 if (index > -1) {
-                    const newBots = [...prev];
+                    const newBots = [...safePrev];
                     newBots[index] = updatedBot;
                     return newBots;
                 }
-                return [updatedBot, ...prev];
+                return [updatedBot, ...safePrev];
             });
         };
 
         const handleLogAdded = (botId: string, log: any) => {
             if (!isMounted) return;
-            setBots(prev => prev.map(b => {
-                if (b.id === botId) {
-                    const updatedLogs = b.logs ? [...b.logs, log] : [log];
-                    if (updatedLogs.length > 50) updatedLogs.shift();
-                    return { ...b, logs: updatedLogs };
-                }
-                return b;
-            }));
+            setBots(prev => {
+                const safePrev = Array.isArray(prev) ? prev : [];
+                return safePrev.map(b => {
+                    if (b.id === botId) {
+                        const safeLogs = Array.isArray(b.logs) ? b.logs : [];
+                        const updatedLogs = [...safeLogs, log];
+                        if (updatedLogs.length > 50) updatedLogs.shift();
+                        return { ...b, logs: updatedLogs };
+                    }
+                    return b;
+                });
+            });
         };
 
         const handleWalletUpdated = (updatedWallet: Wallet) => {
@@ -261,15 +288,13 @@ export default function Dashboard() {
         window.location.href = '/login';
     };
 
-    // Bot Listesi Filtreleme ve Sıralama (En yeni en üstte)
-    const sortedBots = [...bots].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    // Filtered Active Bots based on UI state
     const activeBotsRaw = sortedBots.filter(b => b.status === 'Running' || b.status === 'WaitingForEntry');
 
-    // Filtrelenmiş aktif botlar
     const activeBots = activeBotsRaw.filter(b => {
         if (botFilter === 'all') return true;
-        if (botFilter === 'position') return b.status === 'Running';
-        if (botFilter === 'waiting') return b.status === 'WaitingForEntry';
+        if (botFilter === 'position') return b.status === "Running";
+        if (botFilter === 'waiting') return b.status === "WaitingForEntry";
         return true;
     });
 
@@ -292,16 +317,14 @@ export default function Dashboard() {
 
                             <div className="bg-slate-900/50 rounded-xl p-8 relative z-10 text-center">
                                 <div className="w-20 h-20 bg-linear-to-br from-primary to-amber-500 rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-primary/20 mb-6 group-hover:scale-110 transition-transform duration-500">
-                                    <Zap size={40} className="text-white fill-white" />
+                                    <Zap size={32} className="text-white fill-white" />
                                 </div>
-
                                 <h2 className="text-2xl font-display font-bold text-white mb-2">Yeni Bot Başlat</h2>
                                 <p className="text-sm text-slate-400 mb-8 leading-relaxed max-w-[250px] mx-auto">
                                     Yapay zeka destekli otonom alım-satım botunu saniyeler içinde kurun ve kazanmaya başlayın.
                                 </p>
-
                                 <Link
-                                    href="/bots/new"
+                                    href="/bots/create"
                                     className="w-full bg-linear-to-r from-primary to-amber-500 hover:to-amber-400 text-slate-900 font-display font-bold py-4 rounded-xl shadow-lg shadow-primary/20 active:scale-[0.98] transition-all flex justify-center items-center gap-2 group/btn"
                                 >
                                     <Zap className="fill-current w-5 h-5 group-hover/btn:scale-110 transition-transform" />
@@ -309,13 +332,8 @@ export default function Dashboard() {
                                 </Link>
                             </div>
                         </div>
-
-                        {/* AI Sentiment Widget */}
-                        {/* <AiSentimentWidget /> */}
-
-                        {/* Sentiment Trend Chart */}
-                        {/* <SentimentTrendChart /> */}
                     </div>
+
 
                     {/* RIGHT COLUMN - TABS & CONTENT */}
                     <div className="lg:col-span-8">

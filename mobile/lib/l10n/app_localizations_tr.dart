@@ -265,6 +265,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get emailRequired => 'E-posta gerekli';
 
   @override
+  String get emailInvalid => 'Geçerli bir e-posta adresi girin';
+
+  @override
   String get passwordRequired => 'Şifre gerekli';
 
   @override

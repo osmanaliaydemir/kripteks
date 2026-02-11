@@ -26,7 +26,7 @@ export default function SentimentTrendChart({ className = "" }: SentimentTrendCh
                 });
                 if (res.ok) {
                     const history = await res.json();
-                    setData(history);
+                    setData(Array.isArray(history) ? history : []);
                 }
             } catch (error) {
                 console.error("Sentiment history fetch error:", error);

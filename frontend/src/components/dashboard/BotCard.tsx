@@ -170,7 +170,7 @@ export function BotCard({ bot, isActive, activeChartBotId, setActiveChartBotId, 
                                 className="overflow-hidden"
                             >
                                 <div className="p-4 pt-0">
-                                    <BotLogs logs={bot.logs || []} compact={!isActive} />
+                                    <BotLogs logs={Array.isArray(bot.logs) ? bot.logs : []} compact={!isActive} />
                                 </div>
                             </motion.div>
                         )}

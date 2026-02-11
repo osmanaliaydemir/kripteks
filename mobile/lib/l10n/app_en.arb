@@ -332,6 +332,10 @@
     "@emailRequired": {
         "description": "Error message when email is missing"
     },
+    "emailInvalid": "Please enter a valid email address",
+    "@emailInvalid": {
+        "description": "Error message when email format is invalid"
+    },
     "passwordRequired": "Password is required",
     "@passwordRequired": {
         "description": "Error message when password is missing"
