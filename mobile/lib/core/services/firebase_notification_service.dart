@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -8,6 +9,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:logging/logging.dart';
 import 'package:mobile/core/router/app_router.dart';
 import '../../features/notifications/services/notification_service.dart';
+import 'package:flutter_app_badger/flutter_app_badger.dart';
 
 /// Top-level function for background message handling
 @pragma('vm:entry-point')
@@ -21,7 +23,11 @@ class FirebaseNotificationService {
   static final FirebaseNotificationService _instance =
       FirebaseNotificationService._internal();
   factory FirebaseNotificationService() => _instance;
-  FirebaseNotificationService._internal();
+  FirebaseNotificationService._internal() {
+    WidgetsBinding.instance.addObserver(_observer);
+  }
+
+  final _LifecycleObserver _observer = _LifecycleObserver();
 
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications =
@@ -339,12 +345,9 @@ class FirebaseNotificationService {
   /// Clear app badge
   Future<void> clearBadge() async {
     try {
-      if (Platform.isIOS) {
-        // DarwinFlutterLocalNotificationsPlugin is for iOS/macOS
-        final dynamic darwinPlugin = _localNotifications
-            .resolvePlatformSpecificImplementation();
-        await darwinPlugin?.setBadgeNumber(0);
-        _logger.info('App badge cleared (iOS)');
+      if (await FlutterAppBadger.isAppBadgeSupported()) {
+        FlutterAppBadger.removeBadge();
+        _logger.info('App badge cleared');
       }
     } catch (e) {
       _logger.warning('Failed to clear app badge: $e');
@@ -362,6 +365,15 @@ class FirebaseNotificationService {
       } catch (e) {
         _logger.severe('Failed to unregister device: $e');
       }
+    }
+  }
+}
+
+class _LifecycleObserver extends WidgetsBindingObserver {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      FirebaseNotificationService().clearBadge();
     }
   }
 }
