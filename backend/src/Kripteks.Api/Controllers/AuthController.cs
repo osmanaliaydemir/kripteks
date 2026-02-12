@@ -80,7 +80,12 @@ public class AuthController : ControllerBase
             });
         }
 
-        return BadRequest(result.Errors);
+        foreach (var error in result.Errors)
+        {
+            ModelState.AddModelError(error.Code, error.Description);
+        }
+
+        return BadRequest(ModelState);
     }
 
     [EnableRateLimiting("auth")]
@@ -324,6 +329,8 @@ public class RegisterDto
 
     [Required(ErrorMessage = "Şifre zorunludur.")]
     [StringLength(128, MinimumLength = 6, ErrorMessage = "Şifre en az 6, en fazla 128 karakter olmalıdır.")]
+    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{6,}$",
+        ErrorMessage = "Şifre en az bir büyük harf, bir küçük harf, bir rakam ve bir özel karakter içermelidir.")]
     public string Password { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Ad zorunludur.")]

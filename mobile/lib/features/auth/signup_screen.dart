@@ -260,6 +260,23 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                                       context,
                                     )!.passwordRequired;
                                   }
+                                  if (value.length < 6) {
+                                    return 'Şifre en az 6 karakter olmalıdır.';
+                                  }
+                                  if (!RegExp(r'(?=.*[a-z])').hasMatch(value)) {
+                                    return 'En az bir küçük harf içermelidir.';
+                                  }
+                                  if (!RegExp(r'(?=.*[A-Z])').hasMatch(value)) {
+                                    return 'En az bir büyük harf içermelidir.';
+                                  }
+                                  if (!RegExp(r'(?=.*\d)').hasMatch(value)) {
+                                    return 'En az bir rakam içermelidir.';
+                                  }
+                                  if (!RegExp(
+                                    r'(?=.*[^\da-zA-Z])',
+                                  ).hasMatch(value)) {
+                                    return 'En az bir özel karakter içermelidir.';
+                                  }
                                   return null;
                                 },
                               )

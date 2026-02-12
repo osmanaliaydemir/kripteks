@@ -178,11 +178,20 @@ AppException _mapHttpStatusCode(DioException e) {
   final statusCode = e.response?.statusCode;
   final responseData = e.response?.data;
 
-  final serverMessage = _extractServerMessage(responseData);
+  var serverMessage = _extractServerMessage(responseData);
 
   switch (statusCode) {
     case 400:
       final fieldErrors = _extractFieldErrors(responseData);
+
+      // Duplicate Email handling
+      if (fieldErrors != null &&
+          (fieldErrors.containsKey('DuplicateEmail') ||
+              fieldErrors.containsKey('DuplicateUserName') ||
+              fieldErrors.containsKey('InvalidEmail'))) {
+        serverMessage = 'Bu e-posta adresi zaten sistemde kayıtlı.';
+      }
+
       return ValidationException(
         message: serverMessage ?? 'Girdiğiniz bilgileri kontrol edin.',
         debugMessage: 'Bad Request: ${e.requestOptions.uri}',
@@ -195,9 +204,11 @@ AppException _mapHttpStatusCode(DioException e) {
     case 401:
       final isLoginEndpoint = e.requestOptions.uri.path.contains('auth/login');
       return AuthException(
-        message: isLoginEndpoint
-            ? 'E-posta adresi veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.'
-            : (serverMessage ?? 'Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.'),
+        message:
+            serverMessage ??
+            (isLoginEndpoint
+                ? 'E-posta adresi veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.'
+                : 'Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.'),
         debugMessage: 'Unauthorized: ${e.requestOptions.uri}',
         statusCode: statusCode,
         originalError: e,

@@ -15,6 +15,8 @@ class UserManagementScreen extends ConsumerStatefulWidget {
 
 class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
   final TextEditingController _searchController = TextEditingController();
+  String _selectedFilter =
+      'Tümü'; // 'Tümü', 'Aktif', 'Pasif', 'User', 'Trader', 'Admin'
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +31,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
       ),
       body: Column(
         children: [
+          // Search Bar
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: TextField(
@@ -48,14 +51,58 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
               ),
             ),
           ),
+
+          // Filters
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                _buildFilterChip('Tümü', Colors.white),
+                const SizedBox(width: 8),
+                _buildFilterChip('Aktif', AppColors.success),
+                const SizedBox(width: 8),
+                _buildFilterChip('Pasif', AppColors.error),
+                const SizedBox(width: 8),
+                _buildFilterChip('User', Colors.blue),
+                const SizedBox(width: 8),
+                _buildFilterChip('Trader', Colors.orange),
+                const SizedBox(width: 8),
+                _buildFilterChip('Admin', Colors.purple),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // User List
           Expanded(
             child: usersAsync.when(
               data: (users) {
                 final filteredUsers = users.where((user) {
+                  // Search Filter
                   final query = _searchController.text.toLowerCase();
-                  return user.firstName.toLowerCase().contains(query) ||
+                  final matchesSearch =
+                      user.firstName.toLowerCase().contains(query) ||
                       user.lastName.toLowerCase().contains(query) ||
                       user.email.toLowerCase().contains(query);
+
+                  if (!matchesSearch) return false;
+
+                  // Category Filter
+                  switch (_selectedFilter) {
+                    case 'Aktif':
+                      return user.isActive;
+                    case 'Pasif':
+                      return !user.isActive;
+                    case 'User':
+                      return user.role == 'User';
+                    case 'Trader':
+                      return user.role == 'Trader';
+                    case 'Admin':
+                      return user.role == 'Admin';
+                    default:
+                      return true;
+                  }
                 }).toList();
 
                 if (filteredUsers.isEmpty) {
@@ -74,14 +121,16 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundColor: user.isActive
-                            ? Colors.green.withOpacity(0.2)
-                            : Colors.red.withOpacity(0.2),
+                            ? AppColors.success.withOpacity(0.2)
+                            : AppColors.error.withOpacity(0.2),
                         child: Text(
                           user.firstName.isNotEmpty
                               ? user.firstName[0].toUpperCase()
                               : '?',
                           style: TextStyle(
-                            color: user.isActive ? Colors.green : Colors.red,
+                            color: user.isActive
+                                ? AppColors.success
+                                : AppColors.error,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -109,15 +158,20 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.surface,
+                              color: _getRoleColor(user.role).withOpacity(0.2),
                               borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: AppColors.border),
+                              border: Border.all(
+                                color: _getRoleColor(
+                                  user.role,
+                                ).withOpacity(0.5),
+                              ),
                             ),
                             child: Text(
                               user.role,
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: _getRoleColor(user.role),
                                 fontSize: 10,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
@@ -134,7 +188,6 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                               ),
                             )
                             .then((_) {
-                              // Refresh list after returning from edit
                               usersNotifier.refresh();
                             });
                       },
@@ -146,7 +199,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
               error: (err, stack) => Center(
                 child: Text(
                   'Hata: $err',
-                  style: const TextStyle(color: Colors.red),
+                  style: const TextStyle(color: AppColors.error),
                 ),
               ),
             ),
@@ -154,5 +207,47 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildFilterChip(String label, Color color) {
+    final isSelected = _selectedFilter == label;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedFilter = label),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? color.withOpacity(0.2)
+              : AppColors.surfaceLight.withOpacity(0.3),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? color : Colors.transparent,
+            width: 1.5,
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            color: isSelected ? color : Colors.grey,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _getRoleColor(String role) {
+    switch (role) {
+      case 'Admin':
+        return Colors.purple;
+      case 'Trader':
+        return Colors.orange;
+      case 'User':
+        return Colors.blue;
+      default:
+        return Colors.grey;
+    }
   }
 }
