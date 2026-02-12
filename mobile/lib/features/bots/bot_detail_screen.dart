@@ -545,7 +545,7 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
         }
       },
       loading: () => '...',
-      error: (_, __) => '-',
+      error: (_, _) => '-',
     );
   }
 

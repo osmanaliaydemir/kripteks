@@ -22,6 +22,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _canUseBiometric = false;
+  bool _rememberMe = false;
 
   @override
   void initState() {
@@ -59,17 +60,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
       await ref.read(authControllerProvider.notifier).login(email, password);
 
-      // If login successful (no exception thrown), save credentials for biometric
-      // We assume success if we reach here without unhandled exception,
-      // but actually the provider handles errors via state.
-      // So we should check the state in the listener or here after await if state is not error.
-      // However, since login is void and async, we can't easily check return value.
-      // The listener handles navigation. We can save credentials there or here.
-      // Let's rely on the listener pattern for saving, but better to save only on explicit "remember me"
-      // For now, we auto-save to enable biometric feature easily.
-      final biometricService = ref.read(biometricServiceProvider);
-      await biometricService.saveCredentials(email, password);
-      await biometricService.setBiometricEnabled(true);
+      // Only save if "Remember Me" is checked
+      if (_rememberMe) {
+        final biometricService = ref.read(biometricServiceProvider);
+        await biometricService.saveCredentials(email, password);
+        await biometricService.setBiometricEnabled(true);
+      }
     }
   }
 
@@ -277,12 +273,56 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               .fadeIn(delay: 400.ms)
                               .slideX(begin: 0.1, end: 0),
 
-                          // Forgot Password link
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: Padding(
-                              padding: const EdgeInsets.only(top: 12),
-                              child: TextButton(
+                          const SizedBox(height: 16),
+
+                          // Remember Me & Forgot Password Row
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Remember Me
+                              Row(
+                                children: [
+                                  SizedBox(
+                                    height: 24,
+                                    width: 24,
+                                    child: Checkbox(
+                                      value: _rememberMe,
+                                      activeColor: AppColors.primary,
+                                      checkColor: Colors.white,
+                                      side: const BorderSide(
+                                        color: AppColors.textSecondary,
+                                        width: 1.5,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _rememberMe = value ?? false;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _rememberMe = !_rememberMe;
+                                      });
+                                    },
+                                    child: const Text(
+                                      'Beni Hatırla',
+                                      style: TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              // Forgot Password link
+                              TextButton(
                                 onPressed: () =>
                                     context.push('/forgot-password'),
                                 style: TextButton.styleFrom(
@@ -297,7 +337,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   style: const TextStyle(fontSize: 12),
                                 ),
                               ),
-                            ),
+                            ],
                           ).animate().fadeIn(delay: 500.ms),
 
                           const SizedBox(height: 32),
@@ -467,10 +507,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: AppColors.error, width: 1.5),
       ),
-      errorStyle: const TextStyle(
-        color: AppColors.error,
-        fontSize: 12,
-      ),
+      errorStyle: const TextStyle(color: AppColors.error, fontSize: 12),
       contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
     );
   }

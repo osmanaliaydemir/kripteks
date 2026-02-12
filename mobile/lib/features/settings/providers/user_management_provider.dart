@@ -23,9 +23,50 @@ class UserManagementService {
   Future<void> deleteUser(String id) async {
     await _dio.delete('/users/$id');
   }
+
+  Future<void> sendPasswordResetLink(String id) async {
+    await _dio.post('/users/$id/send-password-reset');
+  }
+
+  Future<List<AuditLogDto>> getAuditLogs(String userId) async {
+    final response = await _dio.get('/users/$userId/audit-logs');
+    return (response.data['items'] as List)
+        .map((e) => AuditLogDto.fromJson(e))
+        .toList();
+  }
+}
+
+class AuditLogDto {
+  final String id;
+  final String action;
+  final String category;
+  final String severity;
+  final DateTime timestamp;
+  final String? ipAddress;
+
+  AuditLogDto({
+    required this.id,
+    required this.action,
+    required this.category,
+    required this.severity,
+    required this.timestamp,
+    this.ipAddress,
+  });
+
+  factory AuditLogDto.fromJson(Map<String, dynamic> json) {
+    return AuditLogDto(
+      id: json['id'],
+      action: json['action'],
+      category: json['category'],
+      severity: json['severity'],
+      timestamp: DateTime.parse(json['timestamp']),
+      ipAddress: json['ipAddress'],
+    );
+  }
 }
 
 // Models
+// ... (UserManagementDto)
 class UserManagementDto {
   final String id;
   final String firstName;
@@ -113,13 +154,7 @@ class UsersNotifier extends AsyncNotifier<List<UserManagementDto>> {
 
     // Optimistic update
     final previousState = state;
-    if (previousState.hasValue) {
-      final updatedList = previousState.value!.map((u) {
-        return u.id == user.id ? user : u;
-      }).toList();
-      state = AsyncData(updatedList);
-    }
-
+    // ... existing ...
     try {
       await service.updateUser(user.id, user);
     } catch (e) {
@@ -128,4 +163,36 @@ class UsersNotifier extends AsyncNotifier<List<UserManagementDto>> {
       rethrow;
     }
   }
+
+  Future<void> deleteUser(String id) async {
+    final service = ref.read(userManagementServiceProvider);
+
+    // Optimistic update
+    final previousState = state;
+    if (previousState.hasValue) {
+      final updatedList = previousState.value!
+          .where((u) => u.id != id)
+          .toList();
+      state = AsyncData(updatedList);
+    }
+
+    try {
+      await service.deleteUser(id);
+    } catch (e) {
+      // Revert on error
+      state = previousState;
+      rethrow;
+    }
+  }
+
+  Future<void> sendPasswordResetLink(String id) async {
+    final service = ref.read(userManagementServiceProvider);
+    await service.sendPasswordResetLink(id);
+  }
 }
+
+final auditLogsProvider = FutureProvider.family
+    .autoDispose<List<AuditLogDto>, String>((ref, userId) async {
+      final service = ref.watch(userManagementServiceProvider);
+      return service.getAuditLogs(userId);
+    });

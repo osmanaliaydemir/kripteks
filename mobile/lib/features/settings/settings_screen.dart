@@ -114,6 +114,32 @@ class SettingsScreen extends ConsumerWidget {
                                         fontSize: 12,
                                       ),
                                     ),
+                                    const SizedBox(height: 4),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(
+                                          color: AppColors.primary.withValues(
+                                            alpha: 0.2,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Rol: ${profile.role}',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          color: AppColors.primary,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -224,7 +250,7 @@ class SettingsScreen extends ConsumerWidget {
                           onTap: () =>
                               context.push('/settings/change-password'),
                         ),
-                        if (profileAsync.value?.role == 'Admin') ...[
+                        if (profileAsync.value?.role.trim() == 'Admin') ...[
                           const Divider(
                             color: AppColors.white05,
                             height: 1,

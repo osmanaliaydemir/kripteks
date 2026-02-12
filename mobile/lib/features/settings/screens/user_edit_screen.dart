@@ -70,6 +70,31 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
     }
   }
 
+  Future<void> _sendPasswordResetLink() async {
+    setState(() => _isLoading = true);
+    try {
+      await ref
+          .read(usersProvider.notifier)
+          .sendPasswordResetLink(widget.user.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Şifre sıfırlama bağlantısı gönderildi'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Hata: $e'), backgroundColor: AppColors.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -152,7 +177,7 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
                 ),
               ),
               value: _isActive,
-              activeColor: AppColors.success,
+              activeThumbColor: AppColors.success,
               onChanged: (bool value) {
                 setState(() {
                   _isActive = value;
@@ -191,10 +216,116 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
                       ),
               ),
             ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: OutlinedButton.icon(
+                onPressed: _isLoading ? null : _sendPasswordResetLink,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.primary),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  foregroundColor: AppColors.primary,
+                ),
+                icon: const Icon(Icons.lock_reset),
+                label: Text(
+                  'Şifre Sıfırlama Bağlantısı Gönder',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+            _buildAuditLogs(),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildAuditLogs() {
+    final auditLogsAsync = ref.watch(auditLogsProvider(widget.user.id));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'İşlem Geçmişi (Audit Logs)',
+          style: GoogleFonts.plusJakartaSans(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        auditLogsAsync.when(
+          data: (logs) {
+            if (logs.isEmpty) {
+              return const Text(
+                'Kayıt bulunamadı.',
+                style: TextStyle(color: Colors.grey),
+              );
+            }
+            return ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: logs.length,
+              separatorBuilder: (_, _) => const Divider(color: Colors.white10),
+              itemBuilder: (context, index) {
+                final log = logs[index];
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: CircleAvatar(
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                    child: Icon(
+                      _getIconForCategory(log.category),
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                  ),
+                  title: Text(
+                    log.action,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '${log.timestamp.toString().substring(0, 16)} • ${log.ipAddress ?? "IP Yok"}',
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                );
+              },
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, stack) => Text(
+            'Hata: $err',
+            style: const TextStyle(color: AppColors.error),
+          ),
+        ),
+      ],
+    );
+  }
+
+  IconData _getIconForCategory(String category) {
+    switch (category) {
+      case 'Auth':
+        return Icons.security;
+      case 'Trade':
+        return Icons.candlestick_chart;
+      case 'Wallet':
+        return Icons.account_balance_wallet;
+      case 'Settings':
+        return Icons.settings;
+      default:
+        return Icons.info_outline;
+    }
   }
 
   Widget _buildTextField({

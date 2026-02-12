@@ -121,8 +121,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundColor: user.isActive
-                            ? AppColors.success.withOpacity(0.2)
-                            : AppColors.error.withOpacity(0.2),
+                            ? AppColors.success.withValues(alpha: 0.2)
+                            : AppColors.error.withValues(alpha: 0.2),
                         child: Text(
                           user.firstName.isNotEmpty
                               ? user.firstName[0].toUpperCase()
@@ -158,12 +158,14 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: _getRoleColor(user.role).withOpacity(0.2),
+                              color: _getRoleColor(
+                                user.role,
+                              ).withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(4),
                               border: Border.all(
                                 color: _getRoleColor(
                                   user.role,
-                                ).withOpacity(0.5),
+                                ).withValues(alpha: 0.5),
                               ),
                             ),
                             child: Text(
@@ -175,7 +177,19 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          if (user.role != 'Admin') ...[
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: AppColors.error,
+                                size: 20,
+                              ),
+                              onPressed: () =>
+                                  _confirmDelete(user, usersNotifier),
+                            ),
+                          ],
+                          const SizedBox(width: 4),
                           const Icon(Icons.chevron_right, color: Colors.grey),
                         ],
                       ),
@@ -218,8 +232,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? color.withOpacity(0.2)
-              : AppColors.surfaceLight.withOpacity(0.3),
+              ? color.withValues(alpha: 0.2)
+              : AppColors.surfaceLight.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? color : Colors.transparent,
@@ -249,5 +263,54 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
       default:
         return Colors.grey;
     }
+  }
+
+  void _confirmDelete(UserManagementDto user, UsersNotifier notifier) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text(
+          'Kullanıcıyı Sil',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          '${user.firstName} ${user.lastName} adlı kullanıcıyı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('İptal', style: TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              try {
+                await notifier.deleteUser(user.id);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Kullanıcı silindi'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Hata: $e'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Sil', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
   }
 }

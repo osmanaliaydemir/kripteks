@@ -197,6 +197,48 @@ public class UsersController : ControllerBase
 
         return BadRequest(new { message = "Güncelleme başarısız.", errors = result.Errors });
     }
+
+    [HttpPost("{id}/send-password-reset")]
+    public async Task<IActionResult> SendPasswordReset(string id)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null) return NotFound(new { message = "Kullanıcı bulunamadı." });
+
+        try
+        {
+            var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var encodedToken = System.Net.WebUtility.UrlEncode(resetToken);
+            var encodedEmail = System.Net.WebUtility.UrlEncode(user.Email);
+
+            // Web uygulamasının şifre belirleme/sıfırlama sayfası
+            var resetUrl = $"https://web-kripteks.runasp.net/set-password?token={encodedToken}&email={encodedEmail}";
+
+            await _emailService.SendWelcomeEmailAsync(user.Email!, user.FirstName, resetUrl);
+
+            await _auditLogService.LogAsync(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!,
+                "Şifre Sıfırlama Bağlantısı Gönderildi", new { user.Email });
+
+            return Ok(new { message = "Şifre sıfırlama bağlantısı e-posta olarak gönderildi." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = $"Mail gönderilemedi: {ex.Message}" });
+        }
+    }
+
+    [HttpGet("{id}/audit-logs")]
+    public async Task<IActionResult> GetUserAuditLogs(string id, [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        var logs = await _auditLogService.QueryLogsAsync(new AuditQueryRequest
+        {
+            UserId = id,
+            Page = page,
+            PageSize = pageSize
+        });
+
+        return Ok(logs);
+    }
 }
 
 public class UpdateUserDto

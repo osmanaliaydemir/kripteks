@@ -253,25 +253,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           children: [
             _buildLabel('Doğrulama Kodu'),
             const SizedBox(height: 8),
-            TextFormField(
-              controller: _codeController,
-              keyboardType: TextInputType.number,
-              maxLength: 6,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.jetBrainsMono(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 12,
-              ),
-              decoration: _buildInputDecoration(
-                hint: '000000',
-                prefixIcon: Icons.security_rounded,
-              ).copyWith(counterText: ""),
-              onChanged: (val) {
-                if (val.length == 6) _handleVerifyCode();
-              },
-            ),
+            _buildPinCodeInput(),
             const SizedBox(height: 24),
             _buildButton('Doğrula', _handleVerifyCode),
             const SizedBox(height: 16),
@@ -318,6 +300,78 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       default:
         return const SizedBox();
     }
+  }
+
+  Widget _buildPinCodeInput() {
+    return Stack(
+      children: [
+        // Invisible TextField to capture input
+        Opacity(
+          opacity: 0,
+          child: TextFormField(
+            controller: _codeController,
+            focusNode: FocusNode()..requestFocus(),
+            keyboardType: TextInputType.number,
+            maxLength: 6,
+            onChanged: (val) {
+              setState(() {});
+              if (val.length == 6) _handleVerifyCode();
+            },
+            decoration: const InputDecoration(
+              counterText: "",
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
+        // Visible Row of Boxes
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(6, (index) {
+            String char = "";
+            if (_codeController.text.length > index) {
+              char = _codeController.text[index];
+            }
+            bool isFocused = _codeController.text.length == index;
+            bool isFilled = char.isNotEmpty;
+
+            return Container(
+              width: 50,
+              height: 56,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B).withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isFocused
+                      ? const Color(0xFFF59E0B)
+                      : isFilled
+                      ? Colors.white38
+                      : Colors.white10,
+                  width: isFocused ? 2 : 1,
+                ),
+                boxShadow: isFocused
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Text(
+                char,
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
   }
 
   Widget _buildLabel(String text) {

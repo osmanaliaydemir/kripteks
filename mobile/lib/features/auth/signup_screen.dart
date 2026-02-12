@@ -21,6 +21,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _termsAccepted = false;
 
   @override
   void dispose() {
@@ -32,6 +33,14 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
   void _handleSignUp() async {
     if (_formKey.currentState!.validate()) {
+      if (!_termsAccepted) {
+        ErrorHandler.showError(
+          context,
+          Exception('Lütfen kullanım koşullarını kabul ediniz.'),
+        );
+        return;
+      }
+
       final fullName = _nameController.text.trim();
       final email = _emailController.text.trim();
       final password = _passwordController.text;
@@ -283,7 +292,67 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                               .animate()
                               .fadeIn(delay: 500.ms)
                               .slideX(begin: 0.1, end: 0),
-                          const SizedBox(height: 32),
+                          // Terms of Service Checkbox
+                          Padding(
+                            padding: const EdgeInsets.only(top: 16.0),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  height: 24,
+                                  width: 24,
+                                  child: Checkbox(
+                                    value: _termsAccepted,
+                                    activeColor: AppColors.primary,
+                                    checkColor: Colors.white,
+                                    side: const BorderSide(
+                                      color: Colors.white54,
+                                      width: 1.5,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _termsAccepted = value ?? false;
+                                      });
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _termsAccepted = !_termsAccepted;
+                                      });
+                                    },
+                                    child: RichText(
+                                      text: TextSpan(
+                                        text: 'Kullanım Koşullarını',
+                                        style: TextStyle(
+                                          color: AppColors.primary,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                        children: const [
+                                          TextSpan(
+                                            text: ' okudum ve kabul ediyorum.',
+                                            style: TextStyle(
+                                              color: Colors.white70,
+                                              decoration: TextDecoration.none,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ).animate().fadeIn(delay: 550.ms),
+
+                          const SizedBox(height: 24),
 
                           // Sign Up Button
                           Container(
