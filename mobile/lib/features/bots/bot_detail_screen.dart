@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/error/error_handler.dart';
-import 'package:mobile/core/providers/paginated_provider.dart';
 import 'package:mobile/features/bots/providers/bot_provider.dart';
 import 'package:mobile/features/bots/models/bot_model.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:mobile/core/widgets/tradingview_chart.dart';
+import 'package:mobile/core/providers/market_data_provider.dart';
 
 class BotDetailScreen extends ConsumerStatefulWidget {
   final String botId;
@@ -19,100 +19,19 @@ class BotDetailScreen extends ConsumerStatefulWidget {
 
 class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
   final ScrollController _scrollController = ScrollController();
-
-  // Bot logları state (widget-level pagination yönetimi)
-  PaginatedState<BotLog>? _logsState;
-  bool _isLogsLoading = true;
-  Object? _logsError;
+  int _currentLogPage = 1;
+  static const int _logPageSize = 10;
+  int _expandedIndex = 0; // 0: Settings, 1: Chart, 2: Logs
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
-    _loadInitialLogs();
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadInitialLogs() async {
-    try {
-      final botService = ref.read(botServiceProvider);
-      final result = await botService.getBotLogs(
-        widget.botId,
-        page: 1,
-        pageSize: 50,
-      );
-      if (mounted) {
-        setState(() {
-          _logsState = PaginatedState<BotLog>(
-            items: result.items,
-            currentPage: 1,
-            pageSize: 50,
-            totalCount: result.totalCount,
-            hasMore: result.hasMore,
-          );
-          _isLogsLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _logsError = e;
-          _isLogsLoading = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _loadMoreLogs() async {
-    final current = _logsState;
-    if (current == null || current.isLoadingMore || !current.hasMore) return;
-
-    setState(() {
-      _logsState = current.copyWith(isLoadingMore: true);
-    });
-
-    try {
-      final botService = ref.read(botServiceProvider);
-      final nextPage = current.currentPage + 1;
-      final result = await botService.getBotLogs(
-        widget.botId,
-        page: nextPage,
-        pageSize: 50,
-      );
-
-      if (mounted) {
-        setState(() {
-          _logsState = current.copyWith(
-            items: [...current.items, ...result.items],
-            currentPage: nextPage,
-            totalCount: result.totalCount,
-            hasMore: result.hasMore,
-            isLoadingMore: false,
-          );
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _logsState = current.copyWith(isLoadingMore: false, error: e);
-        });
-      }
-    }
-  }
-
-  void _onScroll() {
-    if (!_scrollController.hasClients) return;
-    final maxScroll = _scrollController.position.maxScrollExtent;
-    final currentScroll = _scrollController.position.pixels;
-    if (maxScroll - currentScroll <= 200) {
-      _loadMoreLogs();
-    }
   }
 
   @override
@@ -176,117 +95,21 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
     return SingleChildScrollView(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Card
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white10),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      bot.symbol,
-                      style: GoogleFonts.inter(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    _buildStatusChip(bot.status),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildStatItem('Tutar', '\$${bot.amount}'),
-                    _buildStatItem(
-                      'Giriş',
-                      bot.entryPrice > 0 ? '\$${bot.entryPrice}' : '-',
-                    ),
-                    _buildStatItem(
-                      'PNL',
-                      '\$${bot.pnl.toStringAsFixed(2)}',
-                      color: bot.pnl >= 0
-                          ? const Color(0xFF10B981)
-                          : const Color(0xFFEF4444),
-                    ),
-                  ],
-                ),
-                // Stop Button inside Header Card
-                if (bot.status == 'Running' ||
-                    bot.status == 'WaitingForEntry') ...[
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _stopBot(ref, context),
-                      icon: const Icon(Icons.stop_rounded),
-                      label: const Text('Durdur'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEF4444),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1, end: 0),
-
+          // Header Card (Always visible)
+          _buildHeaderCard(context, ref, bot),
           const SizedBox(height: 16),
 
-          // Interaktif Grafik Panel
-          TradingViewChart(
-            symbol: bot.symbol,
-            interval: bot.interval,
-            botId: bot.id,
-            height: 420,
-          ).animate().fadeIn(delay: 50.ms).slideY(begin: 0.1, end: 0),
-
-          const SizedBox(height: 16),
-
-          // Bot Configuration Section
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B).withValues(alpha: 0.7),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white10),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // 1. Bot Settings Accordion
+          _buildAccordionItem(
+            index: 0,
+            title: 'Bot Ayarları',
+            icon: Icons.settings_suggest_rounded,
+            content: Column(
               children: [
-                Text(
-                  'Bot Ayarları',
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
                 _buildConfigRow(
                   'Strateji',
                   _formatStrategyName(bot.strategyName),
@@ -357,182 +180,372 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
                 ],
               ],
             ),
-          ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1, end: 0),
+          ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
 
-          Text(
-            'İşlem Kayıtları', // Changed from 'Geçmiş İşlemler'
-            style: GoogleFonts.inter(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ).animate().fadeIn(delay: 300.ms),
-
-          const SizedBox(height: 16),
-
-          Builder(
-            builder: (context) {
-              if (_isLogsLoading) {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: CircularProgressIndicator(color: Color(0xFFF59E0B)),
-                  ),
+          // 2. Bot Logs Accordion
+          _buildAccordionItem(
+            index: 1,
+            title: 'İşlem Kayıtları',
+            icon: Icons.terminal_rounded,
+            content: Builder(
+              builder: (context) {
+                final logsAsync = ref.watch(
+                  botLogsProvider((
+                    botId: widget.botId,
+                    page: _currentLogPage,
+                    pageSize: _logPageSize,
+                  )),
                 );
-              }
 
-              if (_logsError != null) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
+                return logsAsync.when(
+                  data: (result) {
+                    if (result.items.isEmpty) {
+                      return Container(
+                        height: 100,
+                        alignment: Alignment.center,
+                        child: const Text(
+                          "Henüz log kaydı yok",
+                          style: TextStyle(color: Colors.white38),
+                        ),
+                      );
+                    }
+                    final totalPages = (result.totalCount / _logPageSize)
+                        .ceil();
+                    return Column(
+                      children: [
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: result.items.length,
+                          itemBuilder: (context, index) {
+                            final log = result.items[index];
+                            final isInfo =
+                                log.logLevel == 'INFO' ||
+                                log.logLevel == 'Info';
+                            final isError =
+                                log.logLevel == 'ERROR' ||
+                                log.logLevel == 'Error';
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.03),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.white05),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        log.logLevel.toUpperCase(),
+                                        style: TextStyle(
+                                          color: isInfo
+                                              ? const Color(0xFF10B981)
+                                              : isError
+                                              ? const Color(0xFFEF4444)
+                                              : const Color(0xFF3B82F6),
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      Text(
+                                        _formatDate(log.timestamp),
+                                        style: const TextStyle(
+                                          color: Colors.white38,
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    log.message,
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                        if (totalPages > 1) _buildPagination(totalPages),
+                      ],
+                    );
+                  },
+                  loading: () => const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(20),
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFF59E0B),
+                      ),
+                    ),
+                  ),
+                  error: (err, stack) => Center(
                     child: Text(
-                      'Log yüklenemedi: $_logsError',
+                      'Hata: $err',
                       style: const TextStyle(color: Colors.redAccent),
                     ),
                   ),
                 );
-              }
+              },
+            ),
+          ),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
 
-              final logsState = _logsState;
-              if (logsState == null || logsState.items.isEmpty) {
-                return Container(
-                  height: 200,
-                  alignment: Alignment.center,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.terminal_rounded,
-                        size: 48,
-                        color: Colors.white10,
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        "Henüz log kaydı yok",
-                        style: TextStyle(color: Colors.white38),
-                      ),
-                    ],
-                  ),
-                ).animate().fadeIn(delay: 400.ms);
-              }
+  Widget _buildAccordionItem({
+    required int index,
+    required String title,
+    required IconData icon,
+    required Widget content,
+  }) {
+    final isExpanded = _expandedIndex == index;
 
-              return Column(
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B).withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isExpanded
+              ? const Color(0xFFF59E0B).withValues(alpha: 0.3)
+              : Colors.white10,
+        ),
+      ),
+      child: Column(
+        children: [
+          // Header
+          InkWell(
+            onTap: () =>
+                setState(() => _expandedIndex = isExpanded ? -1 : index),
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
                 children: [
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: logsState.items.length,
-                    itemBuilder: (context, index) {
-                      final log = logsState.items[index];
-                      final isInfo =
-                          log.logLevel == 'INFO' || log.logLevel == 'Info';
-                      final isError =
-                          log.logLevel == 'ERROR' || log.logLevel == 'Error';
-
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E293B).withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.white10),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isInfo
-                                        ? const Color(
-                                            0xFF10B981,
-                                          ).withValues(alpha: 0.2)
-                                        : isError
-                                        ? const Color(
-                                            0xFFEF4444,
-                                          ).withValues(alpha: 0.2)
-                                        : const Color(
-                                            0xFF3B82F6,
-                                          ).withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    log.logLevel,
-                                    style: TextStyle(
-                                      color: isInfo
-                                          ? const Color(0xFF10B981)
-                                          : isError
-                                          ? const Color(0xFFEF4444)
-                                          : const Color(0xFF3B82F6),
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  _formatDate(log.timestamp),
-                                  style: const TextStyle(
-                                    color: Colors.white38,
-                                    fontSize: 10,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              log.message,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                height: 1.4,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ).animate().fadeIn(delay: (50 * index).ms).slideX();
-                    },
+                  Icon(
+                    icon,
+                    color: isExpanded
+                        ? const Color(0xFFF59E0B)
+                        : Colors.white54,
+                    size: 22,
                   ),
-                  if (logsState.isLoadingMore)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      child: Center(
-                        child: SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Color(0xFFF59E0B),
-                          ),
-                        ),
-                      ),
+                  const SizedBox(width: 12),
+                  Text(
+                    title,
+                    style: GoogleFonts.inter(
+                      color: isExpanded ? Colors.white : Colors.white70,
+                      fontSize: 15,
+                      fontWeight: isExpanded
+                          ? FontWeight.bold
+                          : FontWeight.w500,
                     ),
-                  if (!logsState.hasMore && logsState.items.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Center(
-                        child: Text(
-                          'Tüm loglar yüklendi',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.3),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
+                  ),
+                  const Spacer(),
+                  AnimatedRotation(
+                    turns: isExpanded ? 0.5 : 0,
+                    duration: 200.ms,
+                    child: Icon(
+                      Icons.expand_more_rounded,
+                      color: isExpanded
+                          ? const Color(0xFFF59E0B)
+                          : Colors.white38,
                     ),
+                  ),
                 ],
-              );
-            },
+              ),
+            ),
+          ),
+          // Content
+          AnimatedSize(
+            duration: 300.ms,
+            curve: Curves.easeInOut,
+            child: SizedBox(
+              width: double.infinity,
+              height: isExpanded ? null : 0,
+              child: Visibility(
+                visible: isExpanded,
+                maintainState: true,
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    left: 16,
+                    right: 16,
+                    bottom: 16,
+                  ),
+                  child: content,
+                ),
+              ),
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildHeaderCard(BuildContext context, WidgetRef ref, Bot bot) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B).withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      bot.symbol,
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _getCurrentPrice(ref, bot),
+                            style: GoogleFonts.plusJakartaSans(
+                              color: AppColors.primary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'USD',
+                            style: GoogleFonts.plusJakartaSans(
+                              color: AppColors.primary.withValues(alpha: 0.6),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _buildStatusChip(bot.status),
+            ],
+          ),
+          const SizedBox(height: 32),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatItem(
+                  'Tutar',
+                  '\$${bot.amount.toStringAsFixed(1)}',
+                ),
+              ),
+              Expanded(
+                child: _buildStatItem(
+                  'Giriş',
+                  bot.entryPrice > 0
+                      ? '\$${bot.entryPrice.toStringAsFixed(2)}'
+                      : '-',
+                ),
+              ),
+              Expanded(
+                child: _buildStatItem(
+                  'PNL',
+                  '${bot.pnl >= 0 ? '+' : ''}\$${bot.pnl.toStringAsFixed(2)}',
+                  color: bot.pnl >= 0
+                      ? const Color(0xFF10B981)
+                      : const Color(0xFFEF4444),
+                ),
+              ),
+            ],
+          ),
+          if (bot.status == 'Running' || bot.status == 'WaitingForEntry') ...[
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _stopBot(ref, context),
+                icon: const Icon(Icons.stop_rounded),
+                label: const Text('Botu Durdur'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFEF4444),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _getCurrentPrice(WidgetRef ref, Bot bot) {
+    final livePrices = ref.watch(liveMarketDataProvider);
+    return livePrices.when(
+      data: (prices) {
+        final sanitizedSymbol = bot.symbol.replaceAll('/', '');
+        try {
+          final pair = prices.firstWhere(
+            (p) => p.symbol.replaceAll('/', '') == sanitizedSymbol,
+          );
+          return '\$${pair.price.toStringAsFixed(2)}';
+        } catch (_) {
+          return '-';
+        }
+      },
+      loading: () => '...',
+      error: (_, __) => '-',
     );
   }
 
@@ -541,19 +554,24 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
       children: [
         Text(
           label,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: GoogleFonts.plusJakartaSans(
             color: Colors.white54,
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
-            letterSpacing: 1.0,
+            letterSpacing: 0.5,
           ),
         ),
         const SizedBox(height: 8),
         Text(
           value,
+          textAlign: TextAlign.center,
+          maxLines: 1,
           style: GoogleFonts.plusJakartaSans(
             color: color ?? Colors.white,
-            fontSize: 20,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -633,6 +651,113 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
         ErrorHandler.showError(context, e);
       }
     }
+  }
+
+  Widget _buildPagination(int totalPages) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildPageButton(
+            icon: Icons.chevron_left_rounded,
+            onTap: _currentLogPage > 1
+                ? () => setState(() => _currentLogPage--)
+                : null,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(totalPages, (index) {
+                  final pageNum = index + 1;
+                  if (totalPages > 7) {
+                    if (pageNum != 1 &&
+                        pageNum != totalPages &&
+                        (pageNum < _currentLogPage - 2 ||
+                            pageNum > _currentLogPage + 2)) {
+                      if (pageNum == _currentLogPage - 3 ||
+                          pageNum == _currentLogPage + 3) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(
+                            '...',
+                            style: TextStyle(color: Colors.white24),
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    }
+                  }
+                  return _buildPageNumber(pageNum);
+                }),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          _buildPageButton(
+            icon: Icons.chevron_right_rounded,
+            onTap: _currentLogPage < totalPages
+                ? () => setState(() => _currentLogPage++)
+                : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPageButton({required IconData icon, VoidCallback? onTap}) {
+    final enabled = onTap != null;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: enabled ? const Color(0xFF1E293B) : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: enabled ? Colors.white10 : AppColors.white05,
+          ),
+        ),
+        child: Icon(
+          icon,
+          color: enabled ? Colors.white : Colors.white10,
+          size: 20,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPageNumber(int pageNum) {
+    final isSelected = _currentLogPage == pageNum;
+    return GestureDetector(
+      onTap: () => setState(() => _currentLogPage = pageNum),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFF59E0B) : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? Colors.transparent : Colors.white10,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            pageNum.toString(),
+            style: GoogleFonts.inter(
+              color: isSelected ? Colors.black : Colors.white70,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<bool?> _showConfirmationDialog(

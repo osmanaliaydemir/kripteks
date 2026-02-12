@@ -1,343 +1,437 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #0F172A; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-  #chart-container { width: 100vw; height: 100vh; position: relative; }
-  #toolbar {
-    position: absolute; top: 0; left: 0; right: 0; z-index: 10;
-    display: flex; align-items: center; gap: 4px;
-    padding: 6px 8px; background: rgba(15,23,42,0.85);
-    backdrop-filter: blur(8px); border-bottom: 1px solid rgba(255,255,255,0.06);
-  }
-  .tb-btn {
-    padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);
-    background: transparent; color: rgba(255,255,255,0.5); font-size: 11px;
-    cursor: pointer; transition: all 0.15s; font-weight: 500;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .tb-btn.active { background: rgba(245,158,11,0.15); color: #F59E0B; border-color: rgba(245,158,11,0.3); }
-  .tb-btn:active { transform: scale(0.95); }
-  .tb-sep { width: 1px; height: 18px; background: rgba(255,255,255,0.06); margin: 0 2px; }
-  .tb-label { color: rgba(255,255,255,0.3); font-size: 10px; font-weight: 600; letter-spacing: 0.5px; margin-right: 2px; }
-  #price-label {
-    position: absolute; top: 40px; left: 10px; z-index: 10;
-    color: rgba(255,255,255,0.3); font-size: 10px;
-  }
-  #crosshair-info {
-    position: absolute; top: 40px; right: 10px; z-index: 10;
-    color: rgba(255,255,255,0.6); font-size: 10px; text-align: right;
-    display: none;
-  }
-  #rsi-container, #macd-container { width: 100%; position: relative; }
-</style>
-<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
-</head>
-<body>
-<div id="toolbar">
-  <span class="tb-label">SÜRE</span>
-  <button class="tb-btn" data-interval="15m">15d</button>
-  <button class="tb-btn" data-interval="1h" id="btn-1h">1s</button>
-  <button class="tb-btn" data-interval="4h">4s</button>
-  <button class="tb-btn active" data-interval="1d">1g</button>
-  <div class="tb-sep"></div>
-  <span class="tb-label">GÖS.</span>
-  <button class="tb-btn" id="btn-ema" onclick="toggleIndicator('ema')">EMA</button>
-  <button class="tb-btn" id="btn-bb" onclick="toggleIndicator('bb')">BB</button>
-  <button class="tb-btn" id="btn-rsi" onclick="toggleIndicator('rsi')">RSI</button>
-  <button class="tb-btn" id="btn-vol" onclick="toggleIndicator('vol')">VOL</button>
-</div>
-<div id="crosshair-info"></div>
-
-<div id="chart-container"></div>
-
-<script>
-  // === State ===
-  let chart, candleSeries, volumeSeries;
-  let ema20Line, ema50Line, ema200Line;
-  let bbUpper, bbMiddle, bbLower;
-  let rsiChart, rsiLine, rsi30Line, rsi70Line;
-  let currentData = null;
-  let activeIndicators = { ema: false, bb: false, rsi: false, vol: true };
-  let currentSymbol = '';
-  let currentInterval = '1d';
-  let currentBotId = '';
-
-  // === Chart Oluştur ===
-  function createChart() {
-    const container = document.getElementById('chart-container');
-    const toolbarH = 36;
-    const chartH = activeIndicators.rsi
-      ? (window.innerHeight - toolbarH) * 0.75
-      : window.innerHeight - toolbarH;
-
-    // Mevcut chart'ları temizle
-    container.innerHTML = '';
-
-    // Ana chart
-    const mainDiv = document.createElement('div');
-    mainDiv.id = 'main-chart';
-    mainDiv.style.width = '100%';
-    mainDiv.style.height = chartH + 'px';
-    mainDiv.style.marginTop = toolbarH + 'px';
-    container.appendChild(mainDiv);
-
-    chart = LightweightCharts.createChart(mainDiv, {
-      width: window.innerWidth,
-      height: chartH,
-      layout: {
-        background: { type: 'solid', color: '#0F172A' },
-        textColor: 'rgba(255,255,255,0.4)',
-        fontSize: 10,
-      },
-      grid: {
-        vertLines: { color: 'rgba(255,255,255,0.03)' },
-        horzLines: { color: 'rgba(255,255,255,0.03)' },
-      },
-      crosshair: {
-        mode: LightweightCharts.CrosshairMode.Normal,
-        vertLine: { color: 'rgba(245,158,11,0.3)', width: 1, style: 2 },
-        horzLine: { color: 'rgba(245,158,11,0.3)', width: 1, style: 2 },
-      },
-      rightPriceScale: {
-        borderColor: 'rgba(255,255,255,0.06)',
-        scaleMargins: { top: 0.05, bottom: activeIndicators.vol ? 0.2 : 0.05 },
-      },
-      timeScale: {
-        borderColor: 'rgba(255,255,255,0.06)',
-        timeVisible: true,
-        secondsVisible: false,
-      },
-      handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: true },
-      handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
-    });
-
-    // Candlestick series
-    candleSeries = chart.addCandlestickSeries({
-      upColor: '#10B981',
-      downColor: '#EF4444',
-      borderDownColor: '#EF4444',
-      borderUpColor: '#10B981',
-      wickDownColor: '#EF4444',
-      wickUpColor: '#10B981',
-    });
-
-    // Volume
-    if (activeIndicators.vol) {
-      volumeSeries = chart.addHistogramSeries({
-        priceFormat: { type: 'volume' },
-        priceScaleId: 'vol',
-      });
-      chart.priceScale('vol').applyOptions({
-        scaleMargins: { top: 0.85, bottom: 0 },
-      });
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
 
-    // RSI alt panel
-    if (activeIndicators.rsi) {
-      const rsiH = (window.innerHeight - toolbarH) * 0.25;
-      const rsiDiv = document.createElement('div');
-      rsiDiv.id = 'rsi-chart';
-      rsiDiv.style.width = '100%';
-      rsiDiv.style.height = rsiH + 'px';
-      rsiDiv.style.borderTop = '1px solid rgba(255,255,255,0.06)';
-      container.appendChild(rsiDiv);
+    body {
+      background: #0F172A;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    }
 
-      rsiChart = LightweightCharts.createChart(rsiDiv, {
+    #chart-container {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    #toolbar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 8px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .tb-btn {
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: transparent;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-weight: 500;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .tb-btn.active {
+      background: rgba(245, 158, 11, 0.15);
+      color: #F59E0B;
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    .tb-btn:active {
+      transform: scale(0.95);
+    }
+
+    .tb-sep {
+      width: 1px;
+      height: 18px;
+      background: rgba(255, 255, 255, 0.06);
+      margin: 0 2px;
+    }
+
+    .tb-label {
+      color: rgba(255, 255, 255, 0.3);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-right: 2px;
+    }
+
+    #price-label {
+      position: absolute;
+      top: 40px;
+      left: 10px;
+      z-index: 10;
+      color: rgba(255, 255, 255, 0.3);
+      font-size: 10px;
+    }
+
+    #crosshair-info {
+      position: absolute;
+      top: 40px;
+      right: 10px;
+      z-index: 10;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 10px;
+      text-align: right;
+      display: none;
+    }
+
+    #rsi-container,
+    #macd-container {
+      width: 100%;
+      position: relative;
+    }
+  </style>
+  <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+
+<body>
+  <div id="toolbar">
+    <span class="tb-label">SÜRE</span>
+    <button class="tb-btn" data-interval="15m">15d</button>
+    <button class="tb-btn" data-interval="1h" id="btn-1h">1s</button>
+    <button class="tb-btn" data-interval="4h">4s</button>
+    <button class="tb-btn active" data-interval="1d">1g</button>
+    <div class="tb-sep"></div>
+    <span class="tb-label">GÖS.</span>
+    <button class="tb-btn" id="btn-ema" onclick="toggleIndicator('ema')">EMA</button>
+    <button class="tb-btn" id="btn-bb" onclick="toggleIndicator('bb')">BB</button>
+    <button class="tb-btn" id="btn-rsi" onclick="toggleIndicator('rsi')">RSI</button>
+    <button class="tb-btn" id="btn-vol" onclick="toggleIndicator('vol')">VOL</button>
+  </div>
+  <div id="crosshair-info"></div>
+
+  <div id="chart-container"></div>
+
+  <script>
+    // === State ===
+    let chart, candleSeries, volumeSeries;
+    let ema20Line, ema50Line, ema200Line;
+    let bbUpper, bbMiddle, bbLower;
+    let rsiChart, rsiLine, rsi30Line, rsi70Line;
+    let currentData = null;
+    let activeIndicators = { ema: false, bb: false, rsi: false, vol: true };
+    let currentSymbol = '';
+    let currentInterval = '1d';
+    let currentBotId = '';
+
+    // === Chart Oluştur ===
+    function createChart() {
+      const container = document.getElementById('chart-container');
+      const toolbarH = 36;
+      const chartH = activeIndicators.rsi
+        ? (window.innerHeight - toolbarH) * 0.75
+        : window.innerHeight - toolbarH;
+
+      // Mevcut chart'ları temizle
+      container.innerHTML = '';
+
+      // Ana chart
+      const mainDiv = document.createElement('div');
+      mainDiv.id = 'main-chart';
+      mainDiv.style.width = '100%';
+      mainDiv.style.height = chartH + 'px';
+      mainDiv.style.marginTop = toolbarH + 'px';
+      container.appendChild(mainDiv);
+
+      chart = LightweightCharts.createChart(mainDiv, {
         width: window.innerWidth,
-        height: rsiH,
+        height: chartH,
         layout: {
           background: { type: 'solid', color: '#0F172A' },
-          textColor: 'rgba(255,255,255,0.3)',
-          fontSize: 9,
+          textColor: 'rgba(255,255,255,0.4)',
+          fontSize: 10,
         },
         grid: {
-          vertLines: { color: 'rgba(255,255,255,0.02)' },
-          horzLines: { color: 'rgba(255,255,255,0.02)' },
+          vertLines: { color: 'rgba(255,255,255,0.03)' },
+          horzLines: { color: 'rgba(255,255,255,0.03)' },
+        },
+        crosshair: {
+          mode: LightweightCharts.CrosshairMode.Normal,
+          vertLine: { color: 'rgba(245,158,11,0.3)', width: 1, style: 2 },
+          horzLine: { color: 'rgba(245,158,11,0.3)', width: 1, style: 2 },
         },
         rightPriceScale: {
-          borderColor: 'rgba(255,255,255,0.04)',
-          scaleMargins: { top: 0.1, bottom: 0.1 },
+          borderColor: 'rgba(255,255,255,0.06)',
+          scaleMargins: { top: 0.05, bottom: activeIndicators.vol ? 0.2 : 0.05 },
         },
-        timeScale: { visible: false },
-        handleScroll: false,
-        handleScale: false,
+        timeScale: {
+          borderColor: 'rgba(255,255,255,0.06)',
+          timeVisible: true,
+          secondsVisible: false,
+        },
+        handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: true },
+        handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
       });
 
-      rsiLine = rsiChart.addLineSeries({
-        color: '#A78BFA',
-        lineWidth: 1.5,
-        priceLineVisible: false,
-        lastValueVisible: true,
+      // Candlestick series
+      candleSeries = chart.addCandlestickSeries({
+        upColor: '#10B981',
+        downColor: '#EF4444',
+        borderDownColor: '#EF4444',
+        borderUpColor: '#10B981',
+        wickDownColor: '#EF4444',
+        wickUpColor: '#10B981',
       });
 
-      // 30 ve 70 çizgileri
-      rsi30Line = rsiChart.addLineSeries({
-        color: 'rgba(16,185,129,0.3)', lineWidth: 1, lineStyle: 2,
-        priceLineVisible: false, lastValueVisible: false,
-      });
-      rsi70Line = rsiChart.addLineSeries({
-        color: 'rgba(239,68,68,0.3)', lineWidth: 1, lineStyle: 2,
-        priceLineVisible: false, lastValueVisible: false,
+      // Volume
+      if (activeIndicators.vol) {
+        volumeSeries = chart.addHistogramSeries({
+          priceFormat: { type: 'volume' },
+          priceScaleId: 'vol',
+        });
+        chart.priceScale('vol').applyOptions({
+          scaleMargins: { top: 0.85, bottom: 0 },
+        });
+      }
+
+      // RSI alt panel
+      if (activeIndicators.rsi) {
+        const rsiH = (window.innerHeight - toolbarH) * 0.25;
+        const rsiDiv = document.createElement('div');
+        rsiDiv.id = 'rsi-chart';
+        rsiDiv.style.width = '100%';
+        rsiDiv.style.height = rsiH + 'px';
+        rsiDiv.style.borderTop = '1px solid rgba(255,255,255,0.06)';
+        container.appendChild(rsiDiv);
+
+        rsiChart = LightweightCharts.createChart(rsiDiv, {
+          width: window.innerWidth,
+          height: rsiH,
+          layout: {
+            background: { type: 'solid', color: '#0F172A' },
+            textColor: 'rgba(255,255,255,0.3)',
+            fontSize: 9,
+          },
+          grid: {
+            vertLines: { color: 'rgba(255,255,255,0.02)' },
+            horzLines: { color: 'rgba(255,255,255,0.02)' },
+          },
+          rightPriceScale: {
+            borderColor: 'rgba(255,255,255,0.04)',
+            scaleMargins: { top: 0.1, bottom: 0.1 },
+          },
+          timeScale: { visible: false },
+          handleScroll: false,
+          handleScale: false,
+        });
+
+        rsiLine = rsiChart.addLineSeries({
+          color: '#A78BFA',
+          lineWidth: 1.5,
+          priceLineVisible: false,
+          lastValueVisible: true,
+        });
+
+        // 30 ve 70 çizgileri
+        rsi30Line = rsiChart.addLineSeries({
+          color: 'rgba(16,185,129,0.3)', lineWidth: 1, lineStyle: 2,
+          priceLineVisible: false, lastValueVisible: false,
+        });
+        rsi70Line = rsiChart.addLineSeries({
+          color: 'rgba(239,68,68,0.3)', lineWidth: 1, lineStyle: 2,
+          priceLineVisible: false, lastValueVisible: false,
+        });
+      }
+
+      // Crosshair event
+      chart.subscribeCrosshairMove(param => {
+        const info = document.getElementById('crosshair-info');
+        if (!param || !param.time || !param.seriesData) {
+          info.style.display = 'none';
+          return;
+        }
+        const data = param.seriesData.get(candleSeries);
+        if (!data) { info.style.display = 'none'; return; }
+        const change = ((data.close - data.open) / data.open * 100).toFixed(2);
+        const color = data.close >= data.open ? '#10B981' : '#EF4444';
+        info.style.display = 'block';
+        info.innerHTML =
+          `<span style="color:${color}">O:${data.open.toFixed(2)} H:${data.high.toFixed(2)} L:${data.low.toFixed(2)} C:${data.close.toFixed(2)} (${change}%)</span>`;
       });
     }
 
-    // Crosshair event
-    chart.subscribeCrosshairMove(param => {
-      const info = document.getElementById('crosshair-info');
-      if (!param || !param.time || !param.seriesData) {
-        info.style.display = 'none';
-        return;
+    // === Veri Yükle ===
+    function loadData(data) {
+      currentData = data;
+      if (!data || !data.klines || data.klines.length === 0) return;
+
+      // Klines
+      candleSeries.setData(data.klines);
+
+      // Volume
+      if (activeIndicators.vol && volumeSeries && data.klines) {
+        volumeSeries.setData(data.klines.map(k => ({
+          time: k.time,
+          value: k.volume,
+          color: k.close >= k.open ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)',
+        })));
       }
-      const data = param.seriesData.get(candleSeries);
-      if (!data) { info.style.display = 'none'; return; }
-      const change = ((data.close - data.open) / data.open * 100).toFixed(2);
-      const color = data.close >= data.open ? '#10B981' : '#EF4444';
-      info.style.display = 'block';
-      info.innerHTML =
-        `<span style="color:${color}">O:${data.open.toFixed(2)} H:${data.high.toFixed(2)} L:${data.low.toFixed(2)} C:${data.close.toFixed(2)} (${change}%)</span>`;
+
+      // EMA
+      if (activeIndicators.ema && data.indicators) {
+        if (!ema20Line) {
+          ema20Line = chart.addLineSeries({ color: '#F59E0B', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+          ema50Line = chart.addLineSeries({ color: '#3B82F6', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+          ema200Line = chart.addLineSeries({ color: '#EC4899', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false });
+        }
+        ema20Line.setData(filterValid(data.indicators.ema20));
+        ema50Line.setData(filterValid(data.indicators.ema50));
+        ema200Line.setData(filterValid(data.indicators.ema200));
+      }
+
+      // Bollinger Bands
+      if (activeIndicators.bb && data.indicators) {
+        if (!bbUpper) {
+          bbUpper = chart.addLineSeries({ color: 'rgba(139,92,246,0.4)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
+          bbMiddle = chart.addLineSeries({ color: 'rgba(139,92,246,0.6)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+          bbLower = chart.addLineSeries({ color: 'rgba(139,92,246,0.4)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
+        }
+        bbUpper.setData(filterValid(data.indicators.bollingerUpper));
+        bbMiddle.setData(filterValid(data.indicators.bollingerMiddle));
+        bbLower.setData(filterValid(data.indicators.bollingerLower));
+      }
+
+      // RSI
+      if (activeIndicators.rsi && data.indicators && rsiLine) {
+        const rsiData = filterValid(data.indicators.rsi);
+        rsiLine.setData(rsiData);
+        if (rsiData.length > 0) {
+          const times = rsiData.map(d => d.time);
+          rsi30Line.setData(times.map(t => ({ time: t, value: 30 })));
+          rsi70Line.setData(times.map(t => ({ time: t, value: 70 })));
+        }
+      }
+
+      // Markers
+      if (data.markers && data.markers.length > 0) {
+        candleSeries.setMarkers(data.markers.sort((a, b) => a.time - b.time));
+      }
+
+      chart.timeScale().fitContent();
+      if (rsiChart) {
+        rsiChart.timeScale().applyOptions({
+          rightOffset: chart.timeScale().options().rightOffset,
+        });
+      }
+    }
+
+    function filterValid(arr) {
+      if (!arr) return [];
+      return arr.filter(d => d.value !== null && d.value !== undefined && d.value !== 0);
+    }
+
+    // === Gösterge Toggle ===
+    function toggleIndicator(name) {
+      activeIndicators[name] = !activeIndicators[name];
+      const btn = document.getElementById('btn-' + name);
+      if (btn) btn.classList.toggle('active', activeIndicators[name]);
+
+      // Chart'ı yeniden oluştur
+      ema20Line = ema50Line = ema200Line = null;
+      bbUpper = bbMiddle = bbLower = null;
+      rsiChart = rsiLine = rsi30Line = rsi70Line = null;
+      createChart();
+      if (currentData) loadData(currentData);
+    }
+
+    // === Interval Butonları ===
+    document.querySelectorAll('.tb-btn[data-interval]').forEach(btn => {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.tb-btn[data-interval]').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        currentInterval = this.dataset.interval;
+        // Flutter'a interval değişikliğini bildir
+        if (window.FlutterChannel) {
+          window.FlutterChannel.postMessage(JSON.stringify({
+            type: 'intervalChange',
+            interval: currentInterval
+          }));
+        }
+      });
     });
-  }
 
-  // === Veri Yükle ===
-  function loadData(data) {
-    currentData = data;
-    if (!data || !data.klines || data.klines.length === 0) return;
-
-    // Klines
-    candleSeries.setData(data.klines);
-
-    // Volume
-    if (activeIndicators.vol && volumeSeries && data.klines) {
-      volumeSeries.setData(data.klines.map(k => ({
-        time: k.time,
-        value: k.volume,
-        color: k.close >= k.open ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)',
-      })));
+    // === Flutter'dan veri al ===
+    function setChartData(jsonStr) {
+      try {
+        const data = JSON.parse(jsonStr);
+        loadData(data);
+      } catch (e) { console.error('Parse error', e); }
     }
 
-    // EMA
-    if (activeIndicators.ema && data.indicators) {
-      if (!ema20Line) {
-        ema20Line = chart.addLineSeries({ color: '#F59E0B', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-        ema50Line = chart.addLineSeries({ color: '#3B82F6', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-        ema200Line = chart.addLineSeries({ color: '#EC4899', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false });
-      }
-      ema20Line.setData(filterValid(data.indicators.ema20));
-      ema50Line.setData(filterValid(data.indicators.ema50));
-      ema200Line.setData(filterValid(data.indicators.ema200));
-    }
-
-    // Bollinger Bands
-    if (activeIndicators.bb && data.indicators) {
-      if (!bbUpper) {
-        bbUpper = chart.addLineSeries({ color: 'rgba(139,92,246,0.4)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
-        bbMiddle = chart.addLineSeries({ color: 'rgba(139,92,246,0.6)', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-        bbLower = chart.addLineSeries({ color: 'rgba(139,92,246,0.4)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
-      }
-      bbUpper.setData(filterValid(data.indicators.bollingerUpper));
-      bbMiddle.setData(filterValid(data.indicators.bollingerMiddle));
-      bbLower.setData(filterValid(data.indicators.bollingerLower));
-    }
-
-    // RSI
-    if (activeIndicators.rsi && data.indicators && rsiLine) {
-      const rsiData = filterValid(data.indicators.rsi);
-      rsiLine.setData(rsiData);
-      if (rsiData.length > 0) {
-        const times = rsiData.map(d => d.time);
-        rsi30Line.setData(times.map(t => ({ time: t, value: 30 })));
-        rsi70Line.setData(times.map(t => ({ time: t, value: 70 })));
-      }
-    }
-
-    // Markers
-    if (data.markers && data.markers.length > 0) {
-      candleSeries.setMarkers(data.markers.sort((a, b) => a.time - b.time));
-    }
-
-    chart.timeScale().fitContent();
-    if (rsiChart) {
-      rsiChart.timeScale().applyOptions({
-        rightOffset: chart.timeScale().options().rightOffset,
+    function setSymbolInfo(symbol, interval) {
+      currentSymbol = symbol;
+      currentInterval = interval;
+      // Aktif interval butonunu güncelle
+      document.querySelectorAll('.tb-btn[data-interval]').forEach(b => {
+        b.classList.toggle('active', b.dataset.interval === interval);
       });
     }
-  }
 
-  function filterValid(arr) {
-    if (!arr) return [];
-    return arr.filter(d => d.value !== null && d.value !== undefined && d.value !== 0);
-  }
+    // === Init ===
+    function initChart() {
+      try {
+        console.log('Chart init started...');
+        if (typeof LightweightCharts === 'undefined') {
+          throw new Error('LightweightCharts kütüphanesi yüklenemedi. Lütfen internet bağlantısını kontrol edin.');
+        }
+        createChart();
 
-  // === Gösterge Toggle ===
-  function toggleIndicator(name) {
-    activeIndicators[name] = !activeIndicators[name];
-    const btn = document.getElementById('btn-' + name);
-    if (btn) btn.classList.toggle('active', activeIndicators[name]);
+        // Flutter'a hazır olduğumuzu bildir (Retry mekanizmalı)
+        let retryCount = 0;
+        const maxRetries = 50; // 5 saniye boyunca dene
 
-    // Chart'ı yeniden oluştur
-    ema20Line = ema50Line = ema200Line = null;
-    bbUpper = bbMiddle = bbLower = null;
-    rsiChart = rsiLine = rsi30Line = rsi70Line = null;
-    createChart();
-    if (currentData) loadData(currentData);
-  }
+        const notifyFlutter = () => {
+          if (window.FlutterChannel) {
+            console.log('Notifying Flutter: ready');
+            window.FlutterChannel.postMessage(JSON.stringify({ type: 'ready' }));
+          } else if (retryCount < maxRetries) {
+            retryCount++;
+            setTimeout(notifyFlutter, 100);
+          } else {
+            console.error('FlutterChannel not found after max retries');
+          }
+        };
 
-  // === Interval Butonları ===
-  document.querySelectorAll('.tb-btn[data-interval]').forEach(btn => {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.tb-btn[data-interval]').forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-      currentInterval = this.dataset.interval;
-      // Flutter'a interval değişikliğini bildir
-      if (window.FlutterChannel) {
-        window.FlutterChannel.postMessage(JSON.stringify({
-          type: 'intervalChange',
-          interval: currentInterval
-        }));
+        notifyFlutter();
+      } catch (e) {
+        console.error('Init error', e);
+        if (window.FlutterChannel) {
+          window.FlutterChannel.postMessage(JSON.stringify({
+            type: 'error',
+            message: e.toString()
+          }));
+        }
       }
-    });
-  });
-
-  // === Flutter'dan veri al ===
-  function setChartData(jsonStr) {
-    try {
-      const data = JSON.parse(jsonStr);
-      loadData(data);
-    } catch(e) { console.error('Parse error', e); }
-  }
-
-  function setSymbolInfo(symbol, interval) {
-    currentSymbol = symbol;
-    currentInterval = interval;
-    // Aktif interval butonunu güncelle
-    document.querySelectorAll('.tb-btn[data-interval]').forEach(b => {
-      b.classList.toggle('active', b.dataset.interval === interval);
-    });
-  }
-
-  // === Init ===
-  function initChart() {
-    createChart();
-    // Flutter'a hazır olduğumuzu bildir
-    if (window.FlutterChannel) {
-      window.FlutterChannel.postMessage(JSON.stringify({ type: 'ready' }));
     }
-  }
 
-  // Resize
-  window.addEventListener('resize', () => {
-    ema20Line = ema50Line = ema200Line = null;
-    bbUpper = bbMiddle = bbLower = null;
-    rsiChart = rsiLine = rsi30Line = rsi70Line = null;
-    createChart();
-    if (currentData) loadData(currentData);
-  });
-
-  initChart();
-</script>
+    // DomContentLoaded ve window.onload her ikisini de kullan
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initChart);
+    } else {
+      initChart();
+    }
+  </script>
 </body>
+
 </html>

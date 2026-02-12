@@ -30,7 +30,7 @@ class AcademyData {
     ),
     AcademyCategory(
       type: EducationTopicCategory.appTraining,
-      title: 'Kripteks Uygulama Eğitimleri',
+      title: 'Uygulama Eğitimleri',
       description:
           'Kripteks platformunu en verimli şekilde nasıl kullanacağınızı öğrenin.',
       icon: Icons.rocket_launch_rounded,
@@ -1462,7 +1462,7 @@ Eğer fiyatlar tekrar havuzu kurduğunuz seviyeye dönerse bu kayıp sıfırlan�
 ''',
     ),
 
-    // Kripteks Uygulama Eğitimleri
+    // Uygulama Eğitimleri
     EducationTopic(
       id: 'how-to-create-bot',
       title: 'Nasıl Bot Oluşturulur?',

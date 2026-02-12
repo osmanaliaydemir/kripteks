@@ -23,6 +23,11 @@ class AuthService {
 
         if (token != null) {
           await _storage.write(key: 'auth_token', value: token);
+
+          final refreshToken = data['refreshToken'];
+          if (refreshToken != null) {
+            await _storage.write(key: 'refresh_token', value: refreshToken);
+          }
         }
       }
     } on DioException catch (e, stack) {
@@ -43,6 +48,7 @@ class AuthService {
     }
 
     await _storage.delete(key: 'auth_token');
+    await _storage.delete(key: 'refresh_token');
   }
 
   Future<String?> getToken() async {

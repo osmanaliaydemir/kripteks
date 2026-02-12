@@ -11,6 +11,7 @@ using System.Text;
 using Microsoft.AspNetCore.RateLimiting;
 using System.ComponentModel.DataAnnotations;
 using Kripteks.Core.Helpers;
+using Microsoft.EntityFrameworkCore;
 using NotificationType = Kripteks.Core.Entities.NotificationType;
 
 namespace Kripteks.Api.Controllers;
@@ -45,9 +46,11 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Register([FromBody] RegisterDto model)
     {
         var user = new AppUser
-            { UserName = model.Email, Email = model.Email,
-              FirstName = InputSanitizer.Sanitize(model.FirstName),
-              LastName = InputSanitizer.Sanitize(model.LastName) };
+        {
+            UserName = model.Email, Email = model.Email,
+            FirstName = InputSanitizer.Sanitize(model.FirstName),
+            LastName = InputSanitizer.Sanitize(model.LastName)
+        };
         var result = await _userManager.CreateAsync(user, model.Password);
 
         if (result.Succeeded)
@@ -80,11 +83,17 @@ public class AuthController : ControllerBase
             var roles = await _userManager.GetRolesAsync(user);
             var primaryRole = roles.FirstOrDefault() ?? "User";
             var token = GenerateJwtToken(user, roles);
+            var refreshToken = GenerateRefreshToken();
+
+            user.RefreshToken = refreshToken;
+            user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7); // Refresh token 7 gün geçerli
+            await _userManager.UpdateAsync(user);
 
             await _auditLogService.LogAsync(user.Id, "Giriş Başarılı", new { user.Email });
             return Ok(new LoginResponseDto
             {
                 Token = token,
+                RefreshToken = refreshToken,
                 User = new UserDetailDto
                 {
                     FirstName = user.FirstName,
@@ -231,6 +240,39 @@ public class AuthController : ControllerBase
 
         return BadRequest(new { message = "Şifre sıfırlanamadı.", errors = result.Errors });
     }
+
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh([FromBody] RefreshRequestDto model)
+    {
+        var user = await _userManager.Users.FirstOrDefaultAsync(u => u.RefreshToken == model.RefreshToken);
+
+        if (user == null || user.RefreshTokenExpiry < DateTime.UtcNow)
+        {
+            return Unauthorized("Geçersiz veya süresi dolmuş oturum");
+        }
+
+        var roles = await _userManager.GetRolesAsync(user);
+        var newToken = GenerateJwtToken(user, roles);
+        var newRefreshToken = GenerateRefreshToken();
+
+        user.RefreshToken = newRefreshToken;
+        user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+        await _userManager.UpdateAsync(user);
+
+        return Ok(new
+        {
+            token = newToken,
+            refreshToken = newRefreshToken
+        });
+    }
+
+    private string GenerateRefreshToken()
+    {
+        var randomNumber = new byte[32];
+        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+        rng.GetBytes(randomNumber);
+        return Convert.ToBase64String(randomNumber);
+    }
 }
 
 public class ChangePasswordDto
@@ -276,7 +318,13 @@ public class LoginDto
 public class LoginResponseDto
 {
     public string Token { get; set; } = string.Empty;
+    public string RefreshToken { get; set; } = string.Empty;
     public UserDetailDto User { get; set; } = new();
+}
+
+public class RefreshRequestDto
+{
+    public string RefreshToken { get; set; } = string.Empty;
 }
 
 public class UserDetailDto

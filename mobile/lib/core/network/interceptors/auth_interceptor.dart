@@ -27,7 +27,7 @@ class AuthInterceptor extends QueuedInterceptor {
   static const _noRetryPaths = [
     '/auth/login',
     '/auth/register',
-    '/auth/refresh-token',
+    '/auth/refresh',
     '/auth/forgot-password',
     '/auth/verify-reset-code',
     '/auth/reset-password',
@@ -151,7 +151,7 @@ class AuthInterceptor extends QueuedInterceptor {
       );
 
       final response = await refreshDio.post(
-        '/auth/refresh-token',
+        '/auth/refresh',
         data: {'refreshToken': refreshToken},
       );
 
