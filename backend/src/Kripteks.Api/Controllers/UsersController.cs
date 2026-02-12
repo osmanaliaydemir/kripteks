@@ -159,6 +159,8 @@ public class UsersController : ControllerBase
         var user = await _userManager.FindByIdAsync(id);
         if (user == null) return NotFound(new { message = "Kullanıcı bulunamadı." });
 
+        bool wasActive = user.IsActive;
+
         user.FirstName = InputSanitizer.Sanitize(model.FirstName);
         user.LastName = InputSanitizer.Sanitize(model.LastName);
         user.IsActive = model.IsActive;
@@ -171,6 +173,22 @@ public class UsersController : ControllerBase
             var currentRoles = await _userManager.GetRolesAsync(user);
             await _userManager.RemoveFromRolesAsync(user, currentRoles);
             await _userManager.AddToRoleAsync(user, model.Role);
+
+            // Eğer kullanıcı yeni aktif edildiyse mail gönder
+            if (!wasActive && model.IsActive)
+            {
+                try
+                {
+                    if (!string.IsNullOrEmpty(user.Email))
+                    {
+                        await _emailService.SendAccountActivatedEmailAsync(user.Email, user.FirstName);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Console.WriteLine($"Activation email error: {ex.Message}");
+                }
+            }
 
             await _auditLogService.LogAsync(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!,
                 "Kullanıcı Güncellendi", new { user.Email, model.Role, model.IsActive });

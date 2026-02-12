@@ -8,4 +8,5 @@ public interface IEmailService
     Task SendWelcomeEmailAsync(string toEmail, string firstName, string setupPasswordUrl);
     Task SendResetCodeEmailAsync(string toEmail, string code);
     Task SendNewUserNotificationAsync(string adminEmail, string newUserName, string newUserEmail);
+    Task SendAccountActivatedEmailAsync(string toEmail, string firstName);
 }

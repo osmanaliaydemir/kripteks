@@ -232,4 +232,54 @@ public class EmailService : IEmailService
 </html>
         ";
     }
+
+    public async Task SendAccountActivatedEmailAsync(string toEmail, string firstName)
+    {
+        var template = GetAccountActivatedTemplate(firstName);
+        await SendEmailAsync(toEmail, "Hesabınız Aktif Edildi 🎉 - Kripteks", template);
+    }
+
+    private string GetAccountActivatedTemplate(string firstName)
+    {
+        return $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; margin: 0; padding: 0; }}
+        .container {{ max-width: 600px; margin: 40px auto; background-color: #1e293b; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.5); border: 1px solid #334155; }}
+        .header {{ background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 40px 20px; text-align: center; }}
+        .header h1 {{ color: white; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: 1px; }}
+        .content {{ padding: 40px; color: #e2e8f0; text-align: center; }}
+        .welcome-text {{ font-size: 18px; line-height: 1.6; margin-bottom: 30px; }}
+        .btn {{ display: block; width: 100%; text-align: center; background: linear-gradient(to right, #10b981, #059669); color: white; text-decoration: none; padding: 15px 0; border-radius: 12px; font-weight: bold; font-size: 16px; transition: opacity 0.3s; }}
+        .btn:hover {{ opacity: 0.9; }}
+        .footer {{ background-color: #0f172a; padding: 20px; text-align: center; color: #64748b; font-size: 12px; border-top: 1px solid #334155; }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>HESABINIZ AKTİF!</h1>
+        </div>
+        <div class='content'>
+            <p class='welcome-text'>Merhaba <strong>{firstName}</strong>,</p>
+            <p style='color: #94a3b8; line-height: 1.6; margin-bottom: 30px;'>
+                Güzel haber! Hesabınız yönetici tarafından onaylandı ve aktif edildi. Artık Kripteks uygulamasına giriş yapabilir ve tüm özellikleri kullanmaya başlayabilirsiniz.
+            </p>
+            
+            <a href='#' class='btn'>Hemen Giriş Yap</a>
+
+            <p style='color: #64748b; font-size: 14px; margin-top: 30px;'>
+                Bol kazançlı günler dileriz! 🚀
+            </p>
+        </div>
+        <div class='footer'>
+            &copy; 2026 Kripteks Inc. Tüm hakları saklıdır.
+        </div>
+    </div>
+</body>
+</html>
+        ";
+    }
 }
