@@ -6,6 +6,7 @@ import 'package:mobile/core/providers/paginated_provider.dart';
 import 'package:mobile/features/bots/providers/bot_provider.dart';
 import 'package:mobile/features/bots/models/bot_model.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:mobile/core/widgets/tradingview_chart.dart';
 
 class BotDetailScreen extends ConsumerStatefulWidget {
   final String botId;
@@ -253,6 +254,16 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
               ],
             ),
           ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1, end: 0),
+
+          const SizedBox(height: 16),
+
+          // Interaktif Grafik Panel
+          TradingViewChart(
+            symbol: bot.symbol,
+            interval: bot.interval,
+            botId: bot.id,
+            height: 420,
+          ).animate().fadeIn(delay: 50.ms).slideY(begin: 0.1, end: 0),
 
           const SizedBox(height: 16),
 
