@@ -230,6 +230,17 @@ class SettingsScreen extends ConsumerWidget {
                           indent: 64,
                         ),
                         _buildListTile(
+                          icon: Icons.history_rounded,
+                          title: 'Denetim Kayıtları',
+                          subtitle: 'Tüm sistem aktivitelerini görüntüle',
+                          onTap: () => context.push('/audit-logs'),
+                        ),
+                        const Divider(
+                          color: AppColors.white05,
+                          height: 1,
+                          indent: 64,
+                        ),
+                        _buildListTile(
                           icon: Icons.logout_rounded,
                           title: AppLocalizations.of(context)!.logout,
                           color: AppColors.error,

@@ -109,7 +109,7 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
 
   Widget _buildStatsBar(AuditStats stats) {
     return SizedBox(
-      height: 80,
+      height: 90,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -122,7 +122,7 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
           return Container(
             width: 100,
             margin: const EdgeInsets.only(right: 10),
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(14),
@@ -130,28 +130,32 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(icon, color: color, size: 14),
-                    const SizedBox(width: 4),
-                    Text(
-                      _categoryLabels[cat.category] ?? cat.category,
-                      style: GoogleFonts.inter(
-                        color: color,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
+                    Icon(icon, color: color, size: 12),
+                    const SizedBox(width: 3),
+                    Flexible(
+                      child: Text(
+                        _categoryLabels[cat.category] ?? cat.category,
+                        style: GoogleFonts.inter(
+                          color: color,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Text(
                   cat.count.toString(),
                   style: GoogleFonts.inter(
                     color: Colors.white,
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
