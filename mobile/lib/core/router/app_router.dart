@@ -26,7 +26,7 @@ import 'package:mobile/features/education/screens/academy_screen.dart';
 import 'package:mobile/features/education/screens/topic_detail_screen.dart';
 import 'package:mobile/features/education/models/education_models.dart';
 import 'package:mobile/features/alerts/screens/alerts_screen.dart';
-
+import 'package:mobile/features/portfolio/portfolio_screen.dart';
 import 'package:mobile/core/network/auth_state_provider.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
@@ -94,6 +94,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/wallet',
         builder: (context, state) => const WalletScreen(),
+      ),
+      GoRoute(
+        path: '/portfolio',
+        builder: (context, state) => const PortfolioScreen(),
       ),
       GoRoute(
         path: '/market-analysis',

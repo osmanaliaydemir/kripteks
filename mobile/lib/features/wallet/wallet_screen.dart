@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile/l10n/app_localizations.dart';
 import 'package:mobile/core/providers/privacy_provider.dart';
 import 'package:mobile/core/widgets/app_header.dart';
@@ -125,6 +126,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                       ),
                       error: (err, _) => _buildErrorState(err.toString()),
                     ),
+                    const SizedBox(height: 12),
+
+                    // Portföy Yönetimi Butonu
+                    _buildPortfolioButton(),
                     const SizedBox(height: 24),
 
                     // Transactions Title
@@ -547,6 +552,72 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildPortfolioButton() {
+    return GestureDetector(
+      onTap: () => context.push('/portfolio'),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1E293B), Color(0xFF1A1F3A)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFF8B5CF6).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.pie_chart,
+                color: Color(0xFF8B5CF6),
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Portföy Yönetimi',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Dağılım, risk analizi ve dengeleme önerileri',
+                    style: GoogleFonts.inter(
+                      color: Colors.white38,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: Color(0xFF8B5CF6),
+              size: 16,
+            ),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(delay: 200.ms).slideX(begin: 0.1, end: 0);
   }
 
   Widget _buildErrorState(String error) {

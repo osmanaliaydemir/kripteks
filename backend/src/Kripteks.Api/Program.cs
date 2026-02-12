@@ -196,6 +196,7 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddSingleton<ILogService, LogService>(); // Singleton olabilir çünkü scope factory kullanıyor
 builder.Services.AddSingleton<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IAlertService, AlertService>();
+builder.Services.AddScoped<IPortfolioService, PortfolioService>();
 
 // AI & Haber Servisleri
 builder.Services.AddSingleton<IMarketSentimentState, MarketSentimentState>();
