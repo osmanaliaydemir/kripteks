@@ -20,6 +20,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<UserFavoriteList> UserFavoriteLists { get; set; }
     public DbSet<UserDevice> UserDevices { get; set; }
     public DbSet<UserNotificationRead> UserNotificationReads { get; set; }
+    public DbSet<UserAlert> UserAlerts { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -159,6 +160,17 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
             .HasOne(r => r.Notification)
             .WithMany()
             .HasForeignKey(r => r.NotificationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // UserAlert configuration
+        modelBuilder.Entity<UserAlert>()
+            .Property(a => a.TargetValue)
+            .HasPrecision(18, 8);
+
+        modelBuilder.Entity<UserAlert>()
+            .HasOne(a => a.User)
+            .WithMany()
+            .HasForeignKey(a => a.UserId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

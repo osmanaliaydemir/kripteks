@@ -4,8 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:mobile/l10n/app_localizations.dart';
+import 'package:mobile/core/providers/privacy_provider.dart';
 import 'package:mobile/core/widgets/app_header.dart';
 import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/widgets/sensitive_text.dart';
 import 'providers/wallet_provider.dart';
 import 'models/wallet_model.dart';
 
@@ -53,6 +55,25 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       appBar: AppHeader(
         title: AppLocalizations.of(context)!.wallet,
         showBackButton: false,
+        actions: [
+          Consumer(
+            builder: (context, ref, _) {
+              final isHidden = ref.watch(
+                privacyProvider.select((s) => s.isBalanceHidden),
+              );
+              return IconButton(
+                icon: Icon(
+                  isHidden ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                onPressed: () {
+                  ref.read(privacyProvider.notifier).toggleBalanceVisibility();
+                },
+              );
+            },
+          ),
+        ],
       ),
       body: Stack(
         children: [
@@ -320,7 +341,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             style: const TextStyle(color: Colors.white54, fontSize: 14),
           ),
           const SizedBox(height: 8),
-          Text(
+          SensitiveText(
             '\$${wallet.currentBalance.toStringAsFixed(2)}',
             style: GoogleFonts.inter(
               fontSize: 32,
@@ -375,7 +396,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
           style: const TextStyle(color: Colors.white54, fontSize: 12),
         ),
         const SizedBox(height: 4),
-        Text(
+        SensitiveText(
           '${isPnl && amount > 0 ? "+" : ""}\$${amount.toStringAsFixed(2)}',
           style: TextStyle(
             color: color,
@@ -505,7 +526,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
+              SensitiveText(
                 '$prefix${tx.amount.toStringAsFixed(2)}',
                 style: GoogleFonts.jetBrainsMono(
                   color: amountColor,

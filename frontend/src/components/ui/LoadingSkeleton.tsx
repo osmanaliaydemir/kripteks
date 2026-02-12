@@ -2,7 +2,12 @@
 
 import { motion } from "framer-motion";
 
-export default function LoadingSkeleton() {
+interface LoadingSkeletonProps {
+    className?: string;
+    count?: number;
+}
+
+export default function LoadingSkeleton({ className, count }: LoadingSkeletonProps) {
     return (
         <div className="w-full h-full min-h-[400px] flex flex-col gap-6 p-4 animate-pulse">
             {/* Header Skeleton */}

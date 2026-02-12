@@ -62,7 +62,8 @@ if (FirebaseApp.DefaultInstance == null)
             }
             else
             {
-                Console.WriteLine("[Firebase] WARNING: No Firebase configuration found (ServiceAccountJson or ServiceAccountPath).");
+                Console.WriteLine(
+                    "[Firebase] WARNING: No Firebase configuration found (ServiceAccountJson or ServiceAccountPath).");
             }
         }
 
@@ -194,6 +195,7 @@ builder.Services.AddScoped<IArbitrageScannerService, ArbitrageScannerService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddSingleton<ILogService, LogService>(); // Singleton olabilir çünkü scope factory kullanıyor
 builder.Services.AddSingleton<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<IAlertService, AlertService>();
 
 // AI & Haber Servisleri
 builder.Services.AddSingleton<IMarketSentimentState, MarketSentimentState>();
@@ -238,6 +240,7 @@ builder.Services.AddScoped<IStrategyFactory, Kripteks.Infrastructure.Strategies.
 // Arka Plan Servisleri (Bot Engine + Market Data Stream)
 builder.Services.AddHostedService<BotEngineService>();
 builder.Services.AddHostedService<BinanceWebSocketService>();
+builder.Services.AddHostedService<AlertProcessingJob>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

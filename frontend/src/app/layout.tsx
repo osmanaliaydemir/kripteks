@@ -4,6 +4,7 @@ import { Activity } from "lucide-react";
 import { Toaster } from "sonner";
 import { UIProvider } from "@/context/UIContext";
 import { SignalRProvider } from "@/context/SignalRContext";
+import { AuthProvider } from "@/context/AuthContext";
 
 export const metadata: Metadata = {
   title: "Kripteks | Bot",
@@ -24,12 +25,14 @@ export default function RootLayout({
         <meta httpEquiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval' 'unsafe-inline' https://s3.tradingview.com https://*.tradingview.com blob:; object-src 'none';" />
       </head>
       <body suppressHydrationWarning className="antialiased min-h-screen bg-slate-950 text-slate-50 selection:bg-amber-500 selection:text-black font-['Inter']">
-        <UIProvider>
-          <SignalRProvider>
-            {children}
-            <Toaster richColors position="top-right" theme="dark" closeButton />
-          </SignalRProvider>
-        </UIProvider>
+        <AuthProvider>
+          <UIProvider>
+            <SignalRProvider>
+              {children}
+              <Toaster richColors position="top-right" theme="dark" closeButton />
+            </SignalRProvider>
+          </UIProvider>
+        </AuthProvider>
       </body>
     </html>
   );

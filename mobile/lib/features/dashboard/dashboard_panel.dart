@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/widgets/sensitive_text.dart';
 import 'models/dashboard_stats.dart';
 import 'providers/dashboard_provider.dart';
 import '../wallet/providers/wallet_provider.dart';
@@ -54,6 +55,7 @@ class DashboardPanel extends ConsumerWidget {
                         '+\$0.00', // Placeholder as per instructions (needs backend filter)
                     icon: Icons.calendar_today,
                     color: const Color(0xFF10B981),
+                    isSensitive: true,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -74,6 +76,7 @@ class DashboardPanel extends ConsumerWidget {
                         value: '\$${totalInvested.toStringAsFixed(0)}',
                         icon: Icons.account_balance_wallet,
                         color: const Color(0xFF3B82F6), // Blue
+                        isSensitive: true,
                       );
                     },
                   ),
@@ -112,6 +115,9 @@ class DashboardPanel extends ConsumerWidget {
                   value: bestVal,
                   icon: Icons.emoji_events,
                   color: const Color(0xFFF59E0B), // Amber
+                  // En çok kazandıran botta sadece isim değil, PnL de var ama karışık string.
+                  // Şimdilik sadece PnL kısmı gizlenmeli ama tüm string gizlense de olur.
+                  isSensitive: true,
                 );
               },
             ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.2, end: 0),
@@ -138,6 +144,7 @@ class DashboardPanel extends ConsumerWidget {
                 ? const Color(0xFF10B981)
                 : const Color(0xFFEF4444),
             isLarge: true,
+            isSensitive: true,
           ),
         ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2, end: 0),
         const SizedBox(height: 12),
@@ -151,6 +158,7 @@ class DashboardPanel extends ConsumerWidget {
                 color: stats.avgTradePnL >= 0
                     ? const Color(0xFF10B981)
                     : const Color(0xFFEF4444),
+                isSensitive: true,
               ),
             ),
             const SizedBox(width: 12),
@@ -166,6 +174,7 @@ class DashboardPanel extends ConsumerWidget {
                     value: '\$${lockedBalance.toStringAsFixed(2)}',
                     icon: Icons.savings,
                     color: const Color(0xFFF59E0B),
+                    isSensitive: true,
                   );
                 },
               ),
@@ -227,6 +236,7 @@ class DashboardPanel extends ConsumerWidget {
     required IconData icon,
     required Color color,
     bool isLarge = false,
+    bool isSensitive = false,
   }) {
     // Determine background decoration based on card type to add visual hierarchy
     final isPnlCard = title == 'Toplam Kâr/Zarar';
@@ -322,15 +332,25 @@ class DashboardPanel extends ConsumerWidget {
             ],
           ),
           SizedBox(height: isLarge ? 20 : 14),
-          Text(
-            value,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: isLarge ? 36 : (value.contains('adet') ? 14 : 22),
-              fontWeight: FontWeight.w800,
-              color: isPnlCard ? Colors.white : AppColors.textPrimary,
-              height: 1.1,
-            ),
-          ),
+          isSensitive
+              ? SensitiveText(
+                  value,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: isLarge ? 36 : (value.contains('adet') ? 14 : 22),
+                    fontWeight: FontWeight.w800,
+                    color: isPnlCard ? Colors.white : AppColors.textPrimary,
+                    height: 1.1,
+                  ),
+                )
+              : Text(
+                  value,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: isLarge ? 36 : (value.contains('adet') ? 14 : 22),
+                    fontWeight: FontWeight.w800,
+                    color: isPnlCard ? Colors.white : AppColors.textPrimary,
+                    height: 1.1,
+                  ),
+                ),
           if (isPnlCard) ...[
             const SizedBox(height: 8),
             Row(

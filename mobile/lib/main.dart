@@ -10,6 +10,7 @@ import 'package:mobile/l10n/app_localizations.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:mobile/core/services/firebase_notification_service.dart';
 import 'package:mobile/core/providers/firebase_notification_provider.dart';
+import 'package:mobile/core/widgets/privacy_blur_guard.dart';
 
 void main() {
   final errorHandler = GlobalErrorHandler(errorService);
@@ -58,7 +59,7 @@ class MyApp extends ConsumerWidget {
         ErrorWidget.builder = (FlutterErrorDetails details) {
           return GlobalErrorHandler.errorWidgetBuilder(details)(context);
         };
-        return NetworkStatusBanner(child: widget!);
+        return PrivacyBlurGuard(child: NetworkStatusBanner(child: widget!));
       },
     );
   }

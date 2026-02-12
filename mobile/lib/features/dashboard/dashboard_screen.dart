@@ -11,6 +11,8 @@ import 'package:mobile/features/tools/tools_screen.dart';
 import 'package:mobile/features/wallet/wallet_screen.dart';
 import 'package:mobile/features/notifications/notification_screen.dart';
 import 'package:mobile/features/notifications/providers/notification_provider.dart';
+import 'package:mobile/core/providers/privacy_provider.dart';
+import 'package:mobile/features/alerts/screens/alerts_screen.dart';
 
 import 'package:mobile/core/network/signalr_service.dart';
 import 'package:mobile/core/widgets/app_header.dart';
@@ -180,21 +182,56 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           const Icon(
             Icons.candlestick_chart_rounded,
             color: AppColors.primary,
-            size: 28,
+            size: 24,
           ),
-          const SizedBox(width: 12),
-          Text(
-            'KRIPTEKS',
-            style: GoogleFonts.inter(
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
-              fontSize: 22,
-              letterSpacing: 1.0,
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              'KRIPTEKS',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+                fontSize: 18,
+                letterSpacing: 0.5,
+              ),
+              overflow: TextOverflow.visible,
+              maxLines: 1,
             ),
           ),
         ],
       ),
       actions: [
+        IconButton(
+          icon: const Icon(
+            Icons.add_alert_rounded,
+            color: AppColors.textSecondary,
+            size: 24,
+          ),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AlertsScreen()),
+            );
+          },
+        ),
+        Consumer(
+          builder: (context, ref, _) {
+            final isHidden = ref.watch(
+              privacyProvider.select((s) => s.isBalanceHidden),
+            );
+            return IconButton(
+              icon: Icon(
+                isHidden ? Icons.visibility_off : Icons.visibility,
+                color: AppColors.textSecondary,
+                size: 24,
+              ),
+              onPressed: () {
+                ref.read(privacyProvider.notifier).toggleBalanceVisibility();
+              },
+            );
+          },
+        ),
+        const SizedBox(width: 8),
         _buildConnectionStatus(
           signalRStatus.value ?? SignalRConnectionStatus.disconnected,
         ),

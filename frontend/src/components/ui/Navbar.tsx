@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { User } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity, LayoutDashboard, FlaskConical, BarChart2, LogOut, Settings, Key, User as UserIcon, Database, Lock, Bell, HelpCircle, Wallet, Target, Menu, X } from "lucide-react";
+import { Activity, LayoutDashboard, FlaskConical, BarChart2, LogOut, Settings, Key, User as UserIcon, Database, Lock, Bell, HelpCircle, Wallet, Target, Menu, X, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUI } from "@/context/UIContext";
@@ -57,6 +57,7 @@ export default function Navbar({ user }: NavbarProps) {
         { id: 'scanner', label: 'Tarayıcı', href: '/scanner', icon: <Target size={16} /> },
         { id: 'backtest', label: 'Simülasyon', href: '/backtest', icon: <FlaskConical size={16} /> },
         { id: 'reports', label: 'Raporlar', href: '/reports', icon: <BarChart2 size={16} /> },
+        { id: 'alerts', label: 'Alarmlar', href: '/alerts', icon: <Bell size={16} /> },
         { id: 'settings', label: 'Ayarlar', href: '/settings', icon: <Settings size={16} /> },
     ];
 
@@ -97,19 +98,82 @@ export default function Navbar({ user }: NavbarProps) {
 
                     {/* Desktop Navigation Menu */}
                     <nav className="hidden md:flex items-center gap-1 bg-slate-900/40 p-1 rounded-xl border border-white/5 backdrop-blur-sm ml-4">
-                        {navItems.map((item) => (
-                            <Link
-                                key={item.id}
-                                href={item.href}
-                                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${isActive(item.href)
-                                    ? 'bg-slate-800 text-white shadow-lg ring-1 ring-white/10'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                                    }`}
-                            >
-                                {item.icon}
-                                {item.label}
-                            </Link>
-                        ))}
+                        <Link
+                            href="/"
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${isActive('/')
+                                ? 'bg-slate-800 text-white shadow-lg ring-1 ring-white/10'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                                }`}
+                        >
+                            <LayoutDashboard size={16} />
+                            Dashboard
+                        </Link>
+
+                        <Link
+                            href="/wallet"
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${isActive('/wallet')
+                                ? 'bg-slate-800 text-white shadow-lg ring-1 ring-white/10'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                                }`}
+                        >
+                            <Wallet size={16} />
+                            Cüzdanım
+                        </Link>
+
+                        {/* Tools Dropdown */}
+                        <div className="relative group/menu">
+                            <button className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white hover:bg-slate-800/50`}>
+                                <FlaskConical size={16} />
+                                Araçlar
+                                <ChevronDown size={14} className="text-slate-500 group-hover/menu:rotate-180 transition-transform duration-300" />
+                            </button>
+
+                            <div className="absolute top-full left-0 mt-2 w-48 bg-slate-900 border border-white/10 rounded-xl shadow-xl overflow-hidden opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all duration-200 transform origin-top-left z-50">
+                                <Link
+                                    href="/scanner"
+                                    className="flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-colors border-b border-white/5"
+                                >
+                                    <Target size={16} className="text-secondary" />
+                                    Tarayıcı
+                                </Link>
+                                <Link
+                                    href="/backtest"
+                                    className="flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-colors border-b border-white/5"
+                                >
+                                    <FlaskConical size={16} className="text-amber-500" />
+                                    Simülasyon
+                                </Link>
+                                <Link
+                                    href="/alerts"
+                                    className="flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                                >
+                                    <Bell size={16} className="text-primary" />
+                                    Alarmlar
+                                </Link>
+                            </div>
+                        </div>
+
+                        <Link
+                            href="/reports"
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${isActive('/reports')
+                                ? 'bg-slate-800 text-white shadow-lg ring-1 ring-white/10'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                                }`}
+                        >
+                            <BarChart2 size={16} />
+                            Raporlar
+                        </Link>
+
+                        <Link
+                            href="/settings"
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${isActive('/settings')
+                                ? 'bg-slate-800 text-white shadow-lg ring-1 ring-white/10'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                                }`}
+                        >
+                            <Settings size={16} />
+                            Ayarlar
+                        </Link>
                     </nav>
                 </div>
 
@@ -219,22 +283,86 @@ export default function Navbar({ user }: NavbarProps) {
                             </div>
 
                             <nav className="flex flex-col gap-2">
-                                {navItems.map((item) => (
-                                    <Link
-                                        key={item.id}
-                                        href={item.href}
-                                        onClick={() => setIsMobileMenuOpen(false)}
-                                        className={`flex items-center gap-4 px-4 py-4 rounded-xl text-sm font-bold transition-all ${isActive(item.href)
-                                            ? 'bg-slate-800 text-white shadow-lg border border-white/5'
-                                            : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                                            }`}
-                                    >
-                                        <div className={`p-2 rounded-lg ${isActive(item.href) ? 'bg-primary/20 text-primary' : 'bg-slate-950 text-slate-500'}`}>
-                                            {item.icon}
-                                        </div>
-                                        {item.label}
-                                    </Link>
-                                ))}
+                                <Link
+                                    href="/"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className={`flex items-center gap-4 px-4 py-4 rounded-xl text-sm font-bold transition-all ${isActive('/') ? 'bg-slate-800 text-white shadow-lg border border-white/5' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                                >
+                                    <div className={`p-2 rounded-lg ${isActive('/') ? 'bg-primary/20 text-primary' : 'bg-slate-950 text-slate-500'}`}>
+                                        <LayoutDashboard size={16} />
+                                    </div>
+                                    Dashboard
+                                </Link>
+
+                                <Link
+                                    href="/wallet"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className={`flex items-center gap-4 px-4 py-4 rounded-xl text-sm font-bold transition-all ${isActive('/wallet') ? 'bg-slate-800 text-white shadow-lg border border-white/5' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                                >
+                                    <div className={`p-2 rounded-lg ${isActive('/wallet') ? 'bg-primary/20 text-primary' : 'bg-slate-950 text-slate-500'}`}>
+                                        <Wallet size={16} />
+                                    </div>
+                                    Cüzdanım
+                                </Link>
+
+                                <div className="px-4 py-2 mt-2 mb-1 text-xs font-bold text-slate-500 uppercase tracking-wider">Araçlar</div>
+
+                                <Link
+                                    href="/scanner"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className={`flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-bold transition-all ${isActive('/scanner') ? 'bg-slate-800 text-white shadow-lg border border-white/5' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                                >
+                                    <div className={`p-2 rounded-lg ${isActive('/scanner') ? 'bg-secondary/20 text-secondary' : 'bg-slate-950 text-slate-500'}`}>
+                                        <Target size={16} />
+                                    </div>
+                                    Tarayıcı
+                                </Link>
+
+                                <Link
+                                    href="/backtest"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className={`flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-bold transition-all ${isActive('/backtest') ? 'bg-slate-800 text-white shadow-lg border border-white/5' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                                >
+                                    <div className={`p-2 rounded-lg ${isActive('/backtest') ? 'bg-amber-500/20 text-amber-500' : 'bg-slate-950 text-slate-500'}`}>
+                                        <FlaskConical size={16} />
+                                    </div>
+                                    Simülasyon
+                                </Link>
+
+                                <Link
+                                    href="/alerts"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className={`flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-bold transition-all ${isActive('/alerts') ? 'bg-slate-800 text-white shadow-lg border border-white/5' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                                >
+                                    <div className={`p-2 rounded-lg ${isActive('/alerts') ? 'bg-primary/20 text-primary' : 'bg-slate-950 text-slate-500'}`}>
+                                        <Bell size={16} />
+                                    </div>
+                                    Alarmlar
+                                </Link>
+
+                                <div className="h-px bg-white/5 my-2"></div>
+
+                                <Link
+                                    href="/reports"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className={`flex items-center gap-4 px-4 py-4 rounded-xl text-sm font-bold transition-all ${isActive('/reports') ? 'bg-slate-800 text-white shadow-lg border border-white/5' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                                >
+                                    <div className={`p-2 rounded-lg ${isActive('/reports') ? 'bg-primary/20 text-primary' : 'bg-slate-950 text-slate-500'}`}>
+                                        <BarChart2 size={16} />
+                                    </div>
+                                    Raporlar
+                                </Link>
+
+                                <Link
+                                    href="/settings"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className={`flex items-center gap-4 px-4 py-4 rounded-xl text-sm font-bold transition-all ${isActive('/settings') ? 'bg-slate-800 text-white shadow-lg border border-white/5' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                                >
+                                    <div className={`p-2 rounded-lg ${isActive('/settings') ? 'bg-primary/20 text-primary' : 'bg-slate-950 text-slate-500'}`}>
+                                        <Settings size={16} />
+                                    </div>
+                                    Ayarlar
+                                </Link>
                             </nav>
 
                             <div className="mt-10 pt-10 border-t border-white/5">
