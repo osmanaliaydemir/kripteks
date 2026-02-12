@@ -58,6 +58,10 @@ public class BotEngineService : BackgroundService
             {
                 await ProcessBotsAsync(stoppingToken);
             }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                _logger.LogInformation("Bot Engine Durduruluyor... 👋");
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Bot Döngüsünde Kritik Hata!");
@@ -112,7 +116,7 @@ public class BotEngineService : BackgroundService
         bool isPanicMode = marketSentiment.RecommendedAction == "PANIC SELL";
 
         // 1. Bekleyen Botları Kontrol Et (GİRİŞ ARA)
-        foreach (var botId in waitingBotIds)
+        var waitingTasks = waitingBotIds.Select(async botId =>
         {
             if (isPanicMode)
             {
@@ -121,23 +125,25 @@ public class BotEngineService : BackgroundService
                     await LogGeneralWarningAsync(botId, "AI PANIC MODU: Alım sinyalleri geçici olarak durduruldu.");
                 }
 
-                continue;
+                return;
             }
 
             await CheckEntrySignal(botId, stoppingToken);
-        }
+        });
 
         // 2. Çalışan Botları Kontrol Et (ÇIKIŞ ARA & PNL GÜNCELLE)
-        foreach (var botId in runningBotIds)
+        var runningTasks = runningBotIds.Select(async botId =>
         {
             if (isPanicMode)
             {
                 await ClosePositionPanic(botId, stoppingToken);
-                continue;
+                return;
             }
 
             await CheckExitSignalAndPnl(botId, stoppingToken);
-        }
+        });
+
+        await Task.WhenAll(waitingTasks.Concat(runningTasks));
     }
 
     private async Task LogGeneralWarningAsync(Guid botId, string message)
@@ -174,7 +180,8 @@ public class BotEngineService : BackgroundService
         using (var scope = _serviceProvider.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            bot = await dbContext.Bots.AsNoTracking().FirstOrDefaultAsync(b => b.Id == botId);
+            bot = await dbContext.Bots.AsNoTracking().FirstOrDefaultAsync(b => b.Id == botId) ??
+                  throw new InvalidOperationException($"Bot {botId} bulunamadı.");
         }
 
         if (bot == null) return;
@@ -338,7 +345,7 @@ public class BotEngineService : BackgroundService
                     var auditService = scopeDb.ServiceProvider.GetRequiredService<IAuditLogService>();
                     await auditService.LogTradeAsync(null, botToUpdate.Symbol, "Alım",
                         currentPrice, botToUpdate.Amount, botToUpdate.Id,
-                        new { Strategy = botToUpdate.StrategyName, Interval = botToUpdate.Interval });
+                        new { strategy.Name, botToUpdate.Interval });
                     await auditService.LogWalletChangeAsync(null, "Bot Yatırımı",
                         wallet.Balance + botToUpdate.Amount, wallet.Balance, -botToUpdate.Amount,
                         $"Otomatik Alım: {botToUpdate.Symbol}");
@@ -364,7 +371,8 @@ public class BotEngineService : BackgroundService
         using (var scope = _serviceProvider.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            bot = await dbContext.Bots.AsNoTracking().FirstOrDefaultAsync(b => b.Id == botId);
+            bot = await dbContext.Bots.AsNoTracking().FirstOrDefaultAsync(b => b.Id == botId) ??
+                  throw new InvalidOperationException($"Bot {botId} bulunamadı.");
         }
 
         if (bot == null) return;
@@ -406,7 +414,7 @@ public class BotEngineService : BackgroundService
             var klines =
                 await client.SpotApi.ExchangeData.GetKlinesAsync(bot.Symbol.Replace("/", ""), interval, limit: 500);
 
-            StrategyResult signal = null;
+            StrategyResult? signal = null;
             if (klines.Success)
             {
                 var candles = klines.Data.Select(k => new Candle
