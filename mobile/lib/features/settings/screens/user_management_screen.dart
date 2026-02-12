@@ -28,6 +28,12 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
       appBar: AppBar(
         title: const Text('Kullanıcı Yönetimi'),
         backgroundColor: Colors.transparent,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: () => usersNotifier.refresh(),
+          ),
+        ],
       ),
       body: Column(
         children: [

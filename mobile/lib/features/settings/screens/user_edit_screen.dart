@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/features/settings/providers/user_management_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 
 class UserEditScreen extends ConsumerStatefulWidget {
   final UserManagementDto user;
@@ -296,7 +297,7 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
                     ),
                   ),
                   subtitle: Text(
-                    '${log.timestamp.toString().substring(0, 16)} • ${log.ipAddress ?? "IP Yok"}',
+                    '${DateFormat('dd.MM.yyyy HH:mm').format(log.timestamp.toLocal())} • ${log.ipAddress ?? "IP bilgisi yok"}',
                     style: const TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                 );
