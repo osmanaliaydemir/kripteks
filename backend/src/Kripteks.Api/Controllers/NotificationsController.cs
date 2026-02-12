@@ -26,10 +26,12 @@ public class NotificationsController(
         ?? throw new UnauthorizedAccessException("User ID not found in token");
 
     [HttpGet]
-    public async Task<IActionResult> GetNotifications([FromQuery] PaginationRequest pagination)
+    public async Task<IActionResult> GetNotifications([FromQuery] PaginationRequest pagination,
+        [FromQuery] NotificationType? type = null)
     {
         var userId = GetUserId();
-        var result = await notificationService.GetNotificationsAsync(userId, pagination.Page, pagination.PageSize);
+        var result =
+            await notificationService.GetNotificationsAsync(userId, pagination.Page, pagination.PageSize, type);
         return Ok(result);
     }
 
@@ -184,11 +186,13 @@ public class NotificationsController(
                 if (!string.IsNullOrEmpty(accessToken) && !string.IsNullOrEmpty(projectId))
                 {
                     using var httpClient = new HttpClient();
-                    var testPayload = "{\"validate_only\":true,\"message\":{\"token\":\"fake-token\",\"notification\":{\"title\":\"test\",\"body\":\"test\"}}}";
+                    var testPayload =
+                        "{\"validate_only\":true,\"message\":{\"token\":\"fake-token\",\"notification\":{\"title\":\"test\",\"body\":\"test\"}}}";
                     var url = $"https://fcm.googleapis.com/v1/projects/{projectId}/messages:send";
 
                     using var request = new HttpRequestMessage(HttpMethod.Post, url);
-                    request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+                    request.Headers.Authorization =
+                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
                     request.Content = new StringContent(testPayload, System.Text.Encoding.UTF8, "application/json");
 
                     var response = await httpClient.SendAsync(request);

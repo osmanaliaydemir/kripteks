@@ -11,11 +11,16 @@ class NotificationService {
   Future<PagedResult<NotificationModel>> getNotifications({
     int page = 1,
     int pageSize = 20,
+    NotificationType? type,
   }) async {
     try {
+      final queryParams = <String, dynamic>{'page': page, 'pageSize': pageSize};
+      if (type != null) {
+        queryParams['type'] = type.name;
+      }
       final response = await _dio.get(
         '/notifications',
-        queryParameters: {'page': page, 'pageSize': pageSize},
+        queryParameters: queryParams,
       );
       return PagedResult.fromJson(
         response.data as Map<String, dynamic>,

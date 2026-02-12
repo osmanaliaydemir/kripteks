@@ -26,7 +26,8 @@ public interface INotificationService
     /// <summary>
     /// Kullanıcının tüm bildirimlerini getir (genel + kullanıcıya özel), per-user read status ile.
     /// </summary>
-    Task<PagedResult<NotificationDto>> GetNotificationsAsync(string userId, int page = 1, int pageSize = 20);
+    Task<PagedResult<NotificationDto>> GetNotificationsAsync(string userId, int page = 1, int pageSize = 20,
+        NotificationType? type = null);
 
     /// <summary>
     /// Kullanıcı için belirli bir bildirimi okundu olarak işaretle.

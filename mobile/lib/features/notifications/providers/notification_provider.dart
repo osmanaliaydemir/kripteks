@@ -12,6 +12,42 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
   return NotificationService(dio);
 });
 
+/// Filtre seçenekleri
+enum NotificationFilter {
+  all('Tümü'),
+  trade('İşlemler'),
+  system('Sistem'),
+  security('Güvenlik'),
+  news('Haberler');
+
+  final String label;
+  const NotificationFilter(this.label);
+}
+
+/// Seçili filtre state'i
+/// Seçili filtre state'i
+class NotificationFilterNotifier extends Notifier<NotificationFilter> {
+  @override
+  NotificationFilter build() {
+    return NotificationFilter.all;
+  }
+
+  void setFilter(NotificationFilter filter) {
+    state = filter;
+  }
+}
+
+final notificationFilterProvider =
+    NotifierProvider<NotificationFilterNotifier, NotificationFilter>(
+      NotificationFilterNotifier.new,
+    );
+
+/// Filtrelenmiş bildirim listesi (Backend-side filtering olduğu için doğrudan listeyi döner)
+final filteredNotificationsProvider = Provider<List<NotificationModel>>((ref) {
+  final notificationsState = ref.watch(paginatedNotificationsProvider);
+  return notificationsState.asData?.value.items ?? [];
+});
+
 /// Sayfalanmış bildirimler provider'ı.
 final paginatedNotificationsProvider =
     AsyncNotifierProvider<
@@ -31,12 +67,41 @@ final unreadNotificationCountProvider = Provider<int>((ref) {
 class PaginatedNotificationsNotifier
     extends PaginatedAsyncNotifier<NotificationModel> {
   @override
+  Future<PaginatedState<NotificationModel>> build() async {
+    // Filtre değiştiğinde otomatik yenilenmesi için izle
+    ref.watch(notificationFilterProvider);
+    return super.build();
+  }
+
+  @override
   int get pageSize => 20;
 
   @override
   Future<PagedResult<NotificationModel>> fetchPage(int page, int pageSize) {
     final service = ref.read(notificationServiceProvider);
-    return service.getNotifications(page: page, pageSize: pageSize);
+    final filter = ref.read(notificationFilterProvider);
+
+    NotificationType? type;
+    switch (filter) {
+      case NotificationFilter.trade:
+        type = NotificationType.Trade;
+        break;
+      case NotificationFilter.security:
+        type = NotificationType.Warning;
+        break;
+      case NotificationFilter.news:
+        type = NotificationType.Info;
+        break;
+      case NotificationFilter.system:
+        // System kategorisi için şimdilik Success tipini baz alıyoruz
+        // Backend çoklu tip desteklerse burayı güncelleyebiliriz
+        type = NotificationType.Success;
+        break;
+      default:
+        type = null;
+    }
+
+    return service.getNotifications(page: page, pageSize: pageSize, type: type);
   }
 
   /// SignalR'dan gelen bildirimi listeye ekle.
@@ -45,6 +110,28 @@ class PaginatedNotificationsNotifier
       final notification = NotificationModel.fromJson(json);
       final currentState = state.asData?.value;
       if (currentState == null) return;
+
+      final filter = ref.read(notificationFilterProvider);
+
+      // Mevcut filtreye uygun mu kontrol et
+      bool matchesFilter = true;
+      if (filter != NotificationFilter.all) {
+        if (filter == NotificationFilter.trade &&
+            notification.type != NotificationType.Trade)
+          matchesFilter = false;
+        if (filter == NotificationFilter.security &&
+            notification.type != NotificationType.Warning)
+          matchesFilter = false;
+        if (filter == NotificationFilter.news &&
+            notification.type != NotificationType.Info)
+          matchesFilter = false;
+        if (filter == NotificationFilter.system &&
+            notification.type != NotificationType.Success &&
+            notification.type != NotificationType.Error)
+          matchesFilter = false;
+      }
+
+      if (!matchesFilter) return;
 
       // Duplicate kontrolü
       if (currentState.items.any((n) => n.id == notification.id)) return;

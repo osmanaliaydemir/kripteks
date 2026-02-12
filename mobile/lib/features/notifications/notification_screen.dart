@@ -48,6 +48,8 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
   @override
   Widget build(BuildContext context) {
     final notificationsAsync = ref.watch(paginatedNotificationsProvider);
+    final filteredNotifications = ref.watch(filteredNotificationsProvider);
+    final selectedFilter = ref.watch(notificationFilterProvider);
     final hasUnread =
         notificationsAsync.asData?.value.items.any((n) => !n.isRead) ?? false;
 
@@ -96,110 +98,172 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
             ),
           ),
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: RefreshIndicator(
-                onRefresh: () =>
-                    ref.read(paginatedNotificationsProvider.notifier).refresh(),
-                color: AppColors.primary,
-                backgroundColor: AppColors.surface,
-                child: notificationsAsync.when(
-                  data: (paginatedState) {
-                    final notifications = paginatedState.items;
+            child: Column(
+              children: [
+                // Filter Chips
+                SizedBox(
+                  height: 60,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: NotificationFilter.values.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final filter = NotificationFilter.values[index];
+                      final isSelected = filter == selectedFilter;
+                      return _buildFilterChip(filter, isSelected);
+                    },
+                  ),
+                ),
 
-                    if (notifications.isEmpty) {
-                      return ListView(
-                        children: [
-                          SizedBox(
-                            height: MediaQuery.of(context).size.height * 0.7,
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.notifications_none_outlined,
-                                    size: 64,
-                                    color: AppColors.textDisabled,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'Bildirim bulunmuyor',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    }
+                // Notifications List
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () => ref
+                        .read(paginatedNotificationsProvider.notifier)
+                        .refresh(),
+                    color: AppColors.primary,
+                    backgroundColor: AppColors.surface,
+                    child: notificationsAsync.when(
+                      data: (paginatedState) {
+                        if (filteredNotifications.isEmpty &&
+                            !paginatedState.isLoadingMore) {
+                          // Eğer filtre seçili ve boşsa ama genel liste doluysa, filtreye uyan yok demektir.
+                          // Ama ana liste de boşsa hiç bildirim yok demektir.
+                          final bool isCleanEmpty =
+                              paginatedState.items.isEmpty &&
+                              selectedFilter == NotificationFilter.all;
 
-                    return ListView.separated(
-                      controller: _scrollController,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.only(top: 16, bottom: 32),
-                      itemCount:
-                          notifications.length +
-                          (paginatedState.isLoadingMore ||
-                                  !paginatedState.hasMore
-                              ? 1
-                              : 0),
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        if (index >= notifications.length) {
-                          if (paginatedState.isLoadingMore) {
-                            return const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 16),
-                              child: Center(
-                                child: SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: AppColors.primary,
+                          return ListView(
+                            children: [
+                              SizedBox(
+                                height:
+                                    MediaQuery.of(context).size.height * 0.6,
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        isCleanEmpty
+                                            ? Icons.notifications_none_outlined
+                                            : Icons.filter_list_off_outlined,
+                                        size: 64,
+                                        color: AppColors.textDisabled,
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        isCleanEmpty
+                                            ? 'Bildirim bulunmuyor'
+                                            : '${selectedFilter.label} kategorisinde bildirim yok',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
-                            );
-                          }
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            child: Center(
-                              child: Text(
-                                'Tüm bildirimler yüklendi',
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.3),
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
+                            ],
                           );
                         }
-                        return _buildNotificationTile(
-                          context,
-                          ref,
-                          notifications[index],
+
+                        return ListView.separated(
+                          controller: _scrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.only(
+                            top: 8,
+                            bottom: 32,
+                            left: 16,
+                            right: 16,
+                          ),
+                          itemCount:
+                              filteredNotifications.length +
+                              (paginatedState.isLoadingMore ||
+                                      !paginatedState.hasMore
+                                  ? 1
+                                  : 0),
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            if (index >= filteredNotifications.length) {
+                              if (paginatedState.isLoadingMore) {
+                                return const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                  child: Center(
+                                    child: SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
+                              // Filtreli görünümde "Hepsi yüklendi" demek biraz kafa karıştırıcı olabilir
+                              // ama teknik olarak doğru.
+                              return const SizedBox(height: 16);
+                            }
+                            return _buildNotificationTile(
+                              context,
+                              ref,
+                              filteredNotifications[index],
+                            );
+                          },
                         );
                       },
-                    );
-                  },
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  ),
-                  error: (err, stack) => Center(
-                    child: Text(
-                      'Hata: $err',
-                      style: const TextStyle(color: AppColors.error),
+                      loading: () => const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      error: (err, stack) => Center(
+                        child: Text(
+                          'Hata: $err',
+                          style: const TextStyle(color: AppColors.error),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(NotificationFilter filter, bool isSelected) {
+    return GestureDetector(
+      onTap: () {
+        ref.read(notificationFilterProvider.notifier).setFilter(filter);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primary
+              : AppColors.surface.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.white05,
+          ),
+        ),
+        child: Text(
+          filter.label,
+          style: GoogleFonts.plusJakartaSans(
+            color: isSelected ? Colors.black : AppColors.textSecondary,
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          ),
+        ),
       ),
     );
   }

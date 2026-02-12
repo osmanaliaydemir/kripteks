@@ -127,7 +127,7 @@ public class NotificationService(
     }
 
     public async Task<PagedResult<NotificationDto>> GetNotificationsAsync(string userId, int page = 1,
-        int pageSize = 20)
+        int pageSize = 20, NotificationType? type = null)
     {
         // Kullanıcının okuduğu bildirim ID'lerini al
         var readNotificationIds = await context.UserNotificationReads
@@ -139,8 +139,14 @@ public class NotificationService(
         // Kullanıcıya ait bildirimler: genel (UserId=null) + kullanıcıya özel (UserId=userId)
         var query = context.Notifications
             .AsNoTracking()
-            .Where(n => n.UserId == null || n.UserId == userId)
-            .OrderByDescending(n => n.CreatedAt);
+            .Where(n => n.UserId == null || n.UserId == userId);
+
+        if (type.HasValue)
+        {
+            query = query.Where(n => n.Type == type.Value);
+        }
+
+        query = query.OrderByDescending(n => n.CreatedAt);
 
         var totalCount = await query.CountAsync();
 
