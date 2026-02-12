@@ -59,6 +59,7 @@ class AuthController extends AsyncNotifier<void> {
     ref.invalidate(userProfileProvider);
     ref.invalidate(usersProvider);
     ref.invalidate(paginatedNotificationsProvider);
+    ref.invalidate(paginatedAuditLogsProvider);
 
     await ref.read(authStateProvider.notifier).logout();
   }

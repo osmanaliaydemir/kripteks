@@ -235,6 +235,7 @@ class AuthInterceptor extends QueuedInterceptor {
     ref.invalidate(userProfileProvider);
     ref.invalidate(usersProvider);
     ref.invalidate(paginatedNotificationsProvider);
+    ref.invalidate(paginatedAuditLogsProvider);
 
     if (kDebugMode) {
       debugPrint('🔐 [AuthInterceptor] Session expired. Redirecting to login.');

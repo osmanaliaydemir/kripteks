@@ -29,6 +29,10 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
     _lastNameController = TextEditingController(text: widget.user.lastName);
     _role = widget.user.role;
     _isActive = widget.user.isActive;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(paginatedAuditLogsProvider.notifier).init(widget.user.id);
+    });
   }
 
   @override
@@ -93,6 +97,60 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _deleteUser() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text(
+          'Kullanıcıyı Sil',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          '${widget.user.firstName} ${widget.user.lastName} adlı kullanıcıyı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('İptal', style: TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Sil', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() => _isLoading = true);
+      try {
+        await ref.read(usersProvider.notifier).deleteUser(widget.user.id);
+        if (mounted) {
+          context.pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Kullanıcı silindi'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Hata: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -240,6 +298,31 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
                 ),
               ),
             ),
+            if (widget.user.role != 'Admin') ...[
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: OutlinedButton.icon(
+                  onPressed: _isLoading ? null : _deleteUser,
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.error),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    foregroundColor: AppColors.error,
+                  ),
+                  icon: const Icon(Icons.delete_outline),
+                  label: Text(
+                    'Kullanıcıyı Sil',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 32),
             _buildAuditLogs(),
           ],
@@ -249,7 +332,7 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
   }
 
   Widget _buildAuditLogs() {
-    final auditLogsAsync = ref.watch(auditLogsProvider(widget.user.id));
+    final auditLogsState = ref.watch(paginatedAuditLogsProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -263,45 +346,85 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        auditLogsAsync.when(
-          data: (logs) {
+        auditLogsState.when(
+          data: (paginatedState) {
+            final logs = paginatedState.items;
             if (logs.isEmpty) {
               return const Text(
                 'Kayıt bulunamadı.',
                 style: TextStyle(color: Colors.grey),
               );
             }
-            return ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: logs.length,
-              separatorBuilder: (_, _) => const Divider(color: Colors.white10),
-              itemBuilder: (context, index) {
-                final log = logs[index];
-                return ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: CircleAvatar(
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                    child: Icon(
-                      _getIconForCategory(log.category),
-                      color: AppColors.primary,
-                      size: 20,
+            return Column(
+              children: [
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: logs.length,
+                  separatorBuilder: (_, _) =>
+                      const Divider(color: Colors.white10),
+                  itemBuilder: (context, index) {
+                    final log = logs[index];
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: CircleAvatar(
+                        backgroundColor: AppColors.primary.withValues(
+                          alpha: 0.1,
+                        ),
+                        child: Icon(
+                          _getIconForCategory(log.category),
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(
+                        log.action,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${DateFormat('dd.MM.yyyy HH:mm').format(log.timestamp.toLocal())} • ${log.ipAddress ?? "IP bilgisi yok"}',
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                if (paginatedState.hasMore) ...[
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: paginatedState.isLoadingMore
+                          ? null
+                          : () => ref
+                                .read(paginatedAuditLogsProvider.notifier)
+                                .loadMore(),
+                      child: paginatedState.isLoadingMore
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.primary,
+                              ),
+                            )
+                          : Text(
+                              'Daha Fazla Yükle',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
-                  title: Text(
-                    log.action,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                    ),
-                  ),
-                  subtitle: Text(
-                    '${DateFormat('dd.MM.yyyy HH:mm').format(log.timestamp.toLocal())} • ${log.ipAddress ?? "IP bilgisi yok"}',
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                );
-              },
+                ],
+              ],
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),

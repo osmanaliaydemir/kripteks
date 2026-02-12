@@ -185,15 +185,6 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                           ),
                           if (user.role != 'Admin') ...[
                             const SizedBox(width: 8),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.delete_outline,
-                                color: AppColors.error,
-                                size: 20,
-                              ),
-                              onPressed: () =>
-                                  _confirmDelete(user, usersNotifier),
-                            ),
                           ],
                           const SizedBox(width: 4),
                           const Icon(Icons.chevron_right, color: Colors.grey),
@@ -269,54 +260,5 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
       default:
         return Colors.grey;
     }
-  }
-
-  void _confirmDelete(UserManagementDto user, UsersNotifier notifier) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        title: const Text(
-          'Kullanıcıyı Sil',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: Text(
-          '${user.firstName} ${user.lastName} adlı kullanıcıyı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.',
-          style: const TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('İptal', style: TextStyle(color: Colors.white54)),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              try {
-                await notifier.deleteUser(user.id);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Kullanıcı silindi'),
-                      backgroundColor: AppColors.success,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Hata: $e'),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text('Sil', style: TextStyle(color: AppColors.error)),
-          ),
-        ],
-      ),
-    );
   }
 }

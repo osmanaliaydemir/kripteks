@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/network/dio_client.dart';
+import 'package:mobile/core/models/paged_result.dart';
+import 'package:mobile/core/providers/paginated_provider.dart';
 
 // Service
 class UserManagementService {
@@ -28,11 +30,19 @@ class UserManagementService {
     await _dio.post('/users/$id/send-password-reset');
   }
 
-  Future<List<AuditLogDto>> getAuditLogs(String userId) async {
-    final response = await _dio.get('/users/$userId/audit-logs');
-    return (response.data['items'] as List)
-        .map((e) => AuditLogDto.fromJson(e))
-        .toList();
+  Future<PagedResult<AuditLogDto>> getAuditLogs(
+    String userId, {
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    final response = await _dio.get(
+      '/users/$userId/audit-logs',
+      queryParameters: {'page': page, 'pageSize': pageSize},
+    );
+    return PagedResult.fromJson(
+      response.data,
+      (json) => AuditLogDto.fromJson(json),
+    );
   }
 }
 
@@ -191,8 +201,25 @@ class UsersNotifier extends AsyncNotifier<List<UserManagementDto>> {
   }
 }
 
-final auditLogsProvider = FutureProvider.family
-    .autoDispose<List<AuditLogDto>, String>((ref, userId) async {
-      final service = ref.watch(userManagementServiceProvider);
-      return service.getAuditLogs(userId);
-    });
+final paginatedAuditLogsProvider =
+    AsyncNotifierProvider<
+      PaginatedAuditLogsNotifier,
+      PaginatedState<AuditLogDto>
+    >(PaginatedAuditLogsNotifier.new);
+
+class PaginatedAuditLogsNotifier extends PaginatedAsyncNotifier<AuditLogDto> {
+  String? _userId;
+
+  void init(String userId) {
+    if (_userId == userId) return;
+    _userId = userId;
+    refresh();
+  }
+
+  @override
+  Future<PagedResult<AuditLogDto>> fetchPage(int page, int pageSize) {
+    if (_userId == null) return Future.value(PagedResult.empty());
+    final service = ref.read(userManagementServiceProvider);
+    return service.getAuditLogs(_userId!, page: page, pageSize: pageSize);
+  }
+}
