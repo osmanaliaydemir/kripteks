@@ -12,4 +12,7 @@ public class AppUser : IdentityUser
     // Refresh Token Alanları
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpiry { get; set; }
+
+    // Hesap Durumu
+    public bool IsActive { get; set; }
 }

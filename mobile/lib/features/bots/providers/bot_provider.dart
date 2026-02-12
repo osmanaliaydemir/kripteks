@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/network/auth_state_provider.dart';
 import '../../../core/models/paged_result.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/providers/paginated_provider.dart';
@@ -26,6 +27,12 @@ class PaginatedBotListNotifier extends PaginatedAsyncNotifier<Bot> {
   @override
   Future<PaginatedState<Bot>> build() async {
     _refreshTimer?.cancel();
+
+    final authState = ref.watch(authStateProvider);
+    if (authState.asData?.value != true) {
+      return PaginatedState<Bot>();
+    }
+
     _refreshTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       silentRefresh();
     });
@@ -66,6 +73,11 @@ final botDetailProvider = StreamProvider.family.autoDispose<Bot, String>((
   ref,
   id,
 ) {
+  final authState = ref.watch(authStateProvider);
+  if (authState.asData?.value != true) {
+    return const Stream.empty();
+  }
+
   final botService = ref.watch(botServiceProvider);
   return Stream.periodic(
     const Duration(seconds: 5),

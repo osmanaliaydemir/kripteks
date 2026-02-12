@@ -224,17 +224,31 @@ class SettingsScreen extends ConsumerWidget {
                           onTap: () =>
                               context.push('/settings/change-password'),
                         ),
-                        const Divider(
-                          color: AppColors.white05,
-                          height: 1,
-                          indent: 64,
-                        ),
-                        _buildListTile(
-                          icon: Icons.history_rounded,
-                          title: 'Denetim Kayıtları',
-                          subtitle: 'Tüm sistem aktivitelerini görüntüle',
-                          onTap: () => context.push('/audit-logs'),
-                        ),
+                        if (profileAsync.value?.role == 'Admin') ...[
+                          const Divider(
+                            color: AppColors.white05,
+                            height: 1,
+                            indent: 64,
+                          ),
+                          _buildListTile(
+                            icon: Icons.history_rounded,
+                            title: 'Denetim Kayıtları',
+                            subtitle: 'Tüm sistem aktivitelerini görüntüle',
+                            onTap: () => context.push('/audit-logs'),
+                          ),
+                          const Divider(
+                            color: AppColors.white05,
+                            height: 1,
+                            indent: 64,
+                          ),
+                          _buildListTile(
+                            icon: Icons.people_outline_rounded,
+                            title: 'Kullanıcı Yönetimi',
+                            subtitle: 'Kayıtlı kullanıcıları yönet',
+                            onTap: () =>
+                                context.push('/settings/user-management'),
+                          ),
+                        ],
                         const Divider(
                           color: AppColors.white05,
                           height: 1,

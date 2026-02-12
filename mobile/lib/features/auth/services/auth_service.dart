@@ -35,6 +35,27 @@ class AuthService {
     }
   }
 
+  Future<void> register(
+    String firstName,
+    String lastName,
+    String email,
+    String password,
+  ) async {
+    try {
+      await _dio.post(
+        '/auth/register',
+        data: {
+          'firstName': firstName,
+          'lastName': lastName,
+          'email': email,
+          'password': password,
+        },
+      );
+    } on DioException catch (e, stack) {
+      throw ErrorHandler.handle(e, stack);
+    }
+  }
+
   Future<void> logout(NotificationService notificationService) async {
     // Önce FCM token'ı backend'den kaldır
     try {

@@ -49,13 +49,35 @@ public class AuthController : ControllerBase
         {
             UserName = model.Email, Email = model.Email,
             FirstName = InputSanitizer.Sanitize(model.FirstName),
-            LastName = InputSanitizer.Sanitize(model.LastName)
+            LastName = InputSanitizer.Sanitize(model.LastName),
+            IsActive = false // Varsayılan olarak pasif
         };
         var result = await _userManager.CreateAsync(user, model.Password);
 
         if (result.Succeeded)
         {
-            return Ok(new { message = "Kayıt başarılı" });
+            try
+            {
+                var admins = await _userManager.GetUsersInRoleAsync("Admin");
+                foreach (var admin in admins)
+                {
+                    if (!string.IsNullOrEmpty(admin.Email))
+                    {
+                        await _emailService.SendNewUserNotificationAsync(admin.Email,
+                            $"{user.FirstName} {user.LastName}", user.Email);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Admin notification error: {ex.Message}");
+            }
+
+            return Ok(new
+            {
+                message =
+                    "Kullanıcı talebiniz oluşturuldu. Yönetici tarafından onaylandıktan sonra mail adresinize bilgi gelecektir. Sonra belirlediğiniz şifre ile giriş yapabileceksiniz."
+            });
         }
 
         return BadRequest(result.Errors);
@@ -71,6 +93,14 @@ public class AuthController : ControllerBase
             await _auditLogService.LogAnonymousAsync("Giriş Denemesi Başarısız",
                 new { model.Email, Reason = "Kullanıcı bulunamadı" });
             return Unauthorized("Giriş başarısız");
+        }
+
+        if (!user.IsActive)
+        {
+            await _auditLogService.LogAnonymousAsync("Giriş Denemesi Başarısız",
+                new { model.Email, Reason = "Kullanıcı onaylanmamış" });
+            return Unauthorized(
+                "Kullanıcınız henüz yönetici tarafından onaylanmadı. Lütfen yöneticinin onaylamasını bekleyiniz.");
         }
 
         var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);

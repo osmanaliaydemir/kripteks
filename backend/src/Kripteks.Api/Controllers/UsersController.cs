@@ -48,6 +48,7 @@ public class UsersController : ControllerBase
                 user.FirstName,
                 user.LastName,
                 user.Email,
+                user.IsActive,
                 role = roles.FirstOrDefault() ?? "User"
             });
         }
@@ -104,7 +105,8 @@ public class UsersController : ControllerBase
                 var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
                 var encodedToken = System.Net.WebUtility.UrlEncode(resetToken);
                 var encodedEmail = System.Net.WebUtility.UrlEncode(model.Email);
-                var setupUrl = $"https://web-kripteks.runasp.net/set-password?token={encodedToken}&email={encodedEmail}";
+                var setupUrl =
+                    $"https://web-kripteks.runasp.net/set-password?token={encodedToken}&email={encodedEmail}";
 
                 await _emailService.SendWelcomeEmailAsync(model.Email, model.FirstName, setupUrl);
             }
@@ -149,6 +151,42 @@ public class UsersController : ControllerBase
 
         return BadRequest(new { message = "Silme işlemi başarısız.", errors = result.Errors });
     }
+
+    // PUT: api/users/{id}
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateUser(string id, [FromBody] UpdateUserDto model)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null) return NotFound(new { message = "Kullanıcı bulunamadı." });
+
+        user.FirstName = InputSanitizer.Sanitize(model.FirstName);
+        user.LastName = InputSanitizer.Sanitize(model.LastName);
+        user.IsActive = model.IsActive;
+
+        var result = await _userManager.UpdateAsync(user);
+
+        if (result.Succeeded)
+        {
+            // Rol Güncelleme
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            await _userManager.RemoveFromRolesAsync(user, currentRoles);
+            await _userManager.AddToRoleAsync(user, model.Role);
+
+            await _auditLogService.LogAsync(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!,
+                "Kullanıcı Güncellendi", new { user.Email, model.Role, model.IsActive });
+            return Ok(new { message = "Kullanıcı başarıyla güncellendi." });
+        }
+
+        return BadRequest(new { message = "Güncelleme başarısız.", errors = result.Errors });
+    }
+}
+
+public class UpdateUserDto
+{
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Role { get; set; } = "User";
+    public bool IsActive { get; set; }
 }
 
 public class CreateUserDto
@@ -170,6 +208,7 @@ public class CreateUserDto
     [System.ComponentModel.DataAnnotations.StringLength(128, MinimumLength = 6)]
     public string Password { get; set; } = string.Empty;
 
-    [System.ComponentModel.DataAnnotations.RegularExpression("^(Admin|Trader|User)$", ErrorMessage = "Rol Admin, Trader veya User olmalıdır.")]
+    [System.ComponentModel.DataAnnotations.RegularExpression("^(Admin|Trader|User)$",
+        ErrorMessage = "Rol Admin, Trader veya User olmalıdır.")]
     public string Role { get; set; } = "User";
 }

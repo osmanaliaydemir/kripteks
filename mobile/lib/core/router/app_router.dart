@@ -14,6 +14,7 @@ import 'package:mobile/features/wallet/wallet_screen.dart';
 import 'package:mobile/features/reports/reports_screen.dart';
 import 'package:mobile/features/market_analysis/market_analysis_screen.dart';
 import 'package:mobile/features/settings/profile_edit_screen.dart';
+import 'package:mobile/features/settings/screens/user_management_screen.dart';
 import 'package:mobile/features/settings/change_password_screen.dart';
 import 'package:mobile/features/settings/notifications_settings_screen.dart';
 import 'package:mobile/features/settings/binance_api_keys_screen.dart';
@@ -111,6 +112,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings/profile-edit',
         builder: (context, state) => const ProfileEditScreen(),
+      ),
+      GoRoute(
+        path: '/settings/user-management',
+        builder: (context, state) => const UserManagementScreen(),
       ),
       GoRoute(
         path: '/settings/change-password',

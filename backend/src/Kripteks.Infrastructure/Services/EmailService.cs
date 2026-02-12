@@ -171,4 +171,65 @@ public class EmailService : IEmailService
 </html>
         ";
     }
+
+    public async Task SendNewUserNotificationAsync(string adminEmail, string newUserName, string newUserEmail)
+    {
+        var template = GetNewUserNotificationTemplate(newUserName, newUserEmail);
+        await SendEmailAsync(adminEmail, "🔔 Yeni Kullanıcı Kaydı - Kripteks", template);
+    }
+
+    private string GetNewUserNotificationTemplate(string newUserName, string newUserEmail)
+    {
+        return $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; margin: 0; padding: 0; }}
+        .container {{ max-width: 600px; margin: 40px auto; background-color: #1e293b; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.5); border: 1px solid #334155; }}
+        .header {{ background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px 20px; text-align: center; }}
+        .header h1 {{ color: white; margin: 0; font-size: 24px; font-weight: 800; }}
+        .content {{ padding: 30px; color: #e2e8f0; }}
+        .info-box {{ background-color: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 20px; margin: 20px 0; }}
+        .info-item {{ margin-bottom: 10px; }}
+        .label {{ color: #94a3b8; font-size: 12px; text-transform: uppercase; font-weight: bold; }}
+        .value {{ color: white; font-weight: 500; display: block; margin-top: 4px; }}
+        .footer {{ background-color: #0f172a; padding: 15px; text-align: center; color: #64748b; font-size: 12px; border-top: 1px solid #334155; }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>Yeni Kullanıcı Kaydı</h1>
+        </div>
+        <div class='content'>
+            <p>Sisteme yeni bir kullanıcı kayıt oldu ve onay bekliyor.</p>
+            
+            <div class='info-box'>
+                <div class='info-item'>
+                    <span class='label'>Ad Soyad</span>
+                    <span class='value'>{newUserName}</span>
+                </div>
+                <div class='info-item'>
+                    <span class='label'>E-Posta</span>
+                    <span class='value'>{newUserEmail}</span>
+                </div>
+                <div class='info-item'>
+                    <span class='label'>Durum</span>
+                    <span class='value' style='color: #f59e0b;'>Onay Bekliyor</span>
+                </div>
+            </div>
+
+            <p style='font-size: 14px; color: #94a3b8;'>
+                Kullanıcıyı aktifleştirmek için Admin panelini veya mobil uygulamadaki Kullanıcı Yönetimi ekranını kullanabilirsiniz.
+            </p>
+        </div>
+        <div class='footer'>
+            Kripteks Bot Engine Bildirim Sistemi
+        </div>
+    </div>
+</body>
+</html>
+        ";
+    }
 }

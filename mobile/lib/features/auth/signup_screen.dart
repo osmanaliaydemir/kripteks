@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:mobile/l10n/app_localizations.dart';
 import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/features/auth/providers/auth_provider.dart';
+import 'package:mobile/core/error/error_handler.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -30,12 +32,56 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
   void _handleSignUp() async {
     if (_formKey.currentState!.validate()) {
-      // Mock signup for now
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.registrationDisabled),
-        ),
-      );
+      final fullName = _nameController.text.trim();
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+
+      String firstName = fullName;
+      String lastName = '';
+
+      if (fullName.contains(' ')) {
+        final parts = fullName.split(' ');
+        lastName = parts.last;
+        firstName = parts.sublist(0, parts.length - 1).join(' ');
+      }
+
+      await ref
+          .read(authControllerProvider.notifier)
+          .register(firstName, lastName, email, password);
+
+      final authState = ref.read(authControllerProvider);
+
+      if (!authState.hasError && mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFF1E293B),
+            title: const Text(
+              'Kayıt Başarılı',
+              style: TextStyle(color: Colors.white),
+            ),
+            content: const Text(
+              'Kullanıcı talebiniz oluşturuldu. Yönetici tarafından onaylandıktan sonra mail adresinize bilgi gelecektir. Sonra belirlediğiniz şifre ile giriş yapabileceksiniz.',
+              style: TextStyle(color: Colors.white70),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  context.pop(); // Close dialog
+                  context.go('/login'); // Go to login
+                },
+                child: const Text(
+                  'Tamam',
+                  style: TextStyle(color: AppColors.primary),
+                ),
+              ),
+            ],
+          ),
+        );
+      } else if (authState.hasError && mounted) {
+        ErrorHandler.showError(context, authState.error!);
+      }
     }
   }
 
@@ -246,7 +292,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                                   ],
                                 ),
                                 child: ElevatedButton(
-                                  onPressed: _handleSignUp,
+                                  onPressed:
+                                      ref
+                                          .watch(authControllerProvider)
+                                          .isLoading
+                                      ? null
+                                      : _handleSignUp,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.transparent,
                                     shadowColor: Colors.transparent,
@@ -254,14 +305,26 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                                       borderRadius: BorderRadius.circular(16),
                                     ),
                                   ),
-                                  child: Text(
-                                    AppLocalizations.of(context)!.signup,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                  child:
+                                      ref
+                                          .watch(authControllerProvider)
+                                          .isLoading
+                                      ? const SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : Text(
+                                          AppLocalizations.of(context)!.signup,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
                                 ),
                               )
                               .animate()
