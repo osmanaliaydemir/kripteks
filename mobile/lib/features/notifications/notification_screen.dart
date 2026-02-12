@@ -4,6 +4,7 @@ import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/widgets/app_header.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/core/providers/firebase_notification_provider.dart';
 import 'providers/notification_provider.dart';
 import 'models/notification_model.dart';
 
@@ -21,6 +22,11 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+
+    // Clear app icon badge when viewing notifications
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(firebaseNotificationServiceProvider).clearBadge();
+    });
   }
 
   @override
@@ -53,9 +59,12 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
         actions: [
           if (hasUnread)
             TextButton(
-              onPressed: () => ref
-                  .read(paginatedNotificationsProvider.notifier)
-                  .markAllAsRead(),
+              onPressed: () {
+                ref
+                    .read(paginatedNotificationsProvider.notifier)
+                    .markAllAsRead();
+                ref.read(firebaseNotificationServiceProvider).clearBadge();
+              },
               child: Text(
                 'Tümünü Oku',
                 style: GoogleFonts.plusJakartaSans(

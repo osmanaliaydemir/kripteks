@@ -78,6 +78,9 @@ class FirebaseNotificationService {
 
         _isInitialized = true;
 
+        // Clear badge on startup
+        await clearBadge();
+
         // Check and register token
         await _checkAndRegisterToken(notificationService);
 
@@ -331,6 +334,21 @@ class FirebaseNotificationService {
       return 'Android';
     }
     return 'Unknown';
+  }
+
+  /// Clear app badge
+  Future<void> clearBadge() async {
+    try {
+      if (Platform.isIOS) {
+        // DarwinFlutterLocalNotificationsPlugin is for iOS/macOS
+        final dynamic darwinPlugin = _localNotifications
+            .resolvePlatformSpecificImplementation();
+        await darwinPlugin?.setBadgeNumber(0);
+        _logger.info('App badge cleared (iOS)');
+      }
+    } catch (e) {
+      _logger.warning('Failed to clear app badge: $e');
+    }
   }
 
   /// Unregister device on logout

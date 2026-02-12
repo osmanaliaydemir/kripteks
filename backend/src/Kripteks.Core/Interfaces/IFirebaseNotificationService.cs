@@ -9,7 +9,8 @@ public interface IFirebaseNotificationService
         string fcmToken,
         string title,
         string body,
-        Dictionary<string, string>? data = null);
+        Dictionary<string, string>? data = null,
+        int? badgeCount = null);
 
     /// <summary>
     /// Send notification to all active devices of a user
@@ -18,7 +19,8 @@ public interface IFirebaseNotificationService
         string userId,
         string title,
         string body,
-        Dictionary<string, string>? data = null);
+        Dictionary<string, string>? data = null,
+        int? badgeCount = null);
 
     /// <summary>
     /// Send notification to multiple devices (bulk send)
@@ -27,5 +29,6 @@ public interface IFirebaseNotificationService
         List<string> fcmTokens,
         string title,
         string body,
-        Dictionary<string, string>? data = null);
+        Dictionary<string, string>? data = null,
+        int? badgeCount = null);
 }

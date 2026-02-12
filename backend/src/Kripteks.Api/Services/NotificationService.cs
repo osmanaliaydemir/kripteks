@@ -59,29 +59,42 @@ public class NotificationService(
             {
                 if (await ShouldSendPushAsync(userId, type))
                 {
-                    await firebaseNotificationService.SendToUserAsync(userId, title, message, data);
+                    // Unread count hesapla (bu yeni bildirim + eskiler)
+                    var unreadCount = await context.Notifications
+                        .CountAsync(n => (n.UserId == null || n.UserId == userId) &&
+                                         !context.UserNotificationReads.Any(r =>
+                                             r.UserId == userId && r.NotificationId == n.Id));
+
+                    await firebaseNotificationService.SendToUserAsync(userId, title, message, data, unreadCount);
                 }
+
                 return;
             }
 
             // Genel bildirim - tüm aktif kullanıcılara gönder
-            var targetUserIds = await context.UserDevices
+            var targetUsers = await context.UserDevices
                 .Where(d => d.IsActive)
                 .Select(d => d.UserId)
                 .Distinct()
                 .ToListAsync();
 
-            foreach (var targetUserId in targetUserIds)
+            foreach (var targetId in targetUsers)
             {
-                if (!await ShouldSendPushAsync(targetUserId, type))
+                if (!await ShouldSendPushAsync(targetId, type))
                 {
                     logger.LogInformation(
                         "Push notification atlandı - kullanıcı tercihi kapalı: {UserId}, {Type}",
-                        targetUserId, type);
+                        targetId, type);
                     continue;
                 }
 
-                await firebaseNotificationService.SendToUserAsync(targetUserId, title, message, data);
+                // Her kullanıcı için kendi unread count'unu hesapla
+                var unreadCountForUser = await context.Notifications
+                    .CountAsync(n => (n.UserId == null || n.UserId == targetId) &&
+                                     !context.UserNotificationReads.Any(r =>
+                                         r.UserId == targetId && r.NotificationId == n.Id));
+
+                await firebaseNotificationService.SendToUserAsync(targetId, title, message, data, unreadCountForUser);
             }
         }
         catch (Exception ex)
@@ -113,7 +126,8 @@ public class NotificationService(
         };
     }
 
-    public async Task<PagedResult<NotificationDto>> GetNotificationsAsync(string userId, int page = 1, int pageSize = 20)
+    public async Task<PagedResult<NotificationDto>> GetNotificationsAsync(string userId, int page = 1,
+        int pageSize = 20)
     {
         // Kullanıcının okuduğu bildirim ID'lerini al
         var readNotificationIds = await context.UserNotificationReads

@@ -40,23 +40,27 @@ public class FirebaseNotificationService : IFirebaseNotificationService
         string fcmToken,
         string title,
         string body,
-        Dictionary<string, string>? data = null)
+        Dictionary<string, string>? data = null,
+        int? badgeCount = null)
     {
         try
         {
-            var response = await SendFcmMessageAsync(fcmToken, title, body, data);
-            _logger.LogInformation("Successfully sent notification to device: {Token}", fcmToken[..Math.Min(20, fcmToken.Length)]);
+            var response = await SendFcmMessageAsync(fcmToken, title, body, data, badgeCount);
+            _logger.LogInformation("Successfully sent notification to device: {Token}",
+                fcmToken[..Math.Min(20, fcmToken.Length)]);
             return response;
         }
         catch (FcmException ex) when (ex.ErrorCode is "UNREGISTERED" or "INVALID_ARGUMENT")
         {
-            _logger.LogWarning("Invalid FCM token, marking device inactive: {Token}", fcmToken[..Math.Min(20, fcmToken.Length)]);
+            _logger.LogWarning("Invalid FCM token, marking device inactive: {Token}",
+                fcmToken[..Math.Min(20, fcmToken.Length)]);
             await MarkDeviceInactiveAsync(fcmToken);
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send notification to device: {Token}", fcmToken[..Math.Min(20, fcmToken.Length)]);
+            _logger.LogError(ex, "Failed to send notification to device: {Token}",
+                fcmToken[..Math.Min(20, fcmToken.Length)]);
             throw;
         }
     }
@@ -65,7 +69,8 @@ public class FirebaseNotificationService : IFirebaseNotificationService
         string userId,
         string title,
         string body,
-        Dictionary<string, string>? data = null)
+        Dictionary<string, string>? data = null,
+        int? badgeCount = null)
     {
         var devices = await _context.UserDevices
             .Where(d => d.UserId == userId && d.IsActive)
@@ -78,14 +83,15 @@ public class FirebaseNotificationService : IFirebaseNotificationService
             return 0;
         }
 
-        return await SendBulkNotificationAsync(devices, title, body, data);
+        return await SendBulkNotificationAsync(devices, title, body, data, badgeCount);
     }
 
     public async Task<int> SendBulkNotificationAsync(
         List<string> fcmTokens,
         string title,
         string body,
-        Dictionary<string, string>? data = null)
+        Dictionary<string, string>? data = null,
+        int? badgeCount = null)
     {
         if (!fcmTokens.Any())
             return 0;
@@ -96,7 +102,7 @@ public class FirebaseNotificationService : IFirebaseNotificationService
         {
             try
             {
-                await SendFcmMessageAsync(token, title, body, data);
+                await SendFcmMessageAsync(token, title, body, data, badgeCount);
                 successCount++;
             }
             catch (FcmException ex) when (ex.ErrorCode is "UNREGISTERED" or "INVALID_ARGUMENT")
@@ -109,7 +115,8 @@ public class FirebaseNotificationService : IFirebaseNotificationService
             }
         }
 
-        _logger.LogInformation("Bulk send result: {SuccessCount}/{TotalCount} successful", successCount, fcmTokens.Count);
+        _logger.LogInformation("Bulk send result: {SuccessCount}/{TotalCount} successful", successCount,
+            fcmTokens.Count);
         return successCount;
     }
 
@@ -121,13 +128,14 @@ public class FirebaseNotificationService : IFirebaseNotificationService
         string fcmToken,
         string title,
         string body,
-        Dictionary<string, string>? data)
+        Dictionary<string, string>? data,
+        int? badgeCount)
     {
         var app = FirebaseApp.DefaultInstance
-            ?? throw new InvalidOperationException("Firebase is not initialized");
+                  ?? throw new InvalidOperationException("Firebase is not initialized");
 
         var projectId = app.Options.ProjectId
-            ?? throw new InvalidOperationException("Firebase ProjectId is not configured");
+                        ?? throw new InvalidOperationException("Firebase ProjectId is not configured");
 
         // OAuth 2 token al (scope'lu credential ile)
         var credential = app.Options.Credential;
@@ -163,7 +171,7 @@ public class FirebaseNotificationService : IFirebaseNotificationService
                         aps = new
                         {
                             sound = "default",
-                            badge = 1,
+                            badge = badgeCount,
                             alert = new { title, body }
                         }
                     }
@@ -219,7 +227,10 @@ public class FirebaseNotificationService : IFirebaseNotificationService
                 return status.GetString();
             }
         }
-        catch { }
+        catch
+        {
+        }
+
         return null;
     }
 
@@ -231,7 +242,10 @@ public class FirebaseNotificationService : IFirebaseNotificationService
             if (doc.RootElement.TryGetProperty("name", out var name))
                 return name.GetString();
         }
-        catch { }
+        catch
+        {
+        }
+
         return null;
     }
 
