@@ -11,11 +11,14 @@ final walletServiceProvider = Provider<WalletService>((ref) {
 });
 
 /// Cüzdan detay bilgisi (pagination gereksiz - tek obje).
-final walletDetailsProvider = FutureProvider.autoDispose<WalletDetails>((
+final walletDetailsProvider = StreamProvider.autoDispose<WalletDetails>((
   ref,
-) async {
+) async* {
   final service = ref.watch(walletServiceProvider);
-  return service.getWalletDetails();
+  yield await service.getWalletDetails();
+  await for (final _ in Stream.periodic(const Duration(seconds: 5))) {
+    yield await service.getWalletDetails();
+  }
 });
 
 /// Sayfalanmış işlem geçmişi provider'ı.

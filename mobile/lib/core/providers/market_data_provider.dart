@@ -17,3 +17,12 @@ final availableCoinsProvider = FutureProvider<List<CoinPair>>((ref) async {
   final service = ref.watch(marketDataServiceProvider);
   return service.getAvailableCoins();
 });
+
+final liveMarketDataProvider = StreamProvider.autoDispose<List<CoinPair>>((
+  ref,
+) {
+  final service = ref.watch(marketDataServiceProvider);
+  return Stream.periodic(
+    const Duration(seconds: 3),
+  ).asyncMap((_) => service.getAvailableCoins());
+});

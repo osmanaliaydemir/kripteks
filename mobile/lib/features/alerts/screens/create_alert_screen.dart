@@ -173,7 +173,7 @@ class _CreateAlertScreenState extends ConsumerState<CreateAlertScreen>
                       } else if (_selectedSymbol == null && pairs.isNotEmpty) {
                         _selectedSymbol = pairs.first;
                       }
-                      return _buildSymbolSelector(pairs);
+                      return _buildSymbolSelector();
                     },
                     loading: () => const Center(
                       child: LinearProgressIndicator(color: AppColors.primary),
@@ -213,9 +213,12 @@ class _CreateAlertScreenState extends ConsumerState<CreateAlertScreen>
       ),
       child: TabBar(
         controller: _tabController,
+        indicatorPadding: const EdgeInsets.all(4),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
         indicator: BoxDecoration(
           color: AppColors.primary,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
         ),
         labelColor: Colors.black,
         unselectedLabelColor: Colors.white60,
@@ -554,9 +557,9 @@ class _CreateAlertScreenState extends ConsumerState<CreateAlertScreen>
     );
   }
 
-  Widget _buildSymbolSelector(List<String> pairs) {
+  Widget _buildSymbolSelector() {
     return InkWell(
-      onTap: () => _showSymbolSelectionSheet(context, pairs),
+      onTap: () => _showSymbolSelectionSheet(context),
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -616,7 +619,7 @@ class _CreateAlertScreenState extends ConsumerState<CreateAlertScreen>
     );
   }
 
-  void _showSymbolSelectionSheet(BuildContext context, List<String> pairs) {
+  void _showSymbolSelectionSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -640,148 +643,220 @@ class _CreateAlertScreenState extends ConsumerState<CreateAlertScreen>
 
             return StatefulBuilder(
               builder: (context, setStateSheet) {
-                final filteredPairs = pairs
-                    .where(
-                      (pair) => pair.toLowerCase().contains(
-                        searchQuery.toLowerCase(),
-                      ),
-                    )
-                    .toList();
+                return Consumer(
+                  builder: (context, ref, child) {
+                    final pairsAsync = ref.watch(liveMarketDataProvider);
+                    return pairsAsync.when(
+                      data: (pairs) {
+                        final filteredPairs = pairs
+                            .where(
+                              (pair) => pair.symbol.toLowerCase().contains(
+                                searchQuery.toLowerCase(),
+                              ),
+                            )
+                            .toList();
 
-                return Column(
-                  children: [
-                    // Handle Bar
-                    Center(
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 24),
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.white24,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-
-                    // Header & Close
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Row(
-                        children: [
-                          Text(
-                            'Parite Seçiniz',
-                            style: GoogleFonts.inter(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const Spacer(),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.close,
-                              color: Colors.white54,
-                            ),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Search Input
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: TextField(
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          hintText: 'Ara...',
-                          hintStyle: const TextStyle(color: Colors.white38),
-                          prefixIcon: const Icon(
-                            Icons.search,
-                            color: Colors.white38,
-                          ),
-                          filled: true,
-                          fillColor: Colors.white.withValues(alpha: 0.05),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                        onChanged: (value) {
-                          setStateSheet(() => searchQuery = value);
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // List
-                    Expanded(
-                      child: ListView.separated(
-                        controller: scrollController,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: filteredPairs.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) {
-                          final pair = filteredPairs[index];
-                          final isSelected = pair == _selectedSymbol;
-
-                          return InkWell(
-                            onTap: () {
-                              setState(() => _selectedSymbol = pair);
-                              Navigator.pop(context);
-                            },
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? AppColors.primary.withValues(alpha: 0.1)
-                                    : Colors.white.withValues(alpha: 0.05),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? AppColors.primary
-                                      : Colors.transparent,
+                        return Column(
+                          children: [
+                            // Handle Bar
+                            Center(
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 24),
+                                width: 40,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: Colors.white24,
+                                  borderRadius: BorderRadius.circular(2),
                                 ),
+                              ),
+                            ),
+
+                            // Header & Close
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
                               ),
                               child: Row(
                                 children: [
                                   Text(
-                                    pair,
+                                    'Parite Seçiniz',
                                     style: GoogleFonts.inter(
-                                      color: isSelected
-                                          ? AppColors.primary
-                                          : Colors.white,
+                                      fontSize: 20,
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 16,
+                                      color: Colors.white,
                                     ),
                                   ),
                                   const Spacer(),
-                                  if (isSelected)
-                                    const Icon(
-                                      Icons.check_circle,
-                                      color: AppColors.primary,
-                                      size: 20,
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.close,
+                                      color: Colors.white54,
                                     ),
+                                    onPressed: () => Navigator.pop(context),
+                                  ),
                                 ],
                               ),
                             ),
-                          );
-                        },
+                            const SizedBox(height: 16),
+
+                            // Search Input
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                              ),
+                              child: TextField(
+                                style: const TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  hintText: 'Ara...',
+                                  hintStyle: const TextStyle(
+                                    color: Colors.white38,
+                                  ),
+                                  prefixIcon: const Icon(
+                                    Icons.search,
+                                    color: Colors.white38,
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.white.withValues(
+                                    alpha: 0.05,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
+                                onChanged: (value) {
+                                  setStateSheet(() => searchQuery = value);
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // List
+                            Expanded(
+                              child: ListView.separated(
+                                controller: scrollController,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                                itemCount: filteredPairs.length,
+                                separatorBuilder: (_, _) =>
+                                    const SizedBox(height: 8),
+                                itemBuilder: (context, index) {
+                                  final pair = filteredPairs[index];
+                                  final isSelected =
+                                      pair.symbol == _selectedSymbol;
+
+                                  return InkWell(
+                                    onTap: () {
+                                      setState(
+                                        () => _selectedSymbol = pair.symbol,
+                                      );
+                                      Navigator.pop(context);
+                                    },
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: isSelected
+                                            ? AppColors.primary.withValues(
+                                                alpha: 0.1,
+                                              )
+                                            : Colors.white.withValues(
+                                                alpha: 0.05,
+                                              ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: isSelected
+                                              ? AppColors.primary
+                                              : Colors.transparent,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          // Checkmark (Left)
+                                          if (isSelected)
+                                            const Padding(
+                                              padding: EdgeInsets.only(
+                                                right: 12,
+                                              ),
+                                              child: Icon(
+                                                Icons.check_circle,
+                                                color: AppColors.primary,
+                                                size: 20,
+                                              ),
+                                            ),
+
+                                          // Symbol Name
+                                          Text(
+                                            pair.symbol,
+                                            style: GoogleFonts.inter(
+                                              color: isSelected
+                                                  ? AppColors.primary
+                                                  : Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+
+                                          const Spacer(),
+
+                                          // Price (Right)
+                                          Text(
+                                            () {
+                                              final price = pair.price;
+                                              if (price == 0) return '\$0.00';
+                                              if (price < 0.00001) {
+                                                return '\$${price.toStringAsFixed(8)}';
+                                              }
+                                              if (price < 0.01) {
+                                                return '\$${price.toStringAsFixed(6)}';
+                                              }
+                                              if (price < 1) {
+                                                return '\$${price.toStringAsFixed(4)}';
+                                              }
+                                              return '\$${price.toStringAsFixed(2)}';
+                                            }(),
+                                            style: GoogleFonts.inter(
+                                              color: isSelected
+                                                  ? AppColors.primary
+                                                  : Colors.white70,
+                                              fontWeight: FontWeight.w500,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                      loading: () => const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
                       ),
-                    ),
-                  ],
+                      error: (err, stack) => Center(
+                        child: Text(
+                          'Hata: $err',
+                          style: const TextStyle(color: AppColors.error),
+                        ),
+                      ),
+                    );
+                  },
                 );
               },
             );

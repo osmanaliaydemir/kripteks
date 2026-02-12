@@ -128,105 +128,116 @@ class DashboardPanel extends ConsumerWidget {
   }
 
   Widget _buildStatsGrid(BuildContext context, DashboardStats stats) {
-    return Column(
-      children: [
-        // Total PnL Card (Big)
-        GestureDetector(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const WalletScreen()),
-          ),
-          child: _buildStatCard(
-            title: 'Toplam Kâr/Zarar',
-            value: '\$${stats.totalPnl.toStringAsFixed(2)}',
-            icon: Icons.attach_money,
-            color: stats.totalPnl >= 0
-                ? const Color(0xFF10B981)
-                : const Color(0xFFEF4444),
-            isLarge: true,
-            isSensitive: true,
-          ),
-        ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2, end: 0),
-        const SizedBox(height: 12),
-        Row(
+    // Calculate Net PnL (Realized + Unrealized)
+    // Realized comes from stats.totalPnl
+    // Unrealized comes from wallet.totalPnl (Active PnL)
+    return Consumer(
+      builder: (context, ref, child) {
+        final walletAsync = ref.watch(walletDetailsProvider);
+        final walletDetails = walletAsync.asData?.value;
+
+        final unrealizedPnl = walletDetails?.totalPnl ?? 0.0;
+        final lockedBalance = walletDetails?.lockedBalance ?? 0.0;
+
+        final netPnl = stats.totalPnl + unrealizedPnl;
+        final isNetPnlPositive = netPnl >= 0;
+
+        return Column(
           children: [
-            Expanded(
+            // Total PnL Card (Big)
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const WalletScreen()),
+              ),
               child: _buildStatCard(
-                title: 'Ort. İşlem Kârı',
-                value: '\$${stats.avgTradePnL.toStringAsFixed(2)}',
-                icon: Icons.show_chart,
-                color: stats.avgTradePnL >= 0
+                title: 'Toplam Kâr/Zarar',
+                value: '\$${netPnl.toStringAsFixed(2)}',
+                icon: Icons.attach_money,
+                color: isNetPnlPositive
                     ? const Color(0xFF10B981)
                     : const Color(0xFFEF4444),
+                isLarge: true,
                 isSensitive: true,
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Consumer(
-                builder: (context, ref, child) {
-                  final walletDetailsAsync = ref.watch(walletDetailsProvider);
-                  final lockedBalance =
-                      walletDetailsAsync.asData?.value.lockedBalance ?? 0.0;
-
-                  return _buildStatCard(
+            ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2, end: 0),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard(
+                    title: 'Ort. İşlem Kârı',
+                    value: '\$${stats.avgTradePnL.toStringAsFixed(2)}',
+                    icon: Icons.show_chart,
+                    color: stats.avgTradePnL >= 0
+                        ? const Color(0xFF10B981)
+                        : const Color(0xFFEF4444),
+                    isSensitive: true,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildStatCard(
                     title: 'Mevcut Bot Bakiyesi',
                     value: '\$${lockedBalance.toStringAsFixed(2)}',
                     icon: Icons.savings,
                     color: const Color(0xFFF59E0B),
                     isSensitive: true,
-                  );
-                },
-              ),
-            ),
-          ],
-        ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const BotListScreen(),
                   ),
                 ),
-                child: Consumer(
-                  builder: (context, ref, child) {
-                    final botListAsync = ref.watch(paginatedBotListProvider);
-                    final activeBotCount =
-                        botListAsync.asData?.value.items
-                            .where(
-                              (b) =>
-                                  b.status == 'Running' ||
-                                  b.status == 'WaitingForEntry',
-                            )
-                            .length ??
-                        0;
+              ],
+            ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
 
-                    return _buildStatCard(
-                      title: 'Aktif İşlemler',
-                      value: '$activeBotCount adet bot aktif işlemde',
-                      icon: Icons.smart_toy,
-                      color: Colors.white,
-                    );
-                  },
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const BotListScreen(),
+                      ),
+                    ),
+                    child: Consumer(
+                      builder: (context, ref, child) {
+                        final botListAsync = ref.watch(
+                          paginatedBotListProvider,
+                        );
+                        final activeBotCount =
+                            botListAsync.asData?.value.items
+                                .where(
+                                  (b) =>
+                                      b.status == 'Running' ||
+                                      b.status == 'WaitingForEntry',
+                                )
+                                .length ??
+                            0;
+
+                        return _buildStatCard(
+                          title: 'Aktif İşlemler',
+                          value: '$activeBotCount adet bot aktif işlemde',
+                          icon: Icons.smart_toy,
+                          color: Colors.white,
+                        );
+                      },
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                title: 'En İyi Parite',
-                value: stats.bestPair.isEmpty ? '-' : stats.bestPair,
-                icon: Icons.star,
-                color: AppColors.primary, // Amber
-              ),
-            ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildStatCard(
+                    title: 'En İyi Parite',
+                    value: stats.bestPair.isEmpty ? '-' : stats.bestPair,
+                    icon: Icons.star,
+                    color: AppColors.primary, // Amber
+                  ),
+                ),
+              ],
+            ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2, end: 0),
           ],
-        ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2, end: 0),
-      ],
+        );
+      },
     );
   }
 

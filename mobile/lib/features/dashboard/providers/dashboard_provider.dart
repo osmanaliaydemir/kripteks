@@ -8,9 +8,12 @@ final analyticsServiceProvider = Provider<AnalyticsService>((ref) {
   return AnalyticsService(dio);
 });
 
-final dashboardStatsProvider = FutureProvider.autoDispose<DashboardStats>((
+final dashboardStatsProvider = StreamProvider.autoDispose<DashboardStats>((
   ref,
-) async {
+) async* {
   final service = ref.watch(analyticsServiceProvider);
-  return service.getDashboardStats();
+  yield await service.getDashboardStats();
+  await for (final _ in Stream.periodic(const Duration(seconds: 5))) {
+    yield await service.getDashboardStats();
+  }
 });
