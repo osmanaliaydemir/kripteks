@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/network/auth_state_provider.dart';
 import 'package:mobile/core/network/dio_client.dart';
 import 'package:mobile/features/settings/models/user_profile.dart';
 
@@ -8,7 +9,12 @@ final profileServiceProvider = Provider<ProfileService>((ref) {
   return ProfileService(dio);
 });
 
-final userProfileProvider = FutureProvider<UserProfile>((ref) async {
+final userProfileProvider = FutureProvider.autoDispose<UserProfile>((
+  ref,
+) async {
+  // Watch auth state to trigger refresh on login/logout
+  ref.watch(authStateProvider);
+
   final service = ref.watch(profileServiceProvider);
   return service.getProfile();
 });

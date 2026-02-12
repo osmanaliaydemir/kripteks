@@ -4,6 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobile/core/network/auth_state_provider.dart';
+import 'package:mobile/features/settings/services/profile_service.dart';
+import 'package:mobile/features/settings/providers/user_management_provider.dart';
+import 'package:mobile/features/notifications/providers/notification_provider.dart';
 
 /// JWT kimlik doğrulama interceptor'ı.
 ///
@@ -226,9 +229,12 @@ class AuthInterceptor extends QueuedInterceptor {
 
   /// Oturumu temizle ve login'e yönlendir.
   Future<void> _handleSessionExpired() async {
-    await storage.delete(key: 'auth_token');
-    await storage.delete(key: 'refresh_token');
-    ref.read(authStateProvider.notifier).setAuthenticated(false);
+    await ref.read(authStateProvider.notifier).logout();
+
+    // Invalidate user-specific providers to prevent stale data
+    ref.invalidate(userProfileProvider);
+    ref.invalidate(usersProvider);
+    ref.invalidate(paginatedNotificationsProvider);
 
     if (kDebugMode) {
       debugPrint('🔐 [AuthInterceptor] Session expired. Redirecting to login.');

@@ -5,6 +5,8 @@ import 'package:mobile/core/network/dio_client.dart';
 import 'package:mobile/core/network/auth_state_provider.dart';
 import 'package:mobile/features/auth/services/auth_service.dart';
 import 'package:mobile/features/notifications/providers/notification_provider.dart';
+import 'package:mobile/features/settings/services/profile_service.dart';
+import 'package:mobile/features/settings/providers/user_management_provider.dart';
 
 final authServiceProvider = Provider<AuthService>((ref) {
   final dio = ref.watch(dioProvider);
@@ -52,7 +54,13 @@ class AuthController extends AsyncNotifier<void> {
     state = await AsyncValue.guard(
       () => ref.read(authServiceProvider).logout(notificationService),
     );
-    ref.read(authStateProvider.notifier).setAuthenticated(false);
+
+    // Invalidate user-specific providers
+    ref.invalidate(userProfileProvider);
+    ref.invalidate(usersProvider);
+    ref.invalidate(paginatedNotificationsProvider);
+
+    await ref.read(authStateProvider.notifier).logout();
   }
 
   void setUnauthenticated() {

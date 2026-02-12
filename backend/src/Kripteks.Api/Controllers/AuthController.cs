@@ -92,29 +92,20 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto model)
     {
-        // 1. Manuel ve kesin sorgu yapıyoruz (Identity'nin NormalizedEmail mantığını bellek kontrolüyle destekliyoruz)
-        var users = await _userManager.Users
-            .Where(u => u.Email.Contains(model.Email) || model.Email.Contains(u.Email!))
-            .ToListAsync();
+        // 1. Kesin eşleşme için NormalizedEmail kullanıyoruz
+        var user = await _userManager.FindByEmailAsync(model.Email);
 
-        var user = users.FirstOrDefault(u =>
-            string.Equals(u.Email, model.Email, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(u.UserName, model.Email, StringComparison.OrdinalIgnoreCase));
+        // Identity bazen UserName olarak tutuyor olabilir
+        if (user == null)
+        {
+            user = await _userManager.FindByNameAsync(model.Email);
+        }
 
         // 2. Teşhis için her girişi loglayalım
         if (user != null)
         {
             await _auditLogService.LogAnonymousAsync("Giriş Denemesi",
                 new { Requested = model.Email, Found = user.Email, Match = true });
-        }
-        else if (users.Any())
-        {
-            await _auditLogService.LogAnonymousAsync("Kritik Kimlik Kararmazlığı",
-                new
-                {
-                    Requested = model.Email, Candidates = users.Select(u => u.Email).ToList(),
-                    Reason = "Tam eşleşme bulunamadı"
-                });
         }
 
         if (user == null)

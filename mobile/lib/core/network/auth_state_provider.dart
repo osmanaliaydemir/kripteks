@@ -14,6 +14,12 @@ class AuthStateNotifier extends AsyncNotifier<bool> {
     return token != null && token.isNotEmpty;
   }
 
+  Future<void> logout() async {
+    await _storage.delete(key: 'auth_token');
+    await _storage.delete(key: 'refresh_token');
+    state = const AsyncData(false);
+  }
+
   void setAuthenticated(bool value) {
     state = AsyncData(value);
   }
