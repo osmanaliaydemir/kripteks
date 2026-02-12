@@ -93,6 +93,15 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Login([FromBody] LoginDto model)
     {
         var user = await _userManager.FindByEmailAsync(model.Email);
+
+        // Yanlış eşleşmeyi önlemek için kesin kontrol (örn: .com vs .com.tr karışıklığı için)
+        if (user != null && !string.Equals(user.Email, model.Email, StringComparison.OrdinalIgnoreCase))
+        {
+            await _auditLogService.LogAnonymousAsync("Kritik Kimlik Karışıklığı",
+                new { RequestedEmail = model.Email, FoundEmail = user.Email, Reason = "E-posta eşleşmesi tutarsız" });
+            user = null;
+        }
+
         if (user == null)
         {
             await _auditLogService.LogAnonymousAsync("Giriş Denemesi Başarısız",
@@ -221,6 +230,13 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto model)
     {
         var user = await _userManager.FindByEmailAsync(model.Email);
+
+        // Exact match check
+        if (user != null && !string.Equals(user.Email, model.Email, StringComparison.OrdinalIgnoreCase))
+        {
+            user = null;
+        }
+
         if (user == null) return Ok(new { message = "Eğer hesap mevcutsa, kod gönderilecektir." });
 
         var code = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
@@ -239,6 +255,13 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> VerifyResetCode([FromBody] VerifyResetCodeDto model)
     {
         var user = await _userManager.FindByEmailAsync(model.Email);
+
+        // Exact match check
+        if (user != null && !string.Equals(user.Email, model.Email, StringComparison.OrdinalIgnoreCase))
+        {
+            user = null;
+        }
+
         if (user == null || user.ResetCode != model.Code || user.ResetCodeExpiry < DateTime.UtcNow)
         {
             return BadRequest(new { message = "Geçersiz veya süresi dolmuş kod." });
@@ -251,6 +274,13 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto model)
     {
         var user = await _userManager.FindByEmailAsync(model.Email);
+
+        // Exact match check
+        if (user != null && !string.Equals(user.Email, model.Email, StringComparison.OrdinalIgnoreCase))
+        {
+            user = null;
+        }
+
         if (user == null || user.ResetCode != model.Code || user.ResetCodeExpiry < DateTime.UtcNow)
         {
             return BadRequest(new { message = "Geçersiz işlem." });

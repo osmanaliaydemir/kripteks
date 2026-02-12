@@ -63,6 +63,13 @@ public class UsersController : ControllerBase
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
         var existingUser = await _userManager.FindByEmailAsync(model.Email);
+
+        // Exact match check
+        if (existingUser != null && !string.Equals(existingUser.Email, model.Email, StringComparison.OrdinalIgnoreCase))
+        {
+            existingUser = null;
+        }
+
         if (existingUser != null)
             return BadRequest(new { message = "Bu email adresi zaten kullanımda." });
 
