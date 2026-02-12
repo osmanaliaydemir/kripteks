@@ -45,7 +45,7 @@ class _TradingViewChartState extends ConsumerState<TradingViewChart> {
 
   void _loadChart() {
     final tvInterval = _mapIntervalToTV(widget.interval);
-    final tvSymbol = 'BINANCE:${_sanitizedSymbol}';
+    final tvSymbol = 'BINANCE:$_sanitizedSymbol';
 
     // HTML String for the official TradingView Widget
     final html =

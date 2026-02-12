@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobile/core/error/exceptions.dart';
@@ -54,15 +53,15 @@ final dioProvider = Provider<Dio>((ref) {
   dio.interceptors.add(RetryInterceptor(dio: dio));
 
   // 4. Debug modda request/response logla
-  if (kDebugMode) {
-    dio.interceptors.add(
-      LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-        logPrint: (obj) => debugPrint(obj.toString()),
-      ),
-    );
-  }
+  // if (kDebugMode) {
+  //   dio.interceptors.add(
+  //     LogInterceptor(
+  //       requestBody: true,
+  //       responseBody: true,
+  //       logPrint: (obj) => debugPrint(obj.toString()),
+  //     ),
+  //   );
+  // }
 
   return dio;
 });

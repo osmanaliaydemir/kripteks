@@ -11,6 +11,10 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:mobile/core/services/firebase_notification_service.dart';
 import 'package:mobile/core/providers/firebase_notification_provider.dart';
 import 'package:mobile/core/widgets/privacy_blur_guard.dart';
+import 'dart:async';
+import 'dart:math';
+import 'package:sensors_plus/sensors_plus.dart';
+import 'package:mobile/core/providers/privacy_provider.dart';
 
 void main() {
   final errorHandler = GlobalErrorHandler(errorService);
@@ -24,11 +28,51 @@ void main() {
   });
 }
 
-class MyApp extends ConsumerWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends ConsumerState<MyApp> {
+  StreamSubscription? _shakeSubscription;
+  DateTime _lastShakeTime = DateTime.fromMillisecondsSinceEpoch(0);
+
+  @override
+  void initState() {
+    super.initState();
+    _initShakeDetector();
+  }
+
+  void _initShakeDetector() {
+    _shakeSubscription = userAccelerometerEventStream().listen((event) {
+      final double acceleration = sqrt(
+        event.x * event.x + event.y * event.y + event.z * event.z,
+      );
+      const double shakeThreshold = 15.0; // m/s^2
+
+      if (acceleration > shakeThreshold) {
+        final now = DateTime.now();
+        if (now.difference(_lastShakeTime) >
+            const Duration(milliseconds: 1500)) {
+          _lastShakeTime = now;
+          if (mounted) {
+            ref.read(privacyProvider.notifier).toggleBalanceVisibility();
+          }
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _shakeSubscription?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
     // Initialize notification service
     ref.watch(firebaseNotificationServiceProvider);

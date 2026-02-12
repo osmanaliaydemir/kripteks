@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobile/core/network/auth_state_provider.dart';
@@ -72,22 +71,22 @@ class AuthInterceptor extends QueuedInterceptor {
 
     if (refreshToken == null || refreshToken.isEmpty) {
       // Refresh token yok -> oturumu kapat
-      if (kDebugMode) {
-        debugPrint(
-          '🔐 [AuthInterceptor] 401 received, no refresh token. Logging out.',
-        );
-      }
+      // if (kDebugMode) {
+      //   debugPrint(
+      //     '🔐 [AuthInterceptor] 401 received, no refresh token. Logging out.',
+      //   );
+      // }
       await _handleSessionExpired();
       return handler.next(err);
     }
 
     // Zaten bir refresh işlemi devam ediyorsa kuyruğa ekle
     if (_isRefreshing) {
-      if (kDebugMode) {
-        debugPrint(
-          '🔐 [AuthInterceptor] Queuing request: ${err.requestOptions.uri}',
-        );
-      }
+      // if (kDebugMode) {
+      //   debugPrint(
+      //     '🔐 [AuthInterceptor] Queuing request: ${err.requestOptions.uri}',
+      //   );
+      // }
       return _enqueueRequest(err, handler);
     }
 
@@ -98,9 +97,9 @@ class AuthInterceptor extends QueuedInterceptor {
       final success = await _refreshAccessToken(refreshToken);
 
       if (success) {
-        if (kDebugMode) {
-          debugPrint('🔐 [AuthInterceptor] Token refreshed successfully.');
-        }
+        // if (kDebugMode) {
+        //   debugPrint('🔐 [AuthInterceptor] Token refreshed successfully.');
+        // }
 
         // Orijinal isteği yeni token ile tekrarla
         final response = await _retryRequest(err.requestOptions);
@@ -115,9 +114,9 @@ class AuthInterceptor extends QueuedInterceptor {
         _rejectPendingRequests(err);
       }
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('🔐 [AuthInterceptor] Refresh failed: $e');
-      }
+      // if (kDebugMode) {
+      //   debugPrint('🔐 [AuthInterceptor] Refresh failed: $e');
+      // }
       await _handleSessionExpired();
       handler.next(err);
       _rejectPendingRequests(err);
@@ -237,9 +236,9 @@ class AuthInterceptor extends QueuedInterceptor {
     ref.invalidate(paginatedNotificationsProvider);
     ref.invalidate(paginatedAuditLogsProvider);
 
-    if (kDebugMode) {
-      debugPrint('🔐 [AuthInterceptor] Session expired. Redirecting to login.');
-    }
+    // if (kDebugMode) {
+    //   debugPrint('🔐 [AuthInterceptor] Session expired. Redirecting to login.');
+    // }
   }
 }
 

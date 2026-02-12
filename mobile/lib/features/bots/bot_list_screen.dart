@@ -48,9 +48,34 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
   Widget build(BuildContext context) {
     final botListAsync = ref.watch(paginatedBotListProvider);
 
+    // Aktif bot kontrolü
+    bool hasActiveBots = false;
+    if (botListAsync.value != null) {
+      hasActiveBots = botListAsync.value!.items.any(
+        (b) => b.status == 'Running' || b.status == 'WaitingForEntry',
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppHeader(title: 'Botlarım', showBackButton: false),
+      appBar: AppHeader(
+        title: 'Botlarım',
+        showBackButton: false,
+        actions: hasActiveBots
+            ? [
+                IconButton(
+                  onPressed: () => _showPanicModeDialog(),
+                  icon: const Icon(
+                    Icons.gpp_bad_rounded,
+                    color: AppColors.error,
+                    size: 24,
+                  ),
+                  tooltip: 'Acil Durdurma',
+                ),
+                const SizedBox(width: 8),
+              ]
+            : null,
+      ),
       floatingActionButton: Container(
         decoration: BoxDecoration(
           gradient: const LinearGradient(
@@ -391,6 +416,215 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
               'Durdur',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPanicModeDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E0F0F),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.error, width: 2),
+        ),
+        title: Row(
+          children: [
+            const Icon(
+              Icons.warning_amber_rounded,
+              color: AppColors.error,
+              size: 32,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'ACİL DURDURMA!',
+              style: GoogleFonts.inter(
+                color: AppColors.error,
+                fontWeight: FontWeight.w900,
+                fontSize: 20,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Bu işlem şunları yapacaktır:',
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildPanicItem('Tüm aktif botlar durdurulacak.'),
+            _buildPanicItem('Açık pozisyonlar piyasa fiyatından satılacak.'),
+            _buildPanicItem('Bekleyen tüm emirler iptal edilecek.'),
+            const SizedBox(height: 16),
+            Text(
+              'Bu işlem geri alınamaz. Devam etmek istediğinize emin misiniz?',
+              style: GoogleFonts.inter(fontSize: 14, color: Colors.white70),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Vazgeç',
+              style: TextStyle(color: Colors.white54, fontSize: 16),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _executePanicProtocol();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text(
+              'EVET, DURDUR',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPanicItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.circle, size: 8, color: AppColors.error),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _executePanicProtocol() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          color: AppColors.surface,
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: AppColors.error),
+                SizedBox(height: 16),
+                Text(
+                  'Acil Durdurma Protokolü İşleniyor...',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final botService = ref.read(botServiceProvider);
+
+      final result = await botService.getBots(page: 1, pageSize: 1000);
+
+      final activeBots = result.items
+          .where((b) => b.status == 'Running' || b.status == 'WaitingForEntry')
+          .toList();
+
+      if (activeBots.isEmpty) {
+        if (mounted) Navigator.pop(context);
+        _showResultDialog(
+          success: true,
+          message: 'Durdurulacak aktif bot bulunamadı.',
+        );
+        return;
+      }
+
+      final futures = activeBots.map((bot) => botService.stopBot(bot.id));
+      await Future.wait(futures);
+
+      ref.invalidate(paginatedBotListProvider);
+
+      if (mounted) Navigator.pop(context);
+      _showResultDialog(
+        success: true,
+        message:
+            '${activeBots.length} adet bot ve ilişkili pozisyonlar başarıyla durduruldu.',
+      );
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      _showResultDialog(
+        success: false,
+        message:
+            'Bazı işlemler başarısız oldu: $e\nLütfen bakiyenizi borsadan manuel kontrol edin.',
+      );
+    }
+  }
+
+  void _showResultDialog({required bool success, required String message}) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(
+              success ? Icons.check_circle_outline : Icons.error_outline,
+              color: success ? AppColors.success : AppColors.error,
+              size: 28,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              success ? 'İşlem Tamamlandı' : 'Hata Oluştu',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: success ? AppColors.success : AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Tamam'),
           ),
         ],
       ),

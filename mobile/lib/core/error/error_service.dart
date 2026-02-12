@@ -50,6 +50,23 @@ class FirebaseErrorService implements ErrorService {
 
   @override
   Future<void> initialize() async {
+    // Sadece önemli hataları logla
+    Logger.root.level = Level.WARNING;
+    Logger.root.onRecord.listen((record) {
+      if (kDebugMode) {
+        // Sadece Warning ve Severe seviyesindeki logları konsola bas
+        if (record.level >= Level.WARNING) {
+          debugPrint('${record.level.name}: ${record.time}: ${record.message}');
+          if (record.error != null) {
+            debugPrint('Error: ${record.error}');
+          }
+          if (record.stackTrace != null) {
+            debugPrint('Stack: ${record.stackTrace}');
+          }
+        }
+      }
+    });
+
     try {
       // Initialize Firebase App
       await Firebase.initializeApp();
@@ -69,7 +86,7 @@ class FirebaseErrorService implements ErrorService {
         !kDebugMode,
       );
 
-      _logger.info('Firebase Crashlytics initialized');
+      // _logger.info('Firebase Crashlytics initialized'); // Gereksiz log kaldırıldı
     } catch (e) {
       _logger.warning('Failed to initialize Firebase Crashlytics: $e');
       // Fallback: If Firebase fails (e.g. no config file), we continue without crashing
@@ -105,8 +122,9 @@ class FirebaseErrorService implements ErrorService {
 
   @override
   Future<void> log(String message) async {
+    // Debug modda info loglarını konsola basma, sadece Crashlytics'e gönder (release'de)
     if (kDebugMode) {
-      _logger.info(message);
+      // _logger.info(message); // Gereksiz log kaldırıldı
       return;
     }
     try {

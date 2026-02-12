@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math';
-import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 import 'package:mobile/core/constants.dart';
@@ -125,12 +124,12 @@ class SignalRService {
 
     _reconnectAttempt++;
 
-    if (kDebugMode) {
-      debugPrint(
-        '🔄 [SignalR] Reconnect attempt $_reconnectAttempt/$_maxReconnectAttempts '
-        'in ${delay.inMilliseconds}ms',
-      );
-    }
+    // if (kDebugMode) {
+    //   debugPrint(
+    //     '🔄 [SignalR] Reconnect attempt $_reconnectAttempt/$_maxReconnectAttempts '
+    //     'in ${delay.inMilliseconds}ms',
+    //   );
+    // }
 
     _updateStatus(SignalRConnectionStatus.reconnecting);
 

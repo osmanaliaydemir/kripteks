@@ -7,6 +7,7 @@ import 'package:mobile/features/reports/models/reports_model.dart';
 import 'package:mobile/features/dashboard/models/dashboard_stats.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/features/dashboard/widgets/pnl_heatmap_calendar.dart';
 
 class ReportsScreen extends ConsumerWidget {
   const ReportsScreen({super.key});
@@ -58,6 +59,17 @@ class ReportsScreen extends ConsumerWidget {
                     loading: () => _buildShimmerStats(),
                     error: (e, _) => _buildErrorCard(e.toString()),
                   ),
+                  const SizedBox(height: 24),
+
+                  // Finansal Isı Haritası
+                  _buildSectionHeader(
+                    'Finansal Isı Haritası',
+                    'Günlük kar/zarar performans dağılımı',
+                    Icons.calendar_month_outlined,
+                    const Color(0xFF10B981),
+                  ),
+                  const SizedBox(height: 12),
+                  const PnLHeatmapCalendar(),
                   const SizedBox(height: 24),
 
                   // Equity Curve Chart
