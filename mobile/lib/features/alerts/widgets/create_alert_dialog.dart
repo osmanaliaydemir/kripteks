@@ -111,7 +111,7 @@ class _CreateAlertDialogState extends ConsumerState<CreateAlertDialog> {
 
               // Condition Dropdown
               DropdownButtonFormField<AlertCondition>(
-                value: _condition,
+                initialValue: _condition,
                 dropdownColor: AppColors.surfaceLight,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(

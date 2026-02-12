@@ -12,7 +12,6 @@ import 'package:mobile/features/wallet/wallet_screen.dart';
 import 'package:mobile/features/notifications/notification_screen.dart';
 import 'package:mobile/features/notifications/providers/notification_provider.dart';
 import 'package:mobile/core/providers/privacy_provider.dart';
-import 'package:mobile/features/alerts/screens/alerts_screen.dart';
 
 import 'package:mobile/core/network/signalr_service.dart';
 import 'package:mobile/core/widgets/app_header.dart';
@@ -201,19 +200,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ],
       ),
       actions: [
-        IconButton(
-          icon: const Icon(
-            Icons.add_alert_rounded,
-            color: AppColors.textSecondary,
-            size: 24,
-          ),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AlertsScreen()),
-            );
-          },
-        ),
         Consumer(
           builder: (context, ref, _) {
             final isHidden = ref.watch(

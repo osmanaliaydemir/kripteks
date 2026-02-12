@@ -25,6 +25,7 @@ import 'package:mobile/features/tools/market_intelligence_screen.dart';
 import 'package:mobile/features/education/screens/academy_screen.dart';
 import 'package:mobile/features/education/screens/topic_detail_screen.dart';
 import 'package:mobile/features/education/models/education_models.dart';
+import 'package:mobile/features/alerts/screens/alerts_screen.dart';
 
 import 'package:mobile/core/network/auth_state_provider.dart';
 
@@ -139,6 +140,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/market-intelligence',
         builder: (context, state) => const MarketIntelligenceScreen(),
+      ),
+      GoRoute(
+        path: '/alerts',
+        builder: (context, state) => const AlertsScreen(),
       ),
       GoRoute(
         path: '/academy',

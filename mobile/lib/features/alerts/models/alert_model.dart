@@ -1,6 +1,13 @@
-enum AlertType { price, indicator }
+enum AlertType { price, technical, marketMovement }
 
-enum AlertCondition { above, below, crossOver, crossUnder }
+enum AlertCondition {
+  above,
+  below,
+  crossOver,
+  crossUnder,
+  insideChannel,
+  outsideChannel,
+}
 
 class Alert {
   final String id;
@@ -10,6 +17,7 @@ class Alert {
   final AlertCondition condition;
   final String? indicatorName;
   final String? timeframe;
+  final String? parameters;
   final bool isEnabled;
   final DateTime createdAt;
   final DateTime? lastTriggeredAt;
@@ -22,6 +30,7 @@ class Alert {
     required this.condition,
     this.indicatorName,
     this.timeframe,
+    this.parameters,
     this.isEnabled = true,
     required this.createdAt,
     this.lastTriggeredAt,
@@ -36,6 +45,7 @@ class Alert {
       condition: AlertCondition.values[json['condition'] as int],
       indicatorName: json['indicatorName'] as String?,
       timeframe: json['timeframe'] as String?,
+      parameters: json['parameters'] as String?,
       isEnabled: json['isEnabled'] as bool,
       createdAt: DateTime.parse(json['createdAt'] as String),
       lastTriggeredAt: json['lastTriggeredAt'] != null
@@ -53,6 +63,7 @@ class Alert {
       'condition': condition.index,
       'indicatorName': indicatorName,
       'timeframe': timeframe,
+      'parameters': parameters,
       'isEnabled': isEnabled,
       'createdAt': createdAt.toIso8601String(),
       'lastTriggeredAt': lastTriggeredAt?.toIso8601String(),
@@ -69,6 +80,10 @@ class Alert {
         return 'Yukarı Kesen';
       case AlertCondition.crossUnder:
         return 'Aşağı Kesen';
+      case AlertCondition.insideChannel:
+        return 'Kanal İçi';
+      case AlertCondition.outsideChannel:
+        return 'Kanal Dışı';
     }
   }
 
@@ -82,6 +97,10 @@ class Alert {
         return '↗';
       case AlertCondition.crossUnder:
         return '↘';
+      case AlertCondition.insideChannel:
+        return '↔';
+      case AlertCondition.outsideChannel:
+        return '↹';
     }
   }
 }
@@ -93,6 +112,7 @@ class CreateAlertDto {
   final AlertCondition condition;
   final String? indicatorName;
   final String? timeframe;
+  final String? parameters;
 
   CreateAlertDto({
     required this.symbol,
@@ -101,6 +121,7 @@ class CreateAlertDto {
     required this.condition,
     this.indicatorName,
     this.timeframe,
+    this.parameters,
   });
 
   Map<String, dynamic> toJson() {
@@ -111,6 +132,7 @@ class CreateAlertDto {
       'condition': condition.index,
       'indicatorName': indicatorName,
       'timeframe': timeframe,
+      'parameters': parameters,
     };
   }
 }

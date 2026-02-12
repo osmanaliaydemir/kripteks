@@ -1,9 +1,13 @@
+using Binance.Net.Interfaces.Clients;
+using Binance.Net.Interfaces;
+using System.Text.Json;
 using Kripteks.Core.DTOs;
 using Kripteks.Core.Entities;
 using Kripteks.Core.Interfaces;
 using Kripteks.Infrastructure.Data;
+using Kripteks.Infrastructure.Helpers;
 using Microsoft.EntityFrameworkCore;
-using Kripteks.Core.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Kripteks.Infrastructure.Services;
 
@@ -12,18 +16,21 @@ public class AlertService : IAlertService
     private readonly AppDbContext _context;
     private readonly IMarketDataService _marketDataService;
     private readonly INotificationService _notificationService;
-    private readonly IMarketAnalysisService _marketAnalysisService;
+    private readonly IBinanceRestClient _binanceClient;
+    private readonly ILogger<AlertService> _logger;
 
     public AlertService(
         AppDbContext context,
         IMarketDataService marketDataService,
         INotificationService notificationService,
-        IMarketAnalysisService marketAnalysisService)
+        IBinanceRestClient binanceClient,
+        ILogger<AlertService> logger)
     {
         _context = context;
         _marketDataService = marketDataService;
         _notificationService = notificationService;
-        _marketAnalysisService = marketAnalysisService;
+        _binanceClient = binanceClient;
+        _logger = logger;
     }
 
     public async Task<List<AlertDto>> GetUserAlertsAsync(Guid userId)
@@ -59,6 +66,7 @@ public class AlertService : IAlertService
             Condition = createDto.Condition,
             IndicatorName = createDto.IndicatorName,
             Timeframe = createDto.Timeframe,
+            Parameters = createDto.Parameters,
             IsEnabled = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -75,6 +83,7 @@ public class AlertService : IAlertService
             Condition = alert.Condition,
             IndicatorName = alert.IndicatorName,
             Timeframe = alert.Timeframe,
+            Parameters = alert.Parameters,
             IsEnabled = alert.IsEnabled,
             LastTriggeredAt = alert.LastTriggeredAt,
             CreatedAt = alert.CreatedAt
@@ -127,14 +136,12 @@ public class AlertService : IAlertService
 
     public async Task ProcessAlertsAsync()
     {
-        // Get all active alerts
         var alerts = await _context.UserAlerts
             .Where(a => a.IsEnabled)
             .ToListAsync();
 
         if (!alerts.Any()) return;
 
-        // Group by Symbol to reduce API calls
         var alertsBySymbol = alerts.GroupBy(a => a.Symbol);
 
         foreach (var group in alertsBySymbol)
@@ -146,9 +153,27 @@ public class AlertService : IAlertService
             {
                 currentPrice = await _marketDataService.GetPriceAsync(symbol);
             }
-            catch (Exception)
+            catch
             {
-                continue; // Skip if price fetch fails
+                continue;
+            }
+
+            // Group alerts by timeframe to optimize kline fetching
+            var alertsByTimeframe = group
+                .Where(a => a.Type == AlertType.Technical || a.Type == AlertType.MarketMovement)
+                .GroupBy(a => a.Timeframe ?? "1h");
+
+            var klinesCache = new Dictionary<string, List<IBinanceKline>>();
+
+            foreach (var tfGroup in alertsByTimeframe)
+            {
+                var interval = GetInterval(tfGroup.Key);
+                // Fetch enough candles for indicators (e.g. 200 for EMA200)
+                var klines = await _binanceClient.SpotApi.ExchangeData.GetKlinesAsync(symbol, interval, limit: 300);
+                if (klines.Success)
+                {
+                    klinesCache[tfGroup.Key] = klines.Data.Cast<IBinanceKline>().ToList();
+                }
             }
 
             foreach (var alert in group)
@@ -156,29 +181,54 @@ public class AlertService : IAlertService
                 if (alert.LastTriggeredAt.HasValue &&
                     alert.LastTriggeredAt.Value.AddMinutes(alert.CooldownMinutes) > DateTime.UtcNow)
                 {
-                    continue; // Cooldown active
+                    continue;
                 }
 
                 bool triggered = false;
                 string message = "";
 
-                if (alert.Type == AlertType.Price)
+                try
                 {
-                    triggered = CheckPriceCondition(currentPrice, alert.TargetValue, alert.Condition);
-                    message =
-                        $"🔔 Fiyat Alarmı: {alert.Symbol} fiyatı {currentPrice} seviyesine ulaştı! (Hedef: {alert.TargetValue})";
-                }
-                else if (alert.Type == AlertType.Indicator && !string.IsNullOrEmpty(alert.IndicatorName) &&
-                         !string.IsNullOrEmpty(alert.Timeframe))
-                {
-                    // This requires implementing indicator calculation logic
-                    // For now, assume we have a way to get indicator value
-                    // e.g. await _marketAnalysisService.GetIndicatorValue(symbol, alert.IndicatorName, alert.Timeframe);
-                    // Since this is complex, I will skip implementation for now or mock it if needed
-                    // But user specifically asked for "RSI (15dk) 30'un altına düşerse"
+                    if (alert.Type == AlertType.Price)
+                    {
+                        triggered = CheckPriceCondition(currentPrice, alert.TargetValue, alert.Condition);
+                        message =
+                            $"🔔 Fiyat Alarmı: {alert.Symbol} {currentPrice} seviyesine ulaştı! (Hedef: {alert.TargetValue})";
+                    }
+                    else if (alert.Type == AlertType.Technical && klinesCache.ContainsKey(alert.Timeframe ?? "1h"))
+                    {
+                        var klines = klinesCache[alert.Timeframe ?? "1h"];
+                        var candles = klines.Select(k => new Kripteks.Core.Interfaces.Candle
+                        {
+                            OpenTime = k.OpenTime,
+                            Open = k.OpenPrice,
+                            High = k.HighPrice,
+                            Low = k.LowPrice,
+                            Close = k.ClosePrice,
+                            Volume = k.Volume
+                        }).ToList();
 
-                    // We can try to fetch simple indicators from _marketAnalysisService if available
-                    // For MVP, focus on Price Alerts, but put placeholder for Indicators
+                        (triggered, message) = CheckTechnicalCondition(alert, candles);
+                    }
+                    else if (alert.Type == AlertType.MarketMovement && klinesCache.ContainsKey(alert.Timeframe ?? "1h"))
+                    {
+                        var klines = klinesCache[alert.Timeframe ?? "1h"];
+                        var candles = klines.Select(k => new Kripteks.Core.Interfaces.Candle
+                        {
+                            OpenTime = k.OpenTime,
+                            Open = k.OpenPrice,
+                            High = k.HighPrice,
+                            Low = k.LowPrice,
+                            Close = k.ClosePrice,
+                            Volume = k.Volume
+                        }).ToList();
+
+                        (triggered, message) = CheckMarketMovementCondition(alert, candles);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error checking alert {AlertId}", alert.Id);
                     continue;
                 }
 
@@ -188,12 +238,10 @@ public class AlertService : IAlertService
                         "Kripteks Alarm",
                         message,
                         NotificationType.Info,
-                        userId: alert.UserId.ToString()
+                        userId: alert.UserId
                     );
 
                     alert.LastTriggeredAt = DateTime.UtcNow;
-                    // If one-time alert logic is needed, set IsEnabled = false here
-                    // alert.IsEnabled = false; 
                 }
             }
         }
@@ -207,9 +255,114 @@ public class AlertService : IAlertService
         {
             AlertCondition.Above => current > target,
             AlertCondition.Below => current < target,
-            // CrossOver logic requires historical data which we don't track state for in this simple loop
-            // For simple polling, > and < act as "is above" or "is below"
             _ => false
+        };
+    }
+
+    private (bool Triggered, string Message) CheckTechnicalCondition(UserAlert alert,
+        List<Kripteks.Core.Interfaces.Candle> candles)
+    {
+        var prices = candles.Select(c => c.Close).ToList();
+
+        switch (alert.IndicatorName)
+        {
+            case "RSI":
+                var rsiValues = TechnicalIndicators.CalculateRsi(prices, 14); // Default 14
+                var lastRsi = rsiValues.LastOrDefault();
+                if (lastRsi == null) return (false, "");
+
+                bool rsiTrigger = CheckCondition(lastRsi.Value, alert.TargetValue, alert.Condition);
+                return (rsiTrigger,
+                    $"🔔 RSI Alarmı: {alert.Symbol} RSI({alert.Timeframe}) {lastRsi.Value:F2} oldu! (Hedef: {alert.Condition} {alert.TargetValue})");
+
+            case "MACD":
+                var macdData = TechnicalIndicators.CalculateMacd(prices);
+                var lastMacd = macdData.MacdLine.LastOrDefault();
+                var lastSignal = macdData.SignalLine.LastOrDefault();
+
+                // Simplified MACD Trigger: MACD Line vs 0 or generic target
+                // For proper MACD Cross, we need prev values.
+                // Assuming simple alert on MACD value for now or we can implement Cross params.
+                if (lastMacd == null) return (false, "");
+
+                // Check if JSON parameters exist for specific Cross logic
+                return (false, ""); // Placeholder for advanced logic
+
+            case "EMA_CROSS":
+                // Default 50/200 if not specified
+                var result = TechnicalIndicators.DetectEmaCross(prices, 50, 200);
+                if (alert.Condition == AlertCondition.CrossOver && result.IsGoldenCross)
+                    return (true,
+                        $"🔔 Golden Cross: {alert.Symbol} ({alert.Timeframe}) EMA 50, EMA 200'ü yukarı kesti!");
+                if (alert.Condition == AlertCondition.CrossUnder && result.IsDeathCross)
+                    return (true, $"🔔 Death Cross: {alert.Symbol} ({alert.Timeframe}) EMA 50, EMA 200'ü aşağı kesti!");
+
+                return (false, "");
+
+            default:
+                return (false, "");
+        }
+    }
+
+    private (bool Triggered, string Message) CheckMarketMovementCondition(UserAlert alert,
+        List<Kripteks.Core.Interfaces.Candle> candles)
+    {
+        if (candles.Count < 2) return (false, "");
+        var lastCandle = candles.Last();
+
+        // Volume Spike
+        if (alert.IndicatorName == "VOLUME_SPIKE")
+        {
+            var volumes = candles.Take(candles.Count - 1).Select(c => c.Volume).ToList();
+            if (volumes.Count < 20) return (false, "");
+
+            var avgVolume = volumes.TakeLast(20).Average();
+            // TargetValue is percentage (e.g. 200 for 200% increase)
+            var threshold = avgVolume * (alert.TargetValue / 100);
+
+            if (lastCandle.Volume > avgVolume + threshold)
+            {
+                return (true,
+                    $"🔔 Hacim Patlaması: {alert.Symbol} ({alert.Timeframe}) hacim ortalamanın %{alert.TargetValue}'i üzerinde!");
+            }
+        }
+
+        // Price Change (Pump/Dump)
+        if (alert.IndicatorName == "PRICE_CHANGE")
+        {
+            var open = lastCandle.Open;
+            var close = lastCandle.Close;
+            var changePercent = ((close - open) / open) * 100;
+
+            if (Math.Abs(changePercent) >= alert.TargetValue)
+            {
+                var direction = changePercent > 0 ? "Yükseliş" : "Düşüş";
+                return (true, $"🔔 Ani {direction}: {alert.Symbol} ({alert.Timeframe}) %{changePercent:F2} değişti!");
+            }
+        }
+
+        return (false, "");
+    }
+
+    private bool CheckCondition(decimal current, decimal target, AlertCondition condition)
+    {
+        return condition switch
+        {
+            AlertCondition.Above => current > target,
+            AlertCondition.Below => current < target,
+            _ => false
+        };
+    }
+
+    private Binance.Net.Enums.KlineInterval GetInterval(string timeframe)
+    {
+        return timeframe switch
+        {
+            "15m" => Binance.Net.Enums.KlineInterval.FifteenMinutes,
+            "1h" => Binance.Net.Enums.KlineInterval.OneHour,
+            "4h" => Binance.Net.Enums.KlineInterval.FourHour,
+            "1d" => Binance.Net.Enums.KlineInterval.OneDay,
+            _ => Binance.Net.Enums.KlineInterval.OneHour
         };
     }
 }

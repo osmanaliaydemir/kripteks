@@ -10,6 +10,7 @@ public class CreateAlertDto
     public AlertCondition Condition { get; set; }
     public string? IndicatorName { get; set; }
     public string? Timeframe { get; set; }
+    public string? Parameters { get; set; }
 }
 
 public class UpdateAlertDto
@@ -18,6 +19,7 @@ public class UpdateAlertDto
     public decimal TargetValue { get; set; }
     public bool IsEnabled { get; set; }
     public int CooldownMinutes { get; set; }
+    public string? Parameters { get; set; }
 }
 
 public class AlertDto : CreateAlertDto

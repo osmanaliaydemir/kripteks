@@ -17,13 +17,25 @@ class ToolsScreen extends StatelessWidget {
           children: [
             _buildToolCard(
               context,
-              title: 'Kripto Tarayıcı',
-              description:
-                  'Piyasadaki fırsatları gerçek zamanlı tarayın ve sinyalleri yakalayın.',
-              icon: Icons.radar,
-              color: const Color(0xFFF59E0B),
-              onTap: () => context.push('/scanner'),
+              title: 'Akıllı Bildirimler',
+              description: 'Fiyat alarmları ve bot bildirimlerini yönetin.',
+              icon: Icons.notifications_active_outlined,
+              color: const Color(0xFFEF4444),
+              onTap: () => context.push('/alerts'),
             ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.1, end: 0),
+            const SizedBox(height: 20),
+            _buildToolCard(
+                  context,
+                  title: 'Kripto Tarayıcı',
+                  description:
+                      'Piyasadaki fırsatları gerçek zamanlı tarayın ve sinyalleri yakalayın.',
+                  icon: Icons.radar,
+                  color: const Color(0xFFF59E0B),
+                  onTap: () => context.push('/scanner'),
+                )
+                .animate()
+                .fadeIn(duration: 400.ms, delay: 50.ms)
+                .slideX(begin: -0.1, end: 0),
             const SizedBox(height: 20),
             _buildToolCard(
                   context,

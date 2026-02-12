@@ -5,7 +5,8 @@ namespace Kripteks.Core.Entities;
 public enum AlertType
 {
     Price = 0,
-    Indicator = 1
+    Technical = 1,
+    MarketMovement = 2
 }
 
 public enum AlertCondition
@@ -13,7 +14,9 @@ public enum AlertCondition
     Above = 0,
     Below = 1,
     CrossOver = 2,
-    CrossUnder = 3
+    CrossUnder = 3,
+    InsideChannel = 4,
+    OutsideChannel = 5
 }
 
 public class UserAlert
@@ -38,6 +41,9 @@ public class UserAlert
 
     // Nullable for Price alerts
     [MaxLength(10)] public string? Timeframe { get; set; } // "15m", "1h", "4h"
+
+    // JSON string for complex parameters (RSI Period, MA Fast/Slow, etc.)
+    public string? Parameters { get; set; }
 
     public bool IsEnabled { get; set; } = true;
 

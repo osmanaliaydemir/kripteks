@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/features/alerts/models/alert_model.dart';
 import '../../../core/theme/app_colors.dart';
-import '../models/alert_model.dart';
 import '../providers/alert_provider.dart';
-import '../widgets/create_alert_dialog.dart';
+import 'create_alert_screen.dart';
+import 'package:mobile/core/widgets/app_header.dart';
 
 class AlertsScreen extends ConsumerWidget {
   const AlertsScreen({super.key});
@@ -14,20 +15,12 @@ class AlertsScreen extends ConsumerWidget {
     final alertsAsync = ref.watch(alertsProvider);
 
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: Text(
-          'Akıllı Bildirimler',
-          style: GoogleFonts.plusJakartaSans(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+      backgroundColor: AppColors.background,
+      appBar: AppHeader(
+        title: 'Akıllı Bildirimler',
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white70),
+            icon: const Icon(Icons.refresh, color: AppColors.textSecondary),
             onPressed: () => ref.refresh(alertsProvider),
           ),
         ],
@@ -59,6 +52,30 @@ class AlertsScreen extends ConsumerWidget {
                 itemCount: alerts.length,
                 itemBuilder: (context, index) {
                   final alert = alerts[index];
+                  IconData typeIcon;
+                  Color typeColor;
+                  String details;
+
+                  switch (alert.type) {
+                    case AlertType.price:
+                      typeIcon = Icons.attach_money;
+                      typeColor = AppColors.success;
+                      details =
+                          'Hedef: ${alert.targetValue.toStringAsFixed(2)}';
+                      break;
+                    case AlertType.technical:
+                      typeIcon = Icons.show_chart;
+                      typeColor = AppColors.primary;
+                      details =
+                          '${alert.indicatorName} (${alert.timeframe}) ${alert.conditionSymbol} ${alert.targetValue}';
+                      break;
+                    case AlertType.marketMovement:
+                      typeIcon = Icons.bolt;
+                      typeColor = Colors.orange;
+                      details = '${alert.indicatorName} (${alert.timeframe})';
+                      break;
+                  }
+
                   return Dismissible(
                     key: Key(alert.id),
                     direction: DismissDirection.endToStart,
@@ -67,72 +84,101 @@ class AlertsScreen extends ConsumerWidget {
                     },
                     background: Container(
                       alignment: Alignment.centerRight,
+                      margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.only(right: 20),
-                      color: AppColors.error,
+                      decoration: BoxDecoration(
+                        color: AppColors.error,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                       child: const Icon(Icons.delete, color: Colors.white),
                     ),
-                    child: Card(
+                    child: Container(
                       margin: const EdgeInsets.only(bottom: 12),
-                      color: AppColors.surfaceLight.withOpacity(0.5),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E293B).withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                alert.conditionSymbol,
-                                style: const TextStyle(
-                                  color: AppColors.primary,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: typeColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: Icon(typeIcon, color: typeColor, size: 24),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      alert.symbol,
+                                      style: GoogleFonts.inter(
+                                        color: AppColors.textPrimary,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    if (alert.type != AlertType.price)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white10,
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          alert.type == AlertType.technical
+                                              ? 'TEKNİK'
+                                              : 'PİYASA',
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.white70,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  details,
+                                  style: GoogleFonts.inter(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (alert.lastTriggeredAt != null)
+                            Tooltip(
+                              message:
+                                  'Son tetiklenme: ${alert.lastTriggeredAt}',
+                              child: const Icon(
+                                Icons.check_circle,
+                                color: AppColors.success,
+                                size: 20,
                               ),
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    alert.symbol,
-                                    style: GoogleFonts.inter(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Hedef: \$${alert.targetValue.toStringAsFixed(2)}',
-                                    style: GoogleFonts.inter(
-                                      color: Colors.white70,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (alert.lastTriggeredAt != null)
-                              Tooltip(
-                                message:
-                                    'Son tetiklenme: ${alert.lastTriggeredAt}',
-                                child: const Icon(
-                                  Icons.check_circle,
-                                  color: AppColors.success,
-                                  size: 20,
-                                ),
-                              ),
-                          ],
-                        ),
+                        ],
                       ),
                     ),
                   );
@@ -150,9 +196,9 @@ class AlertsScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          showDialog(
-            context: context,
-            builder: (context) => const CreateAlertDialog(),
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CreateAlertScreen()),
           );
         },
         backgroundColor: AppColors.primary,
