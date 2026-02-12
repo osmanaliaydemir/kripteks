@@ -117,18 +117,22 @@ class PaginatedNotificationsNotifier
       bool matchesFilter = true;
       if (filter != NotificationFilter.all) {
         if (filter == NotificationFilter.trade &&
-            notification.type != NotificationType.Trade)
+            notification.type != NotificationType.Trade) {
           matchesFilter = false;
+        }
         if (filter == NotificationFilter.security &&
-            notification.type != NotificationType.Warning)
+            notification.type != NotificationType.Warning) {
           matchesFilter = false;
+        }
         if (filter == NotificationFilter.news &&
-            notification.type != NotificationType.Info)
+            notification.type != NotificationType.Info) {
           matchesFilter = false;
+        }
         if (filter == NotificationFilter.system &&
             notification.type != NotificationType.Success &&
-            notification.type != NotificationType.Error)
+            notification.type != NotificationType.Error) {
           matchesFilter = false;
+        }
       }
 
       if (!matchesFilter) return;

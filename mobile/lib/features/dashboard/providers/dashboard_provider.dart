@@ -22,10 +22,9 @@ final dashboardStatsProvider = StreamProvider.autoDispose<DashboardStats>((
 
   final service = ref.watch(analyticsServiceProvider);
   yield await service.getDashboardStats();
+
+  // Periyodik güncelleme
   await for (final _ in Stream.periodic(const Duration(seconds: 5))) {
-    // Stream döngüsü içinde tekrar kontrol et
-    final currentAuthState = ref.read(authStateProvider);
-    if (currentAuthState.asData?.value != true) break;
     yield await service.getDashboardStats();
   }
 });
