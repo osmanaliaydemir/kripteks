@@ -172,5 +172,23 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
             .WithMany()
             .HasForeignKey(a => a.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // AuditLog configuration
+        modelBuilder.Entity<AuditLog>()
+            .Property(a => a.Category)
+            .HasConversion<string>();
+
+        modelBuilder.Entity<AuditLog>()
+            .Property(a => a.Severity)
+            .HasConversion<string>();
+
+        modelBuilder.Entity<AuditLog>()
+            .HasIndex(a => a.Timestamp);
+
+        modelBuilder.Entity<AuditLog>()
+            .HasIndex(a => a.Category);
+
+        modelBuilder.Entity<AuditLog>()
+            .HasIndex(a => new { a.UserId, a.Timestamp });
     }
 }

@@ -332,6 +332,22 @@ public class BotEngineService : BackgroundService
                     NotificationType.Trade,
                     botToUpdate.Id);
 
+                // ── Audit Trail: Trade + Wallet ──
+                try
+                {
+                    var auditService = scopeDb.ServiceProvider.GetRequiredService<IAuditLogService>();
+                    await auditService.LogTradeAsync(null, botToUpdate.Symbol, "Alım",
+                        currentPrice, botToUpdate.Amount, botToUpdate.Id,
+                        new { Strategy = botToUpdate.StrategyName, Interval = botToUpdate.Interval });
+                    await auditService.LogWalletChangeAsync(null, "Bot Yatırımı",
+                        wallet.Balance + botToUpdate.Amount, wallet.Balance, -botToUpdate.Amount,
+                        $"Otomatik Alım: {botToUpdate.Symbol}");
+                }
+                catch (Exception auditEx)
+                {
+                    _logger.LogWarning(auditEx, "Trade audit log yazılamadı: {Symbol}", botToUpdate.Symbol);
+                }
+
                 await dbContext.SaveChangesAsync(stoppingToken);
             }
         }
@@ -524,6 +540,7 @@ public class BotEngineService : BackgroundService
         var wallet = await context.Wallets.FirstOrDefaultAsync();
         if (wallet != null)
         {
+            var oldBalance = wallet.Balance;
             wallet.LockedBalance -= bot.Amount;
             decimal returnAmount = bot.Amount + pnlAmount;
             wallet.Balance += returnAmount;
@@ -539,6 +556,23 @@ public class BotEngineService : BackgroundService
             });
 
             await notificationService.NotifyWalletUpdate(wallet);
+
+            // ── Audit Trail: Trade Satış + Wallet ──
+            try
+            {
+                using var auditScope = _serviceProvider.CreateScope();
+                var auditService = auditScope.ServiceProvider.GetRequiredService<IAuditLogService>();
+                await auditService.LogTradeAsync(null, bot.Symbol, "Satış",
+                    bot.EntryPrice, bot.Amount, bot.Id,
+                    new { Reason = reason, PnL = pnlAmount, PnlPercent = bot.CurrentPnlPercent });
+                await auditService.LogWalletChangeAsync(null, "Bot İade",
+                    oldBalance, wallet.Balance, returnAmount,
+                    $"Bot Kapatıldı: {bot.Symbol} | PNL: ${pnlAmount:F2}");
+            }
+            catch (Exception auditEx)
+            {
+                _logger.LogWarning(auditEx, "Satış audit log yazılamadı: {Symbol}", bot.Symbol);
+            }
         }
 
         var log1 = new Log
@@ -727,6 +761,23 @@ public class BotEngineService : BackgroundService
 
         await logService.LogInfoAsync(
             $"DCA Yatırımı: {bot.Symbol} | Tutar: ${costNew} | Yeni Ort: {newEntryPrice}", bot.Id);
+
+        // ── Audit Trail: DCA Trade + Wallet ──
+        try
+        {
+            using var auditScope = _serviceProvider.CreateScope();
+            var auditService = auditScope.ServiceProvider.GetRequiredService<IAuditLogService>();
+            await auditService.LogTradeAsync(null, bot.Symbol, "DCA Alım",
+                currentPrice, costNew, bot.Id,
+                new { DcaStep = bot.CurrentDcaStep, NewAvgPrice = newEntryPrice });
+            await auditService.LogWalletChangeAsync(null, "DCA Yatırımı",
+                wallet.Balance + costNew, wallet.Balance, -costNew,
+                $"DCA Step {bot.CurrentDcaStep}: {bot.Symbol}");
+        }
+        catch (Exception auditEx)
+        {
+            _logger.LogWarning(auditEx, "DCA audit log yazılamadı: {Symbol}", bot.Symbol);
+        }
     }
 
     /// <summary>
