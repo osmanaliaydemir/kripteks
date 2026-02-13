@@ -4,17 +4,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 // Widget ID Tanımları
 class DashboardWidgets {
   static const String totalPnl = 'total_pnl'; // Large
+  static const String quickActions = 'quick_actions'; // Large & New
+  static const String winRate = 'win_rate'; // Large (Overflow fix)
   static const String avgTradePnl = 'avg_trade_pnl'; // Small
   static const String botBalance = 'bot_balance'; // Small
   static const String activeBots = 'active_bots'; // Small
   static const String bestPair = 'best_pair'; // Small
   static const String dailyProfit = 'daily_profit'; // Small
   static const String totalInvest = 'total_invest'; // Small
-  static const String bestBot =
-      'best_bot'; // Large yapmak daha iyi vurgu sağlar
+  static const String bestBot = 'best_bot'; // Large
 
   static const List<String> defaultOrder = [
     totalPnl,
+    quickActions, // Altına taşındı
+    winRate,
     avgTradePnl,
     botBalance,
     activeBots,
@@ -25,14 +28,21 @@ class DashboardWidgets {
   ];
 
   static bool isLarge(String id) {
-    // Toplam PnL ve En İyi Bot kartları geniş (tam satır) olsun
-    return id == totalPnl || id == bestBot;
+    // Toplam PnL, En İyi Bot, Hızlı İşlemler ve Win Rate geniş olsun
+    return id == totalPnl ||
+        id == bestBot ||
+        id == quickActions ||
+        id == winRate;
   }
 
   static String getLabel(String id) {
     switch (id) {
       case totalPnl:
         return 'Toplam Kâr/Zarar';
+      case quickActions:
+        return 'Hızlı İşlemler';
+      case winRate:
+        return 'Başarı Oranı';
       case avgTradePnl:
         return 'Ort. İşlem Kârı';
       case botBalance:
@@ -40,7 +50,7 @@ class DashboardWidgets {
       case activeBots:
         return 'Aktif İşlemler';
       case bestPair:
-        return 'En İyi Parite';
+        return 'Kullanılabilir Bakiye'; // Label güncellendi
       case dailyProfit:
         return 'Bugünkü Kazanç';
       case totalInvest:
@@ -78,10 +88,9 @@ class DashboardLayoutState {
 }
 
 class DashboardLayoutNotifier extends Notifier<DashboardLayoutState> {
-  // Key'i değiştirerek (v2) yeni kullanıcılar için temiz başlangıç sağlıyoruz.
-  // Mevcut kullanıcılar da sıfırlanacak ama bu gerekli çünkü ID yapısı değişti.
-  static const _prefsKeyOrder = 'dashboard_layout_order_v2';
-  static const _prefsKeyHidden = 'dashboard_layout_hidden_v2';
+  // Key'i değiştirerek (v4) yeni varsayılan düzeni zorluyoruz.
+  static const _prefsKeyOrder = 'dashboard_layout_order_v4';
+  static const _prefsKeyHidden = 'dashboard_layout_hidden_v4';
 
   @override
   DashboardLayoutState build() {

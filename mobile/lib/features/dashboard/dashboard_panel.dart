@@ -12,7 +12,8 @@ import '../wallet/wallet_screen.dart';
 import '../bots/bot_list_screen.dart';
 import '../bots/providers/bot_provider.dart';
 import '../bots/models/bot_model.dart';
-import 'package:mobile/l10n/app_localizations.dart';
+import '../reports/reports_screen.dart';
+import '../market_analysis/market_analysis_screen.dart';
 
 class DashboardPanel extends ConsumerWidget {
   const DashboardPanel({super.key});
@@ -243,6 +244,10 @@ class DashboardPanel extends ConsumerWidget {
     String id,
   ) {
     switch (id) {
+      case DashboardWidgets.quickActions:
+        return _buildQuickActions(context);
+      case DashboardWidgets.winRate:
+        return _buildWinRateCard(context, ref, stats);
       case DashboardWidgets.totalPnl:
         return _buildTotalPnlCard(context, ref, stats);
       case DashboardWidgets.avgTradePnl:
@@ -299,11 +304,20 @@ class DashboardPanel extends ConsumerWidget {
           ),
         );
       case DashboardWidgets.bestPair:
-        return _buildStatCard(
-          title: 'En İyi Parite',
-          value: stats.bestPair.isEmpty ? '-' : stats.bestPair,
-          icon: Icons.star,
-          color: AppColors.primary,
+        return Consumer(
+          builder: (context, ref, child) {
+            final walletAsync = ref.watch(walletDetailsProvider);
+            final freeBalance =
+                walletAsync.asData?.value.availableBalance ?? 0.0;
+
+            return _buildStatCard(
+              title: 'Kullanılabilir Bakiye',
+              value: '\$${freeBalance.toStringAsFixed(2)}',
+              icon: Icons.account_balance_wallet,
+              color: const Color(0xFF8B5CF6), // Violet - Modern ve şık
+              isSensitive: true,
+            );
+          },
         );
       case DashboardWidgets.dailyProfit:
         return _buildStatCard(
@@ -338,6 +352,225 @@ class DashboardPanel extends ConsumerWidget {
         // Eğer tanınmayan bir ID varsa (versiyon uyumsuzluğu vs) boş dön
         return const SizedBox.shrink();
     }
+  }
+
+  // --- New Feature Widgets ---
+
+  Widget _buildQuickActions(BuildContext context) {
+    // Statik eylemler listesi
+    final actions = [
+      {
+        'label': 'Yeni Bot',
+        'icon': Icons.smart_toy,
+        'color': AppColors.primary,
+      },
+      {
+        'label': 'Cüzdan',
+        'icon': Icons.account_balance_wallet,
+        'color': const Color(0xFF8B5CF6),
+      },
+      {
+        'label': 'Geçmiş',
+        'icon': Icons.history,
+        'color': const Color(0xFFF59E0B),
+      },
+      {
+        'label': 'Analiz',
+        'icon': Icons.analytics,
+        'color': const Color(0xFF10B981),
+      },
+    ];
+
+    return SizedBox(
+      height: 90,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: actions.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final action = actions[index];
+          return GestureDetector(
+            onTap: () {
+              if (action['label'] == 'Yeni Bot') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const BotListScreen()),
+                );
+              } else if (action['label'] == 'Cüzdan') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const WalletScreen()),
+                );
+              } else if (action['label'] == 'Geçmiş') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ReportsScreen()),
+                );
+              } else if (action['label'] == 'Analiz') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const MarketAnalysisScreen(),
+                  ),
+                );
+              }
+            },
+            child: Container(
+              width: 80,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceLight,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: (action['color'] as Color).withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      action['icon'] as IconData,
+                      color: action['color'] as Color,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    action['label'] as String,
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildWinRateCard(
+    BuildContext context,
+    WidgetRef ref,
+    DashboardStats stats,
+  ) {
+    // Mock data yerine gerçek stats kullanıyoruz ama stats genellikle 0 gelebilir
+    // Biraz görsellik katmak için
+    final winRate = stats.winRate; // 0.0 - 100.0 arası
+    final totalTrades = stats.totalTrades;
+    final wins = stats.winningTrades;
+    final losses = stats.losingTrades;
+
+    // Renk belirleme
+    Color rateColor = const Color(0xFF10B981); // Yeşil
+    if (winRate < 40) {
+      rateColor = const Color(0xFFEF4444); // Kırmızı
+    } else if (winRate < 60) {
+      rateColor = const Color(0xFFF59E0B); // Sarı
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      // Diğer kartlarla aynı dekorasyon
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Sol: Dairesel Grafik
+          SizedBox(
+            width: 70,
+            height: 70,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                CircularProgressIndicator(
+                  value: winRate / 100,
+                  strokeWidth: 8,
+                  backgroundColor: Colors.white.withValues(alpha: 0.1),
+                  color: rateColor,
+                  strokeCap: StrokeCap.round,
+                ),
+                Center(
+                  child: Text(
+                    '${winRate.toStringAsFixed(0)}%',
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(width: 20),
+
+          // Sağ: Detaylar
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'BAŞARI ORANI',
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _buildMiniBadge('T: $totalTrades', Colors.blueGrey),
+                    const SizedBox(width: 6),
+                    _buildMiniBadge('W: $wins', const Color(0xFF10B981)),
+                    const SizedBox(width: 6),
+                    _buildMiniBadge('L: $losses', const Color(0xFFEF4444)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniBadge(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.inter(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
   }
 
   // --- Widget Builders (Complex Ones) ---
@@ -417,140 +650,173 @@ class DashboardPanel extends ConsumerWidget {
     bool isSensitive = false,
   }) {
     final isPnlCard = title == 'Toplam Kâr/Zarar';
-    BoxDecoration decoration;
 
-    if (isPnlCard) {
-      final isPositive = !value.contains('-');
-      final gradientColors = isPositive
-          ? [
-              AppColors.successDark.withValues(alpha: 0.9),
-              AppColors.successDark.withValues(alpha: 0.3),
-              AppColors.surface,
-            ]
-          : [
-              AppColors.errorDark.withValues(alpha: 0.9),
-              AppColors.errorDark.withValues(alpha: 0.3),
-              AppColors.surface,
-            ];
+    // Modern Dark & Gradient Tasarım
+    // PnL kartı için özel vurgulu gradient, diğerleri için soft yüzey
+    final gradient = isPnlCard
+        ? LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: value.contains('-')
+                ? [
+                    const Color(0xFF450A0A), // Koyu Kırmızı
+                    const Color(0xFF1F1F1F), // Neredeyse Siyah
+                  ]
+                : [
+                    const Color(0xFF064E3B), // Koyu Yeşil
+                    const Color(0xFF1F1F1F), // Neredeyse Siyah
+                  ],
+          )
+        : LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.surfaceLight.withValues(alpha: 0.9),
+              AppColors.surfaceLight.withValues(alpha: 0.4),
+            ],
+          );
 
-      decoration = BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: gradientColors,
+    return Container(
+      constraints: BoxConstraints(minHeight: isLarge ? 140 : 110),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(28), // Daha yuvarlak köşeler
+        border: Border.all(
+          // İnce, zarif bir kenarlık (Stroke)
+          color: isPnlCard
+              ? color.withValues(alpha: 0.3)
+              : Colors.white.withValues(alpha: 0.08),
+          width: 1,
         ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
         boxShadow: [
+          // Hafif bir glow veya derinlik efekti
           BoxShadow(
-            color: color.withValues(alpha: 0.25),
+            color: isPnlCard
+                ? color.withValues(alpha: 0.15)
+                : Colors.black.withValues(alpha: 0.2),
             blurRadius: 20,
-            spreadRadius: -5,
             offset: const Offset(0, 10),
           ),
         ],
-      );
-    } else {
-      decoration = BoxDecoration(
-        color: AppColors.surfaceLight.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      );
-    }
-
-    return Container(
-      padding: EdgeInsets.all(isLarge ? 24 : 20),
-      decoration: decoration,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          Row(
+          // Arka Plan Dekoru (Watermark İkon) - İsteğe bağlı, kartın sağ altına çok silik ikon
+          Positioned(
+            right: -10,
+            bottom: -10,
+            child: Transform.rotate(
+              angle: -0.2, // Hafif eğik
+              child: Icon(
+                icon,
+                size: 80,
+                color: color.withValues(alpha: 0.03), // Çok çok silik
+              ),
+            ),
+          ),
+
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Text(
-                  title.toUpperCase(),
-                  style: GoogleFonts.inter(
-                    color: isPnlCard ? Colors.white70 : AppColors.textSecondary,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2,
+              // Üst Kısım: İkon ve Başlık
+              Row(
+                children: [
+                  // İkon Kutusu (Glass Effect)
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: color.withValues(alpha: 0.2),
+                        width: 1,
+                      ),
+                    ),
+                    child: Icon(icon, color: color, size: 18),
                   ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
+                  const SizedBox(width: 12),
+
+                  // Başlık
+                  Expanded(
+                    child: Text(
+                      title.toUpperCase(),
+                      style: GoogleFonts.inter(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.0,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      color.withValues(alpha: 0.2),
-                      color.withValues(alpha: 0.05),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: color.withValues(alpha: 0.2)),
-                ),
-                child: Icon(icon, color: color, size: isLarge ? 20 : 16),
-              ),
-            ],
-          ),
-          SizedBox(height: isLarge ? 20 : 14),
-          isSensitive
-              ? SensitiveText(
-                  value,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: isLarge ? 36 : (value.contains('adet') ? 14 : 22),
-                    fontWeight: FontWeight.w800,
-                    color: isPnlCard ? Colors.white : AppColors.textPrimary,
-                    height: 1.1,
-                  ),
-                )
-              : Text(
-                  value,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: isLarge ? 36 : (value.contains('adet') ? 14 : 22),
-                    fontWeight: FontWeight.w800,
-                    color: isPnlCard ? Colors.white : AppColors.textPrimary,
-                    height: 1.1,
-                  ),
-                ),
-          if (isPnlCard) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
+
+              const SizedBox(height: 16),
+
+              // Değer
+              isSensitive
+                  ? SensitiveText(
+                      value,
+                      style: GoogleFonts.outfit(
+                        // Rakamlar için daha modern font
+                        fontSize: isLarge ? 38 : (value.length > 10 ? 20 : 26),
+                        fontWeight: FontWeight.w700,
+                        color: isPnlCard ? Colors.white : AppColors.textPrimary,
+                        height: 1.0,
+                      ),
+                    )
+                  : Text(
+                      value,
+                      style: GoogleFonts.outfit(
+                        fontSize: isLarge ? 38 : (value.length > 10 ? 20 : 26),
+                        fontWeight: FontWeight.w700,
+                        color: isPnlCard ? Colors.white : AppColors.textPrimary,
+                        height: 1.0,
+                      ),
+                    ),
+
+              // PnL Kartı için Alt Bilgi
+              if (isPnlCard) ...[
+                const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
+                    horizontal: 10,
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
-                    'Toplam bakiye değişimi',
-                    style: GoogleFonts.inter(
-                      color: Colors.white70,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        value.contains('-')
+                            ? Icons.trending_down
+                            : Icons.trending_up,
+                        color: Colors.white70,
+                        size: 14,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Toplam Bakiye',
+                        style: GoogleFonts.inter(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
-            ),
-          ],
+            ],
+          ),
         ],
       ),
     );
