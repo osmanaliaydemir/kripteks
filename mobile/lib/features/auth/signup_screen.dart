@@ -103,20 +103,19 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
           // Ambient Glow Background
           Positioned(
             top: -100,
-            left: 0,
-            right: 0,
-            height: 400,
+            right: -100,
             child: Container(
-              decoration: const BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment.topCenter,
-                  radius: 0.8,
-                  colors: [
-                    Color(0x40F59E0B), // Amber with transparency
-                    Colors.transparent,
-                  ],
-                  stops: [0.0, 1.0],
-                ),
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    blurRadius: 100,
+                    spreadRadius: 20,
+                  ),
+                ],
               ),
             ),
           ),

@@ -10,6 +10,8 @@ import 'package:mobile/features/wallet/wallet_screen.dart';
 import 'package:mobile/features/notifications/providers/notification_provider.dart';
 
 import 'package:mobile/core/providers/signalr_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -78,86 +80,114 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               SettingsScreen(),
             ],
           ),
-        ],
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface.withValues(alpha: 0.95),
-          border: Border(
-            top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+
+          // Custom Floating Navigation Bar
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 24, // Ekranın altından boşluk
+            child: Container(
+              height: 70, // Sabit yükseklik
+              decoration: BoxDecoration(
+                color: const Color(
+                  0xFF1E293B,
+                ).withValues(alpha: 0.9), // Koyu, yarı saydam arka plan
+                borderRadius: BorderRadius.circular(24), // Oval köşeler
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.1), // İnce border
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    spreadRadius: 0,
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildNavItem(
+                      Icons.dashboard_rounded,
+                      AppLocalizations.of(context)!.dashboard,
+                      0,
+                    ),
+                    _buildNavItem(
+                      Icons.smart_toy_rounded,
+                      AppLocalizations.of(context)!.bots,
+                      1,
+                    ),
+                    _buildNavItem(
+                      Icons.grid_view_rounded,
+                      AppLocalizations.of(context)!.tools,
+                      2,
+                    ),
+                    _buildNavItem(
+                      Icons.account_balance_wallet_rounded,
+                      AppLocalizations.of(context)!.wallet,
+                      3,
+                    ),
+                    _buildNavItem(
+                      Icons.settings_rounded,
+                      AppLocalizations.of(context)!.settings,
+                      4,
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 15,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          selectedItemColor: AppColors.primary,
-          unselectedItemColor: AppColors.textSecondary.withValues(alpha: 0.5),
-          type: BottomNavigationBarType.fixed,
-          selectedFontSize: 11,
-          unselectedFontSize: 10,
-          items: [
-            _buildNavItem(
-              Icons.dashboard_rounded,
-              AppLocalizations.of(context)!.dashboard,
-              0,
-            ),
-            _buildNavItem(
-              Icons.smart_toy_rounded,
-              AppLocalizations.of(context)!.bots,
-              1,
-            ),
-            _buildNavItem(
-              Icons.grid_view_rounded,
-              AppLocalizations.of(context)!.tools,
-              2,
-            ),
-            _buildNavItem(
-              Icons.account_balance_wallet_rounded,
-              AppLocalizations.of(context)!.wallet,
-              3,
-            ),
-            _buildNavItem(
-              Icons.settings_rounded,
-              AppLocalizations.of(context)!.settings,
-              4,
-            ),
-          ],
-          currentIndex: _currentIndex,
-          onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-        ),
+        ],
       ),
     );
   }
 
-  BottomNavigationBarItem _buildNavItem(
-    IconData icon,
-    String label,
-    int index,
-  ) {
+  Widget _buildNavItem(IconData icon, String label, int index) {
     final isSelected = _currentIndex == index;
-    return BottomNavigationBarItem(
-      icon: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.15)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(icon, size: isSelected ? 26 : 22),
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _currentIndex = index;
+        });
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.primary.withValues(alpha: 0.15)
+                  : Colors.transparent,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: isSelected ? AppColors.primary : AppColors.textSecondary,
+              size: 24,
+            ),
+          ),
+          Text(
+                label,
+                style: GoogleFonts.inter(
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.textSecondary,
+                  fontSize: 10,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                ),
+              )
+              .animate(target: isSelected ? 1 : 0)
+              .scaleXY(end: 1.1, duration: 200.ms),
+        ],
       ),
-      label: label,
     );
   }
 }

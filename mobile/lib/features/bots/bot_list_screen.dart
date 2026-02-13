@@ -73,41 +73,6 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      floatingActionButton: _mainTab == 'Botlarım'
-          ? Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.primary, Color(0xFFE6C200)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.4),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => context.push('/bots/create'),
-                  borderRadius: BorderRadius.circular(16),
-                  child: const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: Icon(
-                      Icons.add_rounded,
-                      color: Colors.black,
-                      size: 22,
-                    ),
-                  ),
-                ),
-              ),
-            )
-          : null,
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: Stack(
         children: [
           // Background Glow
@@ -234,6 +199,48 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
               ],
             ),
           ),
+
+          if (_mainTab == 'Botlarım')
+            Positioned(
+              right: 16,
+              bottom: 110,
+              child:
+                  Container(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [AppColors.primary, Color(0xFFE6C200)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.4),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () => context.push('/bots/create'),
+                            borderRadius: BorderRadius.circular(16),
+                            child: const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: Icon(
+                                Icons.add_rounded,
+                                color: Colors.black,
+                                size: 22,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                      .animate()
+                      .fadeIn(duration: 300.ms)
+                      .scale(begin: const Offset(0.8, 0.8)),
+            ),
         ],
       ),
     );
@@ -1575,7 +1582,7 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
                       child: ListView.builder(
                         controller: _scrollController,
                         physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
                         itemCount:
                             displayedBots.length +
                             (paginatedState.isLoadingMore ? 1 : 0),
