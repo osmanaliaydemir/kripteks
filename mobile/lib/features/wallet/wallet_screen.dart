@@ -237,7 +237,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: filteredTransactions.length,
-                          separatorBuilder: (_, __) =>
+                          separatorBuilder: (_, _) =>
                               const SizedBox(height: 12),
                           itemBuilder: (context, index) =>
                               _buildModernTransactionItem(

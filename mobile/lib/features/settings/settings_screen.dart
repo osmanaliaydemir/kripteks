@@ -169,8 +169,9 @@ class SettingsScreen extends ConsumerWidget {
                               );
                               return biometricState.when(
                                 data: (state) {
-                                  if (!state.isSupported)
+                                  if (!state.isSupported) {
                                     return const SizedBox.shrink();
+                                  }
                                   return Column(
                                     children: [
                                       _buildSwitchTile(
@@ -203,7 +204,7 @@ class SettingsScreen extends ConsumerWidget {
                                   );
                                 },
                                 loading: () => const SizedBox.shrink(),
-                                error: (_, __) => const SizedBox.shrink(),
+                                error: (_, _) => const SizedBox.shrink(),
                               );
                             },
                           ),
@@ -596,7 +597,7 @@ class SettingsScreen extends ConsumerWidget {
           Switch.adaptive(
             value: value,
             onChanged: onChanged,
-            activeColor: AppColors.success,
+            activeThumbColor: AppColors.success,
             activeTrackColor: AppColors.success.withValues(alpha: 0.2),
             inactiveThumbColor: Colors.white38,
             inactiveTrackColor: Colors.white10,
@@ -685,8 +686,8 @@ class SettingsScreen extends ConsumerWidget {
       barrierLabel: '',
       barrierColor: Colors.black.withValues(alpha: 0.8),
       transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (_, __, ___) => const SizedBox.shrink(),
-      transitionBuilder: (context, anim1, _, __) {
+      pageBuilder: (_, _, _) => const SizedBox.shrink(),
+      transitionBuilder: (context, anim1, _, _) {
         return Transform.scale(
           scale: CurvedAnimation(
             parent: anim1,
