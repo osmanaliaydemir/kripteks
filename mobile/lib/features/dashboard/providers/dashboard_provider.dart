@@ -21,10 +21,22 @@ final dashboardStatsProvider = StreamProvider.autoDispose<DashboardStats>((
   }
 
   final service = ref.watch(analyticsServiceProvider);
-  yield await service.getDashboardStats();
 
-  // Periyodik güncelleme
-  await for (final _ in Stream.periodic(const Duration(seconds: 5))) {
+  try {
     yield await service.getDashboardStats();
+
+    // Periyodik güncelleme
+    await for (final _ in Stream.periodic(const Duration(seconds: 5))) {
+      // Auth kontrolü her iterasyonda yapılmalı
+      if (ref.read(authStateProvider).value != true) break;
+      yield await service.getDashboardStats();
+    }
+  } catch (e) {
+    // Auth hatası ise sessizce bitir (router yönlendirecek)
+    if (e.toString().contains('StatusCode: 401') ||
+        e.toString().contains('AuthException')) {
+      return;
+    }
+    rethrow;
   }
 });

@@ -30,6 +30,16 @@ class GlobalErrorHandler {
         appRunner();
       },
       (error, stackTrace) {
+        // 401 Auth hatalarını global exception olarak raporlama (beklenen davranış)
+        if (error.toString().contains('StatusCode: 401') ||
+            error.toString().contains('AuthException') ||
+            (error is Exception && error.toString().contains('Unauthorized'))) {
+          if (kDebugMode) {
+            print('🔒 [GlobalErrorHandler] Ignored 401 Auth Exception: $error');
+          }
+          return;
+        }
+
         _errorService.recordError(
           error,
           stackTrace,

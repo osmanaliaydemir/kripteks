@@ -53,15 +53,17 @@ class _PrivacyBlurGuardState extends ConsumerState<PrivacyBlurGuard>
         widget.child,
         if (_shouldBlur)
           Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(
-                color: Colors.black.withValues(alpha: 0.4),
-                child: const Center(
-                  child: Icon(
-                    Icons.lock_person_rounded,
-                    size: 64,
-                    color: Colors.white24,
+            child: ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  child: const Center(
+                    child: Icon(
+                      Icons.lock_person_rounded,
+                      size: 64,
+                      color: Colors.white24,
+                    ),
                   ),
                 ),
               ),

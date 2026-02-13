@@ -70,86 +70,116 @@ class _BinanceApiKeysScreenState extends ConsumerState<BinanceApiKeysScreen> {
       appBar: AppHeader(title: l10n.updateApiKeys),
       body: Stack(
         children: [
-          // Background Gradient
+          // Modern Background Glow
           Positioned(
             top: -100,
-            left: 0,
-            right: 0,
-            height: 400,
+            right: -100,
             child: Container(
-              decoration: const BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment.topCenter,
-                  radius: 0.8,
-                  colors: [AppColors.primaryTransparent, Colors.transparent],
-                  stops: [0.0, 1.0],
-                ),
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.binance.withValues(alpha: 0.1),
+                    blurRadius: 100,
+                    spreadRadius: 20,
+                  ),
+                ],
               ),
             ),
           ),
+
           SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(24),
               child: Form(
                 key: _formKey,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Info Card
+                    // Modern Info Card
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceLight.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(16),
+                        color: const Color(0xFF1E293B).withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.1),
+                          color: AppColors.binance.withValues(alpha: 0.2),
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
                       child: Row(
                         children: [
-                          const Icon(
-                            Icons.info_outline_rounded,
-                            color: AppColors.primary,
-                            size: 24,
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: AppColors.binance.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.verified_user_outlined,
+                              color: AppColors.binance,
+                              size: 24,
+                            ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
                             child: Text(
                               l10n.apiKeyInfo,
-                              style: GoogleFonts.plusJakartaSans(
-                                color: AppColors.textSecondary,
+                              style: GoogleFonts.inter(
+                                color: Colors.white70,
                                 fontSize: 13,
-                                height: 1.4,
+                                height: 1.5,
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 40),
 
-                    // Binance Logo / Icon
+                    // Glowing Binance Logo
                     Center(
                       child: Container(
-                        padding: const EdgeInsets.all(20),
+                        width: 100,
+                        height: 100,
                         decoration: BoxDecoration(
-                          color: AppColors.binance.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
+                          color: const Color(0xFF1E293B),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.binance.withValues(alpha: 0.3),
+                              blurRadius: 30,
+                              spreadRadius: 0,
+                            ),
+                          ],
+                          border: Border.all(
+                            color: AppColors.binance.withValues(alpha: 0.2),
+                            width: 2,
+                          ),
                         ),
                         child: const Icon(
-                          Icons.currency_bitcoin_rounded,
+                          Icons
+                              .currency_bitcoin_rounded, // Using Bitcoin icon as generic crypto icon since Binance isn't default
                           color: AppColors.binance,
                           size: 48,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 40),
 
                     // API Key Field
                     _buildInputField(
                       controller: _apiKeyController,
                       label: l10n.apiKey,
                       hintText: l10n.apiKeyHint,
+                      icon: Icons.vpn_key_outlined,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return l10n.apiKeyRequired;
@@ -164,6 +194,7 @@ class _BinanceApiKeysScreenState extends ConsumerState<BinanceApiKeysScreen> {
                       controller: _secretKeyController,
                       label: l10n.secretKey,
                       hintText: l10n.secretKeyHint,
+                      icon: Icons.lock_outline_rounded,
                       obscureText: true,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -174,22 +205,34 @@ class _BinanceApiKeysScreenState extends ConsumerState<BinanceApiKeysScreen> {
                     ),
                     const SizedBox(height: 40),
 
-                    // Save Button
-                    SizedBox(
+                    // Modern Save Button
+                    Container(
                       width: double.infinity,
                       height: 56,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        gradient: const LinearGradient(
+                          colors: [AppColors.binance, Color(0xFFFCD535)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.binance.withValues(alpha: 0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _saveKeys,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
+                          backgroundColor: Colors.transparent,
                           foregroundColor: Colors.black,
-                          disabledBackgroundColor: AppColors.primary.withValues(
-                            alpha: 0.5,
-                          ),
+                          shadowColor: Colors.transparent,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          elevation: 0,
                         ),
                         child: _isLoading
                             ? const SizedBox(
@@ -223,63 +266,58 @@ class _BinanceApiKeysScreenState extends ConsumerState<BinanceApiKeysScreen> {
     required TextEditingController controller,
     required String label,
     required String hintText,
+    required IconData icon,
     bool obscureText = false,
     required String? Function(String?) validator,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: GoogleFonts.plusJakartaSans(
-            color: AppColors.textPrimary,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              color: AppColors.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
           ),
         ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          obscureText: obscureText,
-          style: GoogleFonts.plusJakartaSans(
-            color: AppColors.textPrimary,
-            fontSize: 15,
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E293B).withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
           ),
-          decoration: InputDecoration(
-            hintText: hintText,
-            hintStyle: GoogleFonts.plusJakartaSans(
-              color: AppColors.textSecondary.withValues(alpha: 0.5),
-              fontSize: 14,
+          child: TextFormField(
+            controller: controller,
+            obscureText: obscureText,
+            style: GoogleFonts.plusJakartaSans(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
             ),
-            prefixIcon: const Icon(
-              Icons.vpn_key_outlined,
-              color: AppColors.primary,
-              size: 20,
+            decoration: InputDecoration(
+              hintText: hintText,
+              hintStyle: GoogleFonts.plusJakartaSans(
+                color: Colors.white38,
+                fontSize: 14,
+              ),
+              prefixIcon: Icon(icon, color: Colors.white24, size: 20),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+              errorStyle: GoogleFonts.inter(
+                color: AppColors.error,
+                fontSize: 12,
+              ),
             ),
-            filled: true,
-            fillColor: AppColors.surfaceLight.withValues(alpha: 0.5),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppColors.white10),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppColors.primary),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppColors.error),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppColors.error),
-            ),
+            validator: validator,
           ),
-          validator: validator,
         ),
       ],
     );

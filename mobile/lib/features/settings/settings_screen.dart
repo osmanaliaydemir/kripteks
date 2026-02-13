@@ -597,9 +597,9 @@ class SettingsScreen extends ConsumerWidget {
           Switch.adaptive(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: AppColors.success,
-            activeTrackColor: AppColors.success.withValues(alpha: 0.2),
-            inactiveThumbColor: Colors.white38,
+            activeThumbColor: AppColors.primary,
+            activeTrackColor: AppColors.primary.withValues(alpha: 0.2),
+            inactiveThumbColor: Colors.white,
             inactiveTrackColor: Colors.white10,
           ),
         ],

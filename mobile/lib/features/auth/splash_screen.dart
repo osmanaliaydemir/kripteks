@@ -25,12 +25,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Future<void> _startLoadingSequence() async {
     // Simüle edilmiş yükleme adımları
     await Future.delayed(const Duration(milliseconds: 800));
-    if (mounted)
+    if (mounted) {
       setState(() => _loadingText = 'Sunucu Bağlantısı Kuruluyor...');
+    }
 
     await Future.delayed(const Duration(milliseconds: 800));
-    if (mounted)
+    if (mounted) {
       setState(() => _loadingText = 'Veriler Senkronize Ediliyor...');
+    }
 
     await Future.delayed(const Duration(milliseconds: 800));
     if (mounted) setState(() => _loadingText = 'Hazır!');
@@ -77,7 +79,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 ],
               ),
             ),
-          ).animate().fadeIn(duration: 1000.ms),
+          ),
 
           Center(
             child: Column(
@@ -114,19 +116,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                         color: AppColors.primary,
                       ),
                     )
-                    .animate()
-                    .scale(duration: 600.ms, curve: Curves.easeOutBack)
-                    .shimmer(
-                      delay: 1000.ms,
-                      duration: 1500.ms,
-                      color: Colors.white.withValues(alpha: 0.2),
+                    .animate(
+                      onPlay: (controller) => controller.repeat(reverse: true),
                     )
-                    .then()
-                    .boxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.4),
-                      blurRadius: 60,
-                      spreadRadius: 10,
-                      duration: 1000.ms,
+                    .scale(
+                      duration: 2000.ms,
+                      begin: const Offset(1.0, 1.0),
+                      end: const Offset(1.1, 1.1),
                       curve: Curves.easeInOut,
                     ),
 
@@ -141,7 +137,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                     color: Colors.white,
                     letterSpacing: 2.0,
                   ),
-                ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2, end: 0),
+                ).animate().slideY(begin: 0.2, end: 0, delay: 300.ms),
 
                 const SizedBox(height: 8),
 
@@ -152,7 +148,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                     color: Colors.white54,
                     letterSpacing: 0.5,
                   ),
-                ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.2, end: 0),
+                ).animate().slideY(begin: 0.2, end: 0, delay: 500.ms),
 
                 const SizedBox(height: 60),
 
@@ -186,7 +182,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                       ),
                     ],
                   ),
-                ).animate().fadeIn(delay: 700.ms),
+                ),
               ],
             ),
           ),
@@ -202,7 +198,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 style: GoogleFonts.inter(color: Colors.white24, fontSize: 10),
               ),
             ),
-          ).animate().fadeIn(delay: 1000.ms),
+          ),
         ],
       ),
     );

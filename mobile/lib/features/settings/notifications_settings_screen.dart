@@ -23,23 +23,26 @@ class NotificationsSettingsScreen extends ConsumerWidget {
       ),
       body: Stack(
         children: [
-          // Background Gradient
+          // Modern Background Glow
           Positioned(
             top: -100,
-            left: 0,
-            right: 0,
-            height: 400,
+            right: -100,
             child: Container(
-              decoration: const BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment.topCenter,
-                  radius: 0.8,
-                  colors: [AppColors.primaryTransparent, Colors.transparent],
-                  stops: [0.0, 1.0],
-                ),
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    blurRadius: 100,
+                    spreadRadius: 20,
+                  ),
+                ],
               ),
             ),
           ),
+
           SafeArea(
             child: settingsAsync.when(
               data: (settings) => _buildContent(context, ref, settings),
@@ -84,31 +87,45 @@ class NotificationsSettingsScreen extends ConsumerWidget {
     NotificationSettings settings,
   ) {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       children: [
-        // Info Card
+        // Modern Info Card
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: AppColors.surfaceLight.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.info.withValues(alpha: 0.1)),
+            color: const Color(0xFF1E293B).withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Row(
             children: [
-              const Icon(
-                Icons.info_outline_rounded,
-                color: AppColors.info,
-                size: 24,
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.notifications_outlined,
+                  color: AppColors.primary,
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
                   AppLocalizations.of(context)!.notificationsInfo,
-                  style: GoogleFonts.plusJakartaSans(
-                    color: AppColors.textSecondary,
+                  style: GoogleFonts.inter(
+                    color: Colors.white70,
                     fontSize: 13,
-                    height: 1.4,
+                    height: 1.5,
                   ),
                 ),
               ),
@@ -118,7 +135,7 @@ class NotificationsSettingsScreen extends ConsumerWidget {
         const SizedBox(height: 32),
 
         // Push Notifications Section
-        _buildSection('Push Bildirimleri', [
+        _buildSection(context, 'Push Bildirimleri', [
           _buildSwitchTile(
             context,
             ref,
@@ -126,13 +143,17 @@ class NotificationsSettingsScreen extends ConsumerWidget {
             title: 'Push Bildirimleri',
             subtitle: 'Anlık bildirimler alın',
             value: settings.enablePushNotifications,
-            field: 'enablePushNotifications',
+            onChanged: (val) {
+              ref
+                  .read(notificationSettingsProvider.notifier)
+                  .toggleSetting('enablePushNotifications', val);
+            },
           ),
         ]),
         const SizedBox(height: 32),
 
         // Bot Notifications
-        _buildSection(AppLocalizations.of(context)!.botNotifications, [
+        _buildSection(context, AppLocalizations.of(context)!.botNotifications, [
           _buildSwitchTile(
             context,
             ref,
@@ -140,7 +161,11 @@ class NotificationsSettingsScreen extends ConsumerWidget {
             title: AppLocalizations.of(context)!.buySignals,
             subtitle: AppLocalizations.of(context)!.buySignalsSubtitle,
             value: settings.notifyBuySignals,
-            field: 'notifyBuySignals',
+            onChanged: (val) {
+              ref
+                  .read(notificationSettingsProvider.notifier)
+                  .toggleSetting('notifyBuySignals', val);
+            },
           ),
           _buildSwitchTile(
             context,
@@ -149,7 +174,11 @@ class NotificationsSettingsScreen extends ConsumerWidget {
             title: AppLocalizations.of(context)!.sellSignals,
             subtitle: AppLocalizations.of(context)!.sellSignalsSubtitle,
             value: settings.notifySellSignals,
-            field: 'notifySellSignals',
+            onChanged: (val) {
+              ref
+                  .read(notificationSettingsProvider.notifier)
+                  .toggleSetting('notifySellSignals', val);
+            },
           ),
           _buildSwitchTile(
             context,
@@ -158,7 +187,11 @@ class NotificationsSettingsScreen extends ConsumerWidget {
             title: AppLocalizations.of(context)!.stopLoss,
             subtitle: AppLocalizations.of(context)!.stopLossSubtitle,
             value: settings.notifyStopLoss,
-            field: 'notifyStopLoss',
+            onChanged: (val) {
+              ref
+                  .read(notificationSettingsProvider.notifier)
+                  .toggleSetting('notifyStopLoss', val);
+            },
           ),
           _buildSwitchTile(
             context,
@@ -167,38 +200,60 @@ class NotificationsSettingsScreen extends ConsumerWidget {
             title: AppLocalizations.of(context)!.takeProfit,
             subtitle: AppLocalizations.of(context)!.takeProfitSubtitle,
             value: settings.notifyTakeProfit,
-            field: 'notifyTakeProfit',
+            onChanged: (val) {
+              ref
+                  .read(notificationSettingsProvider.notifier)
+                  .toggleSetting('notifyTakeProfit', val);
+            },
           ),
         ]),
         const SizedBox(height: 32),
 
-        _buildSection(AppLocalizations.of(context)!.systemNotifications, [
-          _buildSwitchTile(
-            context,
-            ref,
-            icon: Icons.notifications_active_rounded,
-            title: AppLocalizations.of(context)!.generalNotifications,
-            subtitle: AppLocalizations.of(
+        _buildSection(
+          context,
+          AppLocalizations.of(context)!.systemNotifications,
+          [
+            _buildSwitchTile(
               context,
-            )!.generalNotificationsSubtitle,
-            value: settings.notifyGeneral,
-            field: 'notifyGeneral',
-          ),
-          _buildSwitchTile(
-            context,
-            ref,
-            icon: Icons.error_outline_rounded,
-            title: AppLocalizations.of(context)!.errorNotifications,
-            subtitle: AppLocalizations.of(context)!.errorNotificationsSubtitle,
-            value: settings.notifyErrors,
-            field: 'notifyErrors',
-          ),
-        ]),
+              ref,
+              icon: Icons.notifications_active_rounded,
+              title: AppLocalizations.of(context)!.generalNotifications,
+              subtitle: AppLocalizations.of(
+                context,
+              )!.generalNotificationsSubtitle,
+              value: settings.notifyGeneral,
+              onChanged: (val) {
+                ref
+                    .read(notificationSettingsProvider.notifier)
+                    .toggleSetting('notifyGeneral', val);
+              },
+            ),
+            _buildSwitchTile(
+              context,
+              ref,
+              icon: Icons.error_outline_rounded,
+              title: AppLocalizations.of(context)!.errorNotifications,
+              subtitle: AppLocalizations.of(
+                context,
+              )!.errorNotificationsSubtitle,
+              value: settings.notifyErrors,
+              onChanged: (val) {
+                ref
+                    .read(notificationSettingsProvider.notifier)
+                    .toggleSetting('notifyErrors', val);
+              },
+            ),
+          ],
+        ),
       ],
     );
   }
 
-  Widget _buildSection(String title, List<Widget> children) {
+  Widget _buildSection(
+    BuildContext context,
+    String title,
+    List<Widget> children,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -207,18 +262,18 @@ class NotificationsSettingsScreen extends ConsumerWidget {
           child: Text(
             title.toUpperCase(),
             style: GoogleFonts.plusJakartaSans(
-              color: AppColors.textDisabled,
+              color: AppColors.textSecondary.withValues(alpha: 0.7),
               fontSize: 11,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w700,
               letterSpacing: 1.2,
             ),
           ),
         ),
         Container(
           decoration: BoxDecoration(
-            color: AppColors.surfaceLight.withValues(alpha: 0.3),
+            color: const Color(0xFF1E293B).withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.white10),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           ),
           child: Column(
             children: List.generate(children.length, (index) {
@@ -226,8 +281,8 @@ class NotificationsSettingsScreen extends ConsumerWidget {
                 children: [
                   children[index],
                   if (index < children.length - 1)
-                    const Divider(
-                      color: AppColors.white05,
+                    Divider(
+                      color: Colors.white.withValues(alpha: 0.05),
                       height: 1,
                       indent: 64,
                     ),
@@ -247,44 +302,50 @@ class NotificationsSettingsScreen extends ConsumerWidget {
     required String title,
     required String subtitle,
     required bool value,
-    required String field,
+    required Function(bool) onChanged,
   }) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(icon, color: AppColors.primary, size: 20),
-      ),
-      title: Text(
-        title,
-        style: GoogleFonts.plusJakartaSans(
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w600,
-          fontSize: 15,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: GoogleFonts.plusJakartaSans(
-          color: AppColors.textSecondary,
-          fontSize: 12,
-        ),
-      ),
-      trailing: Switch.adaptive(
-        value: value,
-        onChanged: (newValue) {
-          ref
-              .read(notificationSettingsProvider.notifier)
-              .toggleSetting(field, newValue);
-        },
-        activeThumbColor: AppColors.success,
-        activeTrackColor: AppColors.success.withValues(alpha: 0.2),
-        inactiveThumbColor: AppColors.textDisabled,
-        inactiveTrackColor: AppColors.white05,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 22),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.plusJakartaSans(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.inter(color: Colors.white54, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          Switch.adaptive(
+            value: value,
+            onChanged: onChanged,
+            activeThumbColor: AppColors.primary,
+            activeTrackColor: AppColors.primary.withValues(alpha: 0.2),
+            inactiveThumbColor: Colors.white,
+            inactiveTrackColor: Colors.white10,
+          ),
+        ],
       ),
     );
   }

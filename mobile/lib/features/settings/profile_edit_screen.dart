@@ -94,157 +94,193 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
       ),
       body: Stack(
         children: [
-          // Background Gradient
+          // Modern Background Glow
           Positioned(
             top: -100,
-            left: 0,
-            right: 0,
-            height: 400,
+            right: -100,
             child: Container(
-              decoration: const BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment.topCenter,
-                  radius: 0.8,
-                  colors: [AppColors.primaryTransparent, Colors.transparent],
-                  stops: [0.0, 1.0],
-                ),
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    blurRadius: 100,
+                    spreadRadius: 20,
+                  ),
+                ],
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.only(top: kToolbarHeight + 30),
-            child: profileAsync.when(
-              data: (profile) => SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      // Avatar Section
-                      Center(
-                        child: Stack(
-                          children: [
-                            CircleAvatar(
-                              radius: 50,
-                              backgroundColor: AppColors.info,
-                              child: Text(
-                                '${profile.firstName.isNotEmpty ? profile.firstName[0] : ''}${profile.lastName.isNotEmpty ? profile.lastName[0] : ''}',
-                                style: GoogleFonts.plusJakartaSans(
-                                  color: Colors.white,
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: const BoxDecoration(
-                                  color: AppColors.primary,
+
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.only(top: kToolbarHeight),
+              child: profileAsync.when(
+                data: (profile) => SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        // Avatar Section with Glow
+                        Center(
+                          child: Stack(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
                                   shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.2,
+                                      ),
+                                      blurRadius: 20,
+                                      spreadRadius: 5,
+                                    ),
+                                  ],
                                 ),
-                                child: const Icon(
-                                  Icons.camera_alt_rounded,
-                                  size: 18,
-                                  color: Colors.black,
+                                child: CircleAvatar(
+                                  radius: 50,
+                                  backgroundColor: const Color(0xFF1E293B),
+                                  child: Text(
+                                    '${profile.firstName.isNotEmpty ? profile.firstName[0] : ''}${profile.lastName.isNotEmpty ? profile.lastName[0] : ''}',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      color: AppColors.primary,
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-
-                      // First Name
-                      _buildTextField(
-                        controller: _firstNameController,
-                        label: AppLocalizations.of(context)!.firstName,
-                        hint: 'Adınız',
-                        icon: Icons.person_outline_rounded,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return AppLocalizations.of(
-                              context,
-                            )!.firstNameRequired;
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Last Name
-                      _buildTextField(
-                        controller: _lastNameController,
-                        label: AppLocalizations.of(context)!.lastName,
-                        hint: 'Soyadınız',
-                        icon: Icons.person_outline_rounded,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return AppLocalizations.of(
-                              context,
-                            )!.lastNameRequired;
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Email (read-only)
-                      _buildTextField(
-                        initialValue: profile.email,
-                        label: AppLocalizations.of(context)!.email,
-                        icon: Icons.email_outlined,
-                        enabled: false,
-                      ),
-                      const SizedBox(height: 40),
-
-                      // Save Button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _updateProfile,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.black,
-                            disabledBackgroundColor: AppColors.primary
-                                .withValues(alpha: 0.5),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.black,
-                                    strokeWidth: 2,
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppColors.background,
+                                      width: 3,
+                                    ),
                                   ),
-                                )
-                              : Text(
-                                  AppLocalizations.of(context)!.save,
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                                  child: const Icon(
+                                    Icons.camera_alt_rounded,
+                                    size: 16,
+                                    color: Colors.black,
                                   ),
                                 ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 40),
+
+                        // First Name
+                        _buildTextField(
+                          controller: _firstNameController,
+                          label: AppLocalizations.of(context)!.firstName,
+                          hint: 'Adınız',
+                          icon: Icons.person_outline_rounded,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return AppLocalizations.of(
+                                context,
+                              )!.firstNameRequired;
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Last Name
+                        _buildTextField(
+                          controller: _lastNameController,
+                          label: AppLocalizations.of(context)!.lastName,
+                          hint: 'Soyadınız',
+                          icon: Icons.person_outline_rounded,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return AppLocalizations.of(
+                                context,
+                              )!.lastNameRequired;
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Email (read-only)
+                        _buildTextField(
+                          initialValue: profile.email,
+                          label: AppLocalizations.of(context)!.email,
+                          icon: Icons.email_outlined,
+                          enabled: false,
+                        ),
+                        const SizedBox(height: 40),
+
+                        // Modern Save Button
+                        Container(
+                          width: double.infinity,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            gradient: const LinearGradient(
+                              colors: [AppColors.primary, Color(0xFFE6C200)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.3),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _updateProfile,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.black,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.black,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(
+                                    AppLocalizations.of(context)!.save,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              loading: () => const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
-              ),
-              error: (err, stack) => Center(
-                child: Text(
-                  'Hata: $err',
-                  style: const TextStyle(color: AppColors.error),
+                loading: () => const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+                error: (err, stack) => Center(
+                  child: Text(
+                    'Hata: $err',
+                    style: const TextStyle(color: AppColors.error),
+                  ),
                 ),
               ),
             ),
@@ -266,59 +302,64 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: GoogleFonts.plusJakartaSans(
-            color: enabled ? AppColors.textPrimary : AppColors.textSecondary,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              color: enabled
+                  ? AppColors.textPrimary
+                  : AppColors.textSecondary.withValues(alpha: 0.5),
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
           ),
         ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          initialValue: initialValue,
-          enabled: enabled,
-          style: GoogleFonts.plusJakartaSans(
-            color: enabled ? AppColors.textPrimary : AppColors.textSecondary,
-            fontSize: 15,
-          ),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: AppColors.textDisabled, fontSize: 14),
-            prefixIcon: Icon(
-              icon,
-              color: enabled ? AppColors.primary : AppColors.textSecondary,
-              size: 20,
-            ),
-            filled: true,
-            fillColor: AppColors.surfaceLight.withValues(alpha: 0.5),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppColors.white10),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppColors.primary),
-            ),
-            disabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppColors.white05),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppColors.error),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppColors.error),
+        Container(
+          decoration: BoxDecoration(
+            color: enabled
+                ? const Color(0xFF1E293B).withValues(alpha: 0.5)
+                : Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: enabled
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.transparent,
             ),
           ),
-          validator: validator,
+          child: TextFormField(
+            controller: controller,
+            initialValue: initialValue,
+            enabled: enabled,
+            style: GoogleFonts.plusJakartaSans(
+              color: enabled ? Colors.white : Colors.white38,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: GoogleFonts.plusJakartaSans(
+                color: Colors.white38,
+                fontSize: 14,
+              ),
+              prefixIcon: Icon(
+                icon,
+                color: enabled ? AppColors.primary : Colors.white24,
+                size: 20,
+              ),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+              errorStyle: GoogleFonts.inter(
+                color: AppColors.error,
+                fontSize: 12,
+              ),
+            ),
+            validator: validator,
+          ),
         ),
       ],
     );

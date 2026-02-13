@@ -25,194 +25,397 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Kullanıcı Yönetimi'),
-        backgroundColor: Colors.transparent,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: () => usersNotifier.refresh(),
-          ),
-        ],
-      ),
-      body: Column(
+      extendBodyBehindAppBar: true,
+      body: Stack(
         children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              style: const TextStyle(color: Colors.white),
-              onChanged: (value) => setState(() {}),
-              decoration: InputDecoration(
-                hintText: 'Kullanıcı Ara...',
-                hintStyle: const TextStyle(color: Colors.grey),
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                filled: true,
-                fillColor: AppColors.surfaceLight.withValues(alpha: 0.5),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
-                ),
+          // Modern Background Glow
+          Positioned(
+            top: -100,
+            right: -100,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    blurRadius: 100,
+                    spreadRadius: 20,
+                  ),
+                ],
               ),
             ),
           ),
 
-          // Filters
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
+          SafeArea(
+            child: Column(
               children: [
-                _buildFilterChip('Tümü', Colors.white),
-                const SizedBox(width: 8),
-                _buildFilterChip('Aktif', AppColors.success),
-                const SizedBox(width: 8),
-                _buildFilterChip('Pasif', AppColors.error),
-                const SizedBox(width: 8),
-                _buildFilterChip('User', Colors.blue),
-                const SizedBox(width: 8),
-                _buildFilterChip('Trader', Colors.orange),
-                const SizedBox(width: 8),
-                _buildFilterChip('Admin', Colors.purple),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // User List
-          Expanded(
-            child: usersAsync.when(
-              data: (users) {
-                final filteredUsers = users.where((user) {
-                  // Search Filter
-                  final query = _searchController.text.toLowerCase();
-                  final matchesSearch =
-                      user.firstName.toLowerCase().contains(query) ||
-                      user.lastName.toLowerCase().contains(query) ||
-                      user.email.toLowerCase().contains(query);
-
-                  if (!matchesSearch) return false;
-
-                  // Category Filter
-                  switch (_selectedFilter) {
-                    case 'Aktif':
-                      return user.isActive;
-                    case 'Pasif':
-                      return !user.isActive;
-                    case 'User':
-                      return user.role == 'User';
-                    case 'Trader':
-                      return user.role == 'Trader';
-                    case 'Admin':
-                      return user.role == 'Admin';
-                    default:
-                      return true;
-                  }
-                }).toList();
-
-                if (filteredUsers.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'Kullanıcı bulunamadı',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  itemCount: filteredUsers.length,
-                  itemBuilder: (context, index) {
-                    final user = filteredUsers[index];
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: user.isActive
-                            ? AppColors.success.withValues(alpha: 0.2)
-                            : AppColors.error.withValues(alpha: 0.2),
+                // Custom App Bar with Refresh
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Row(
+                    children: [
+                      const BackButton(color: Colors.white),
+                      Expanded(
                         child: Text(
-                          user.firstName.isNotEmpty
-                              ? user.firstName[0].toUpperCase()
-                              : '?',
-                          style: TextStyle(
-                            color: user.isActive
-                                ? AppColors.success
-                                : AppColors.error,
+                          'Kullanıcı Yönetimi',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: Colors.white,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-                      title: Text(
-                        '${user.firstName} ${user.lastName}',
-                        style: GoogleFonts.plusJakartaSans(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                      IconButton(
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.refresh_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                        onPressed: () => usersNotifier.refresh(),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                  ),
+                ),
+
+                // Search Bar
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E293B).withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.05),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.white,
+                        fontSize: 15,
+                      ),
+                      onChanged: (value) => setState(() {}),
+                      decoration: InputDecoration(
+                        hintText: 'Kullanıcı ara...',
+                        hintStyle: GoogleFonts.plusJakartaSans(
+                          color: Colors.white38,
+                          fontSize: 15,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.search_rounded,
+                          color: Colors.white38,
+                          size: 20,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
                         ),
                       ),
-                      subtitle: Text(
-                        user.email,
-                        style: GoogleFonts.plusJakartaSans(
-                          color: Colors.grey,
-                          fontSize: 12,
-                        ),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
+                    ),
+                  ),
+                ),
+
+                // Filters
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      _buildFilterChip('Tümü', AppColors.primary),
+                      _buildFilterChip('Aktif', AppColors.success),
+                      _buildFilterChip('Pasif', AppColors.error),
+                      _buildFilterChip('User', Colors.blue),
+                      _buildFilterChip('Trader', Colors.orange),
+                      _buildFilterChip('Admin', Colors.purple),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // User List
+                Expanded(
+                  child: usersAsync.when(
+                    data: (users) {
+                      final filteredUsers = users.where((user) {
+                        // Search Filter
+                        final query = _searchController.text.toLowerCase();
+                        final matchesSearch =
+                            user.firstName.toLowerCase().contains(query) ||
+                            user.lastName.toLowerCase().contains(query) ||
+                            user.email.toLowerCase().contains(query);
+
+                        if (!matchesSearch) return false;
+
+                        // Category Filter
+                        switch (_selectedFilter) {
+                          case 'Aktif':
+                            return user.isActive;
+                          case 'Pasif':
+                            return !user.isActive;
+                          case 'User':
+                            return user.role == 'User';
+                          case 'Trader':
+                            return user.role == 'Trader';
+                          case 'Admin':
+                            return user.role == 'Admin';
+                          default:
+                            return true; // Tümü
+                        }
+                      }).toList();
+
+                      if (filteredUsers.isEmpty) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.person_off_outlined,
+                                color: Colors.white24,
+                                size: 48,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Kullanıcı bulunamadı',
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: Colors.white38,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      return ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: filteredUsers.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final user = filteredUsers[index];
+                          return Container(
                             decoration: BoxDecoration(
-                              color: _getRoleColor(
-                                user.role,
-                              ).withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(4),
+                              color: const Color(
+                                0xFF1E293B,
+                              ).withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: _getRoleColor(
-                                  user.role,
-                                ).withValues(alpha: 0.5),
+                                color: Colors.white.withValues(alpha: 0.05),
                               ),
                             ),
-                            child: Text(
-                              user.role,
-                              style: TextStyle(
-                                color: _getRoleColor(user.role),
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () {
+                                  Navigator.of(context)
+                                      .push(
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              UserEditScreen(user: user),
+                                        ),
+                                      )
+                                      .then((_) {
+                                        usersNotifier.refresh();
+                                      });
+                                },
+                                borderRadius: BorderRadius.circular(16),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Row(
+                                    children: [
+                                      // Avatar
+                                      Container(
+                                        width: 48,
+                                        height: 48,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              _getRoleColor(
+                                                user.role,
+                                              ).withValues(alpha: 0.2),
+                                              _getRoleColor(
+                                                user.role,
+                                              ).withValues(alpha: 0.05),
+                                            ],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                          ),
+                                          border: Border.all(
+                                            color: _getRoleColor(
+                                              user.role,
+                                            ).withValues(alpha: 0.3),
+                                          ),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            user.firstName.isNotEmpty
+                                                ? user.firstName[0]
+                                                      .toUpperCase()
+                                                : '?',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              color: _getRoleColor(user.role),
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 18,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      // Info
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Flexible(
+                                                  child: Text(
+                                                    '${user.firstName} ${user.lastName}',
+                                                    style:
+                                                        GoogleFonts.plusJakartaSans(
+                                                          color: Colors.white,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: 16,
+                                                        ),
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                if (!user.isActive)
+                                                  Container(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 6,
+                                                          vertical: 2,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color: AppColors.error
+                                                          .withValues(
+                                                            alpha: 0.2,
+                                                          ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            4,
+                                                          ),
+                                                    ),
+                                                    child: Text(
+                                                      'PASİF',
+                                                      style: GoogleFonts.inter(
+                                                        color: AppColors.error,
+                                                        fontSize: 10,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              user.email,
+                                              style: GoogleFonts.inter(
+                                                color: Colors.white54,
+                                                fontSize: 13,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      // Role Badge
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: _getRoleColor(
+                                                user.role,
+                                              ).withValues(alpha: 0.15),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              border: Border.all(
+                                                color: _getRoleColor(
+                                                  user.role,
+                                                ).withValues(alpha: 0.3),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              user.role.toUpperCase(),
+                                              style: GoogleFonts.inter(
+                                                color: _getRoleColor(user.role),
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                letterSpacing: 0.5,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    error: (err, stack) => Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline_rounded,
+                            color: AppColors.error,
+                            size: 48,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Kullanıcılar yüklenemedi',
+                            style: GoogleFonts.plusJakartaSans(
+                              color: Colors.white70,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          if (user.role != 'Admin') ...[
-                            const SizedBox(width: 8),
-                          ],
-                          const SizedBox(width: 4),
-                          const Icon(Icons.chevron_right, color: Colors.grey),
                         ],
                       ),
-                      onTap: () {
-                        Navigator.of(context)
-                            .push(
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    UserEditScreen(user: user),
-                              ),
-                            )
-                            .then((_) {
-                              usersNotifier.refresh();
-                            });
-                      },
-                    );
-                  },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) => Center(
-                child: Text(
-                  'Hata: $err',
-                  style: const TextStyle(color: AppColors.error),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ],
@@ -226,22 +429,23 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
       onTap: () => setState(() => _selectedFilter = label),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
               ? color.withValues(alpha: 0.2)
-              : AppColors.surfaceLight.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(20),
+              : Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? color : Colors.transparent,
-            width: 1.5,
+            width: 1,
           ),
         ),
         child: Text(
           label,
           style: GoogleFonts.plusJakartaSans(
-            color: isSelected ? color : Colors.grey,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            color: isSelected ? color : Colors.white54,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
             fontSize: 13,
           ),
         ),
@@ -252,11 +456,11 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
   Color _getRoleColor(String role) {
     switch (role) {
       case 'Admin':
-        return Colors.purple;
+        return Colors.purpleAccent;
       case 'Trader':
-        return Colors.orange;
+        return Colors.orangeAccent;
       case 'User':
-        return Colors.blue;
+        return Colors.blueAccent;
       default:
         return Colors.grey;
     }

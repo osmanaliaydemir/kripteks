@@ -5,19 +5,36 @@ import '../../../core/providers/paginated_provider.dart';
 import '../services/wallet_service.dart';
 import '../models/wallet_model.dart';
 
+import '../../../core/network/auth_state_provider.dart';
+
 final walletServiceProvider = Provider<WalletService>((ref) {
   final dio = ref.watch(dioProvider);
   return WalletService(dio);
 });
 
-/// Cüzdan detay bilgisi (pagination gereksiz - tek obje).
 final walletDetailsProvider = StreamProvider.autoDispose<WalletDetails>((
   ref,
 ) async* {
+  // Auth kontrolü
+  final authState = ref.watch(authStateProvider);
+  if (authState.asData?.value != true) return;
+
   final service = ref.watch(walletServiceProvider);
-  yield await service.getWalletDetails();
-  await for (final _ in Stream.periodic(const Duration(seconds: 5))) {
+
+  try {
     yield await service.getWalletDetails();
+
+    await for (final _ in Stream.periodic(const Duration(seconds: 5))) {
+      // Stream sırasında oturum sonlanırsa durdur
+      if (ref.read(authStateProvider).value != true) break;
+      yield await service.getWalletDetails();
+    }
+  } catch (e) {
+    if (e.toString().contains('StatusCode: 401') ||
+        e.toString().contains('AuthException')) {
+      return;
+    }
+    rethrow;
   }
 });
 

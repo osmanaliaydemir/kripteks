@@ -696,74 +696,82 @@ class DashboardPanel extends ConsumerWidget {
 
     return SizedBox(
       height: 90,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: actions.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          final action = actions[index];
-          return GestureDetector(
-            onTap: () {
-              if (action['label'] == 'Yeni Bot') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const BotListScreen()),
-                );
-              } else if (action['label'] == 'Cüzdan') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const WalletScreen()),
-                );
-              } else if (action['label'] == 'Geçmiş') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ReportsScreen()),
-                );
-              } else if (action['label'] == 'Analiz') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const MarketAnalysisScreen(),
-                  ),
-                );
-              }
-            },
-            child: Container(
-              width: 80,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceLight,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: (action['color'] as Color).withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      action['icon'] as IconData,
-                      color: action['color'] as Color,
-                      size: 22,
+      child: Row(
+        children: [
+          for (int i = 0; i < actions.length; i++) ...[
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  final label = actions[i]['label'] as String;
+                  if (label == 'Yeni Bot') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const BotListScreen()),
+                    );
+                  } else if (label == 'Cüzdan') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const WalletScreen()),
+                    );
+                  } else if (label == 'Geçmiş') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ReportsScreen()),
+                    );
+                  } else if (label == 'Analiz') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const MarketAnalysisScreen(),
+                      ),
+                    );
+                  }
+                },
+                child: Container(
+                  // width: 80 kaldırıldı, Expanded genişliği belirleyecek
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceLight,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.05),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    action['label'] as String,
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textSecondary,
-                    ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: (actions[i]['color'] as Color).withValues(
+                            alpha: 0.1,
+                          ),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          actions[i]['icon'] as IconData,
+                          color: actions[i]['color'] as Color,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        actions[i]['label'] as String,
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-          );
-        },
+            if (i < actions.length - 1) const SizedBox(width: 12),
+          ],
+        ],
       ),
     );
   }
