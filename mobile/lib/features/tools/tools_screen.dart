@@ -70,68 +70,95 @@ class ToolsScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // Header
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                          'Araçlar',
-                          style: GoogleFonts.plusJakartaSans(
-                            color: Colors.white,
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        )
-                        .animate()
-                        .fadeIn(duration: 600.ms)
-                        .slideY(begin: 0.2, end: 0),
-                    const SizedBox(height: 8),
-                    Text(
-                          'Finansal özgürlüğünüz için profesyonel araçlar.',
-                          style: GoogleFonts.inter(
-                            color: Colors.white60,
-                            fontSize: 16,
-                          ),
-                        )
-                        .animate()
-                        .fadeIn(duration: 600.ms, delay: 200.ms)
-                        .slideY(begin: 0.2, end: 0),
-                  ],
-                ),
+      body: Stack(
+        children: [
+          // Background Glow
+          Positioned(
+            top: -100,
+            right: -100,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    blurRadius: 100,
+                    spreadRadius: 20,
+                  ),
+                ],
               ),
             ),
+          ),
+          SafeArea(
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                // Header
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                              'Araçlar',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: Colors.white,
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                            .animate()
+                            .fadeIn(duration: 600.ms)
+                            .slideY(begin: 0.2, end: 0),
+                        const SizedBox(height: 8),
+                        Text(
+                              'Finansal özgürlüğünüz için profesyonel araçlar.',
+                              style: GoogleFonts.inter(
+                                color: Colors.white60,
+                                fontSize: 16,
+                              ),
+                            )
+                            .animate()
+                            .fadeIn(duration: 600.ms, delay: 200.ms)
+                            .slideY(begin: 0.2, end: 0),
+                      ],
+                    ),
+                  ),
+                ),
 
-            // Grid
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  childAspectRatio: 0.82, // Biraz daha uzun kartlar
+                // Grid
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
+                  sliver: SliverGrid(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                          childAspectRatio: 0.82, // Biraz daha uzun kartlar
+                        ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final tool = tools[index];
+                      return _buildToolCard(context, tool)
+                          .animate()
+                          .fadeIn(duration: 400.ms, delay: (100 * index).ms)
+                          .scale(begin: const Offset(0.9, 0.9));
+                    }, childCount: tools.length),
+                  ),
                 ),
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final tool = tools[index];
-                  return _buildToolCard(context, tool)
-                      .animate()
-                      .fadeIn(duration: 400.ms, delay: (100 * index).ms)
-                      .scale(begin: const Offset(0.9, 0.9));
-                }, childCount: tools.length),
-              ),
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 100),
+                ), // Bottom padding
+              ],
             ),
-            const SliverToBoxAdapter(
-              child: SizedBox(height: 100),
-            ), // Bottom padding
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

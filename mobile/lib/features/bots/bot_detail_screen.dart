@@ -39,51 +39,86 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
     final botAsync = ref.watch(botDetailProvider(widget.botId));
 
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: Text(
-          'İşlem Detayları',
-          style: GoogleFonts.inter(color: Colors.white),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      extendBodyBehindAppBar: true,
+      backgroundColor: AppColors.background,
       body: Stack(
         children: [
-          // Background Gradient (Same as Login)
+          // Background Glow
           Positioned(
             top: -100,
-            left: 0,
-            right: 0,
-            height: 400,
+            right: -100,
             child: Container(
-              decoration: const BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment.topCenter,
-                  radius: 0.8,
-                  colors: [
-                    Color(0x40F59E0B), // Amber with transparency
-                    Colors.transparent,
-                  ],
-                  stops: [0.0, 1.0],
-                ),
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.1),
+                    blurRadius: 100,
+                    spreadRadius: 20,
+                  ),
+                ],
               ),
             ),
           ),
+
           SafeArea(
-            child: botAsync.when(
-              data: (bot) => _buildContent(context, ref, bot),
-              loading: () => const Center(
-                child: CircularProgressIndicator(color: Color(0xFFF59E0B)),
-              ),
-              error: (err, stack) => Center(
-                child: Text(
-                  'Hata: $err',
-                  style: const TextStyle(color: Colors.redAccent),
+            child: Column(
+              children: [
+                // Custom Header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.05),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.arrow_back_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Text(
+                        'Bot Detayı',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ).animate().fadeIn().slideX(begin: -0.1, end: 0),
+                    ],
+                  ),
                 ),
-              ),
+
+                // Content
+                Expanded(
+                  child: botAsync.when(
+                    data: (bot) => _buildContent(context, ref, bot),
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    error: (err, stack) => Center(
+                      child: Text(
+                        'Hata: $err',
+                        style: const TextStyle(color: AppColors.error),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -315,13 +350,20 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFF1E293B).withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isExpanded
-              ? const Color(0xFFF59E0B).withValues(alpha: 0.3)
-              : Colors.white10,
+              ? AppColors.primary.withValues(alpha: 0.3)
+              : Colors.white.withValues(alpha: 0.05),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -336,9 +378,7 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
                 children: [
                   Icon(
                     icon,
-                    color: isExpanded
-                        ? const Color(0xFFF59E0B)
-                        : Colors.white54,
+                    color: isExpanded ? AppColors.primary : Colors.white54,
                     size: 22,
                   ),
                   const SizedBox(width: 12),
@@ -358,9 +398,7 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
                     duration: 200.ms,
                     child: Icon(
                       Icons.expand_more_rounded,
-                      color: isExpanded
-                          ? const Color(0xFFF59E0B)
-                          : Colors.white38,
+                      color: isExpanded ? AppColors.primary : Colors.white38,
                     ),
                   ),
                 ],
@@ -397,13 +435,15 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withValues(alpha: 0.7),
+        color: const Color(0xFF1E293B).withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 20,
+            color: bot.pnl >= 0
+                ? const Color(0xFF10B981).withValues(alpha: 0.1)
+                : const Color(0xFFEF4444).withValues(alpha: 0.1),
+            blurRadius: 30,
             offset: const Offset(0, 10),
           ),
         ],
@@ -510,43 +550,65 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton.icon(
+                  child: ElevatedButton(
                     onPressed: () => _analyzeStrategy(context, bot),
-                    icon: const Icon(Icons.auto_fix_high_rounded, size: 20),
-                    label: const Text(
-                      'Analiz Et',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF8B5CF6),
-                      foregroundColor: Colors.white,
+                      backgroundColor: const Color(
+                        0xFF8B5CF6,
+                      ).withValues(alpha: 0.1),
+                      foregroundColor: const Color(0xFF8B5CF6),
                       padding: const EdgeInsets.symmetric(vertical: 16),
+                      elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: const Color(0xFF8B5CF6).withValues(alpha: 0.2),
+                        ),
                       ),
-                      elevation: 0,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.auto_fix_high_rounded, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'AI Analiz',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: ElevatedButton.icon(
+                  child: ElevatedButton(
                     onPressed: () => _stopBot(ref, context),
-                    icon: const Icon(Icons.stop_rounded, size: 20),
-                    label: const Text(
-                      'Durdur',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFEF4444),
-                      foregroundColor: Colors.white,
+                      backgroundColor: AppColors.error.withValues(alpha: 0.1),
+                      foregroundColor: AppColors.error,
                       padding: const EdgeInsets.symmetric(vertical: 16),
+                      elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: AppColors.error.withValues(alpha: 0.2),
+                        ),
                       ),
-                      elevation: 0,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.stop_rounded, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Durdur',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

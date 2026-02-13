@@ -53,7 +53,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
-          // Background Elements
+          // Background Glow
           Positioned(
             top: -100,
             right: -100,
@@ -61,11 +61,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
               width: 300,
               height: 300,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.15),
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     blurRadius: 100,
                     spreadRadius: 20,
                   ),

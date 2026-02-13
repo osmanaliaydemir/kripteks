@@ -108,106 +108,133 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
             )
           : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Custom Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      body: Stack(
+        children: [
+          // Background Glow
+          Positioned(
+            top: -100,
+            right: -100,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    blurRadius: 100,
+                    spreadRadius: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                // Custom Header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                            'Botlarım',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                                'Botlarım',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              )
+                              .animate()
+                              .fadeIn(duration: 600.ms)
+                              .slideY(begin: 0.2, end: 0),
+                          const SizedBox(height: 4),
+                          Text(
+                                'Otomatik strateji yönetimi',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  color: Colors.white54,
+                                ),
+                              )
+                              .animate()
+                              .fadeIn(duration: 600.ms, delay: 200.ms)
+                              .slideY(begin: 0.2, end: 0),
+                        ],
+                      ),
+                      if (hasActiveBots)
+                        IconButton(
+                          onPressed: () => _showPanicModeDialog(),
+                          style: IconButton.styleFrom(
+                            backgroundColor: AppColors.error.withValues(
+                              alpha: 0.1,
                             ),
-                          )
-                          .animate()
-                          .fadeIn(duration: 600.ms)
-                          .slideY(begin: 0.2, end: 0),
-                      const SizedBox(height: 4),
-                      Text(
-                            'Otomatik strateji yönetimi',
-                            style: GoogleFonts.inter(
-                              fontSize: 14,
-                              color: Colors.white54,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          )
-                          .animate()
-                          .fadeIn(duration: 600.ms, delay: 200.ms)
-                          .slideY(begin: 0.2, end: 0),
+                          ),
+                          icon: const Icon(
+                            Icons.gpp_bad_rounded,
+                            color: AppColors.error,
+                            size: 24,
+                          ),
+                          tooltip: 'Acil Durdurma',
+                        ),
                     ],
                   ),
-                  if (hasActiveBots)
-                    IconButton(
-                      onPressed: () => _showPanicModeDialog(),
-                      style: IconButton.styleFrom(
-                        backgroundColor: AppColors.error.withValues(alpha: 0.1),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                ),
+
+                // Main Tabs (Botlarım / Keşfet)
+                Container(
+                  margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B).withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildMainTabButton(
+                          'Botlarım',
+                          Icons.smart_toy_rounded,
+                          _mainTab == 'Botlarım',
                         ),
                       ),
-                      icon: const Icon(
-                        Icons.gpp_bad_rounded,
-                        color: AppColors.error,
-                        size: 24,
+                      Expanded(
+                        child: _buildMainTabButton(
+                          'Keşfet',
+                          Icons.explore_rounded,
+                          _mainTab == 'Keşfet',
+                        ),
                       ),
-                      tooltip: 'Acil Durdurma',
-                    ),
-                ],
-              ),
-            ),
-
-            // Main Tabs (Botlarım / Keşfet)
-            Container(
-              margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B).withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _buildMainTabButton(
-                      'Botlarım',
-                      Icons.smart_toy_rounded,
-                      _mainTab == 'Botlarım',
-                    ),
+                    ],
                   ),
-                  Expanded(
-                    child: _buildMainTabButton(
-                      'Keşfet',
-                      Icons.explore_rounded,
-                      _mainTab == 'Keşfet',
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                ),
 
-            // Content
-            Expanded(
-              child: _mainTab == 'Keşfet'
-                  ? _buildDiscoveryTab()
-                  : _buildMyBotsTab(
-                      botListAsync,
-                      activeBots,
-                      historyBots,
-                      botListAsync.value,
-                      inPositionCount,
-                      waitingCount,
-                    ),
+                // Content
+                Expanded(
+                  child: _mainTab == 'Keşfet'
+                      ? _buildDiscoveryTab()
+                      : _buildMyBotsTab(
+                          botListAsync,
+                          activeBots,
+                          historyBots,
+                          botListAsync.value,
+                          inPositionCount,
+                          waitingCount,
+                        ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -220,8 +247,9 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
           _mainTab = title;
         });
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+      child: AnimatedContainer(
+        duration: 200.ms,
+        padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
@@ -231,7 +259,7 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
           children: [
             Icon(
               icon,
-              size: 18,
+              size: 16,
               color: isSelected ? Colors.black : Colors.white60,
             ),
             const SizedBox(width: 8),
@@ -239,7 +267,8 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
               title,
               style: GoogleFonts.inter(
                 color: isSelected ? Colors.black : Colors.white60,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                fontSize: 14,
               ),
             ),
             if (title == 'Keşfet') ...[
@@ -250,13 +279,13 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
                   color: isSelected
                       ? Colors.black.withValues(alpha: 0.1)
                       : AppColors.primary.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   'BETA',
                   style: GoogleFonts.inter(
                     color: isSelected ? Colors.black54 : AppColors.primary,
-                    fontSize: 9,
+                    fontSize: 8,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -1490,30 +1519,21 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
       data: (paginatedState) {
         return Column(
           children: [
-            // Sub Tabs
+            // Sub Tabs - Minimalist Style
             Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceLight,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-              ),
+              margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
               child: Row(
                 children: [
-                  Expanded(
-                    child: _buildSubTabButton(
-                      'Aktif Botlar',
-                      _subTab == 'Aktif Botlar',
-                      count: activeBots.length,
-                    ),
+                  _buildMinimalSubTab(
+                    'Aktif Botlar',
+                    _subTab == 'Aktif Botlar',
+                    count: activeBots.length,
                   ),
-                  Expanded(
-                    child: _buildSubTabButton(
-                      'Geçmiş',
-                      _subTab == 'Geçmiş',
-                      count: historyBots.length,
-                    ),
+                  const SizedBox(width: 24),
+                  _buildMinimalSubTab(
+                    'Geçmiş',
+                    _subTab == 'Geçmiş',
+                    count: historyBots.length,
                   ),
                 ],
               ),
@@ -1602,59 +1622,64 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
     );
   }
 
-  Widget _buildSubTabButton(String title, bool isSelected, {int? count}) {
+  Widget _buildMinimalSubTab(String title, bool isSelected, {int? count}) {
     return GestureDetector(
       onTap: () => setState(() {
-        _subTab = title; // This now updates the sub-tab state
+        _subTab = title;
         _activeFilter = 'Hepsi';
       }),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary
-              : Colors.transparent, // Changed color to AppColors.primary
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                color: isSelected
-                    ? Colors.black
-                    : Colors.white60, // Changed color to black for selected
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
-            ),
-            if (count != null) ...[
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? Colors.black.withValues(
-                          alpha: 0.1,
-                        ) // Changed color for selected
-                      : Colors.white10,
-                  borderRadius: BorderRadius.circular(8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.inter(
+                  color: isSelected ? Colors.white : Colors.white38,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  fontSize: 15,
                 ),
-                child: Text(
-                  count.toString(),
-                  style: TextStyle(
+              ),
+              if (count != null && count > 0) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
                     color: isSelected
-                        ? Colors.black
-                        : Colors.white60, // Changed color for selected
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+                        ? AppColors.primary
+                        : Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    count.toString(),
+                    style: GoogleFonts.inter(
+                      color: isSelected
+                          ? Colors.black
+                          : Colors.white.withValues(alpha: 0.5),
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          // Animated Indicator
+          AnimatedContainer(
+            duration: 200.ms,
+            height: 3,
+            width: isSelected ? 24 : 0,
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -14,6 +14,12 @@ import '../bots/providers/bot_provider.dart';
 import '../bots/models/bot_model.dart';
 import '../reports/reports_screen.dart';
 import '../market_analysis/market_analysis_screen.dart';
+import '../../core/network/signalr_service.dart';
+import '../../core/providers/signalr_provider.dart';
+import '../../features/notifications/notification_screen.dart';
+import '../../features/notifications/providers/notification_provider.dart';
+import '../../core/providers/privacy_provider.dart';
+import '../../l10n/app_localizations.dart';
 
 class DashboardPanel extends ConsumerWidget {
   const DashboardPanel({super.key});
@@ -23,27 +29,30 @@ class DashboardPanel extends ConsumerWidget {
     final statsAsync = ref.watch(dashboardStatsProvider);
     final layoutState = ref.watch(dashboardLayoutProvider);
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        // ignore: unused_result
-        ref.refresh(dashboardStatsProvider);
-      },
-      child: statsAsync.when(
-        data: (stats) => _buildLayout(context, ref, stats, layoutState),
-        error: (err, stack) => SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: SizedBox(
-            height: MediaQuery.of(context).size.height * 0.7,
-            child: Center(
-              child: Text(
-                'Hata: $err',
-                style: const TextStyle(color: Colors.redAccent),
+    return SafeArea(
+      bottom: false,
+      child: RefreshIndicator(
+        onRefresh: () async {
+          // ignore: unused_result
+          ref.refresh(dashboardStatsProvider);
+        },
+        child: statsAsync.when(
+          data: (stats) => _buildLayout(context, ref, stats, layoutState),
+          error: (err, stack) => SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: SizedBox(
+              height: MediaQuery.of(context).size.height * 0.7,
+              child: Center(
+                child: Text(
+                  'Hata: $err',
+                  style: const TextStyle(color: Colors.redAccent),
+                ),
               ),
             ),
           ),
-        ),
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: Color(0xFFF59E0B)),
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: Color(0xFFF59E0B)),
+          ),
         ),
       ),
     );
@@ -56,19 +65,17 @@ class DashboardPanel extends ConsumerWidget {
     DashboardLayoutState layoutState,
   ) {
     if (layoutState.isEditing) {
-      // --- EDIT MODE ---
-      // Edit modunda tüm widgetları ALT ALTA listeliyoruz (tek sütun).
-      // Bu sayede sürükleyip bırakmak çok daha kolay ve tutarlı oluyor.
-      // ReorderableListView doğal olarak bunu destekler.
-
       final items = <Widget>[];
 
       for (final id in layoutState.order) {
-        // Edit modunda gizli olsa bile gösteriyoruz (opacity ile)
         items.add(_buildEditItem(context, ref, stats, id, layoutState));
       }
 
       return ReorderableListView(
+        header: Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: _buildHeader(context, ref),
+        ),
         padding: const EdgeInsets.all(16),
         onReorder: (oldIndex, newIndex) {
           ref
@@ -79,15 +86,16 @@ class DashboardPanel extends ConsumerWidget {
         children: items,
       );
     } else {
-      // --- VIEW MODE ---
-      // Normal modda "Masonry" benzeri basit bir grid mantığı kuruyoruz.
-      // Widgetları sırasıyla alıyoruz:
-      // - Eğer widget LARGE ise -> Tek satırda tam genişlikte çiziyoruz.
-      // - Eğer widget SMALL ise -> Bir sonrakine bakıyoruz.
-      //   - Sonraki de SMALL'sa -> Yan yana çiziyoruz (Row).
-      //   - Sonraki LARGE veya yoksa -> Tek başına çiziyoruz (ama yine de dengeli dursun diye).
-
       final viewItems = <Widget>[];
+
+      // Header'ı listenin başına ekle
+      viewItems.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: _buildHeader(context, ref),
+        ),
+      );
+
       final visibleIds = layoutState.order
           .where((id) => !layoutState.hiddenIds.contains(id))
           .toList();
@@ -97,7 +105,6 @@ class DashboardPanel extends ConsumerWidget {
         final isLarge = DashboardWidgets.isLarge(id);
 
         if (isLarge) {
-          // Large widget: Tam genişlik
           viewItems.add(
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -105,12 +112,9 @@ class DashboardPanel extends ConsumerWidget {
             ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
           );
         } else {
-          // Small widget
-          // Bir sonraki eleman var mı ve o da small mu?
           if (i + 1 < visibleIds.length) {
             final nextId = visibleIds[i + 1];
             if (!DashboardWidgets.isLarge(nextId)) {
-              // İkisini yan yana koy
               viewItems.add(
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -127,13 +131,11 @@ class DashboardPanel extends ConsumerWidget {
                   ),
                 ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
               );
-              i++; // Sonraki elemanı da işledik, atla
+              i++;
               continue;
             }
           }
 
-          // Yanına koyacak small bulamadık, tek başına koy (Expanded içinde değil, Row içinde Expanded olarak duralım ki structure bozulmasın, veya direkt tam genişlik mi?)
-          // Genelde tek kalan small widget tam genişlikte (Large gibi) görünse daha şık olur.
           viewItems.add(
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -144,11 +146,322 @@ class DashboardPanel extends ConsumerWidget {
       }
 
       return ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          100,
+        ), // Bottom padding for nav bar
         physics: const AlwaysScrollableScrollPhysics(),
         children: viewItems,
       );
     }
+  }
+
+  Widget _buildHeader(BuildContext context, WidgetRef ref) {
+    final signalRStatus = ref.watch(signalRStatusProvider);
+
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'KRIPTEKS',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 1.0,
+                  ),
+                ).animate().fadeIn().slideX(begin: -0.1, end: 0),
+                const SizedBox(height: 4),
+                Text(
+                  'Piyasa Kontrol Paneli',
+                  style: GoogleFonts.inter(fontSize: 14, color: Colors.white54),
+                ).animate().fadeIn(delay: 200.ms).slideX(begin: -0.1, end: 0),
+              ],
+            ),
+            Row(
+              children: [
+                // Privacy Toggle
+                Consumer(
+                  builder: (context, ref, _) {
+                    final isHidden = ref.watch(
+                      privacyProvider.select((s) => s.isBalanceHidden),
+                    );
+                    return IconButton(
+                      icon: Icon(
+                        isHidden ? Icons.visibility_off : Icons.visibility,
+                        color: Colors.white70,
+                        size: 22,
+                      ),
+                      onPressed: () {
+                        ref
+                            .read(privacyProvider.notifier)
+                            .toggleBalanceVisibility();
+                      },
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.white.withValues(alpha: 0.05),
+                        shape: const CircleBorder(),
+                        padding: const EdgeInsets.all(8),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
+
+                // Edit Mode
+                Consumer(
+                  builder: (context, ref, _) {
+                    final layoutState = ref.watch(dashboardLayoutProvider);
+                    final isEditing = layoutState.isEditing;
+
+                    return IconButton(
+                      icon: Icon(
+                        isEditing ? Icons.check : Icons.edit,
+                        color: isEditing ? AppColors.success : Colors.white70,
+                        size: 22,
+                      ),
+                      onPressed: () {
+                        ref
+                            .read(dashboardLayoutProvider.notifier)
+                            .toggleEditMode();
+                      },
+                      style: IconButton.styleFrom(
+                        backgroundColor: isEditing
+                            ? AppColors.success.withValues(alpha: 0.1)
+                            : Colors.white.withValues(alpha: 0.05),
+                        shape: const CircleBorder(),
+                        padding: const EdgeInsets.all(8),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
+
+                // Notifications
+                Consumer(
+                  builder: (context, ref, child) {
+                    final notificationsAsync = ref.watch(
+                      paginatedNotificationsProvider,
+                    );
+                    final unreadCount =
+                        notificationsAsync.asData?.value.items
+                            .where((n) => !n.isRead)
+                            .length ??
+                        0;
+
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.notifications_outlined,
+                            color: Colors.white70,
+                            size: 22,
+                          ),
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const NotificationScreen(),
+                            ),
+                          ),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.05,
+                            ),
+                            shape: const CircleBorder(),
+                            padding: const EdgeInsets.all(8),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
+                        if (unreadCount > 0)
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: AppColors.error,
+                                shape: BoxShape.circle,
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 14,
+                                minHeight: 14,
+                              ),
+                              child: Text(
+                                '$unreadCount',
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(width: 12),
+
+                // SignalR Status
+                _buildConnectionStatus(
+                  context,
+                  ref,
+                  signalRStatus.value ?? SignalRConnectionStatus.disconnected,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildConnectionStatus(
+    BuildContext context,
+    WidgetRef ref,
+    SignalRConnectionStatus status,
+  ) {
+    final signalRService = ref.read(signalRServiceProvider);
+
+    Color statusColor;
+    if (status == SignalRConnectionStatus.connected) {
+      statusColor = AppColors.success;
+    } else if (status == SignalRConnectionStatus.connecting ||
+        status == SignalRConnectionStatus.reconnecting) {
+      statusColor = const Color(0xFFF59E0B);
+    } else {
+      statusColor = AppColors.error;
+    }
+
+    return InkWell(
+      onTap: () {
+        _showStatusBottomSheet(context, ref, status, signalRService.lastError);
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: statusColor.withValues(alpha: 0.1),
+          shape: BoxShape.circle,
+          border: Border.all(color: statusColor.withValues(alpha: 0.2)),
+        ),
+        child:
+            Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: statusColor,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: statusColor.withValues(alpha: 0.5),
+                        blurRadius: 6,
+                      ),
+                    ],
+                  ),
+                )
+                .animate(onPlay: (c) => c.repeat(reverse: true))
+                .fade(duration: 1000.ms, begin: 0.5, end: 1.0),
+      ),
+    );
+  }
+
+  void _showStatusBottomSheet(
+    BuildContext context,
+    WidgetRef ref,
+    SignalRConnectionStatus status,
+    String? lastError,
+  ) {
+    bool isOnline = status == SignalRConnectionStatus.connected;
+    final l10n = AppLocalizations.of(context)!;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E293B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Icon(
+                isOnline ? Icons.wifi_tethering : Icons.wifi_off_rounded,
+                color: isOnline ? AppColors.success : AppColors.error,
+                size: 48,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                isOnline ? l10n.online : l10n.offline,
+                style: GoogleFonts.inter(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isOnline
+                    ? 'Canlı veri bağlantısı aktif.'
+                    : 'Sunucu ile bağlantı kurulamadı.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(fontSize: 14, color: Colors.white54),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (!isOnline) {
+                      ref.read(signalRServiceProvider).initConnection();
+                    }
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isOnline
+                        ? AppColors.success
+                        : AppColors.error,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: Text(
+                    isOnline ? 'Harika' : 'Tekrar Bağlan',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildEditItem(
