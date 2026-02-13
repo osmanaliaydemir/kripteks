@@ -6,7 +6,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/l10n/app_localizations.dart';
 import 'package:mobile/core/providers/privacy_provider.dart';
-import 'package:mobile/core/widgets/app_header.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/widgets/sensitive_text.dart';
 import 'providers/wallet_provider.dart';
@@ -51,104 +50,157 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     final transactionsAsync = ref.watch(paginatedTransactionsProvider);
 
     return Scaffold(
-      backgroundColor: Colors.black,
-      extendBodyBehindAppBar: true,
-      appBar: AppHeader(
-        title: AppLocalizations.of(context)!.wallet,
-        showBackButton: false,
-        actions: [
-          Consumer(
-            builder: (context, ref, _) {
-              final isHidden = ref.watch(
-                privacyProvider.select((s) => s.isBalanceHidden),
-              );
-              return IconButton(
-                icon: Icon(
-                  isHidden ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                onPressed: () {
-                  ref.read(privacyProvider.notifier).toggleBalanceVisibility();
-                },
-              );
-            },
-          ),
-        ],
-      ),
+      backgroundColor: AppColors.background,
       body: Stack(
         children: [
-          // Background Gradient (Same as Login)
+          // Background Elements
           Positioned(
             top: -100,
-            left: 0,
-            right: 0,
-            height: 400,
+            right: -100,
             child: Container(
-              decoration: const BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment.topCenter,
-                  radius: 0.8,
-                  colors: [
-                    Color(0x40F59E0B), // Amber with transparency
-                    Colors.transparent,
-                  ],
-                  stops: [0.0, 1.0],
-                ),
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.15),
+                    blurRadius: 100,
+                    spreadRadius: 20,
+                  ),
+                ],
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.only(top: kToolbarHeight + 30),
-            child: RefreshIndicator(
-              onRefresh: () async {
-                ref.invalidate(walletDetailsProvider);
-                await ref
-                    .read(paginatedTransactionsProvider.notifier)
-                    .refresh();
-              },
-              color: const Color(0xFFF59E0B),
-              backgroundColor: const Color(0xFF1E293B),
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Balance Card
-                    walletAsync.when(
-                      data: (wallet) => _buildBalanceCard(wallet),
+
+          SafeArea(
+            child: CustomScrollView(
+              controller: _scrollController,
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                // Header
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 20,
+                  ),
+                  sliver: SliverToBoxAdapter(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              AppLocalizations.of(context)!.wallet,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Varlıklarınızı yönetin',
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                color: Colors.white54,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final isHidden = ref.watch(
+                              privacyProvider.select((s) => s.isBalanceHidden),
+                            );
+                            return IconButton(
+                              onPressed: () {
+                                ref
+                                    .read(privacyProvider.notifier)
+                                    .toggleBalanceVisibility();
+                              },
+                              style: IconButton.styleFrom(
+                                backgroundColor: Colors.white.withValues(
+                                  alpha: 0.05,
+                                ),
+                                shape: const CircleBorder(),
+                              ),
+                              icon: Icon(
+                                isHidden
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: Colors.white70,
+                                size: 22,
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Balance Card
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  sliver: SliverToBoxAdapter(
+                    child: walletAsync.when(
+                      data: (wallet) => _buildModernBalanceCard(wallet),
                       loading: () => const Center(
                         child: CircularProgressIndicator(
-                          color: Color(0xFFF59E0B),
+                          color: AppColors.primary,
                         ),
                       ),
                       error: (err, _) => _buildErrorState(err.toString()),
                     ),
-                    const SizedBox(height: 12),
+                  ),
+                ),
 
-                    // Portföy Yönetimi Butonu
-                    _buildPortfolioButton(),
-                    const SizedBox(height: 24),
+                const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-                    // Transactions Title
-                    Text(
-                      AppLocalizations.of(context)!.transactionHistory,
-                      style: GoogleFonts.inter(
-                        color: Colors.white70,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                // Portfolio Analysis Card
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  sliver: SliverToBoxAdapter(
+                    child: _buildPortfolioCard()
+                        .animate()
+                        .fadeIn(duration: 400.ms, delay: 200.ms)
+                        .slideX(begin: 0.05, end: 0),
+                  ),
+                ),
+
+                const SliverToBoxAdapter(child: SizedBox(height: 32)),
+
+                // Transactions Header
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  sliver: SliverToBoxAdapter(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          AppLocalizations.of(context)!.transactionHistory,
+                          style: GoogleFonts.plusJakartaSans(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        _buildTransactionTabs(),
+                      ],
                     ),
-                    const SizedBox(height: 8),
+                  ),
+                ),
 
-                    // Transaction Filter Tabs
-                    _buildTransactionTabs(),
-                    const SizedBox(height: 8),
+                const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-                    // Transactions List
-                    transactionsAsync.when(
+                // Recent Activity List
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  sliver: SliverToBoxAdapter(
+                    child: transactionsAsync.when(
                       data: (paginatedState) {
                         final filteredTransactions = _filterTransactions(
                           paginatedState.items,
@@ -157,87 +209,65 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         if (filteredTransactions.isEmpty) {
                           return Center(
                             child: Padding(
-                              padding: const EdgeInsets.all(32.0),
-                              child: Text(
-                                AppLocalizations.of(context)!.noTransactions,
-                                style: const TextStyle(color: Colors.white38),
+                              padding: const EdgeInsets.all(40.0),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Icons.history,
+                                    size: 48,
+                                    color: Colors.white.withValues(alpha: 0.1),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    AppLocalizations.of(
+                                      context,
+                                    )!.noTransactions,
+                                    style: const TextStyle(
+                                      color: Colors.white38,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           );
                         }
-                        return Column(
-                          children: [
-                            ListView.separated(
-                              padding: EdgeInsets.zero,
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: filteredTransactions.length,
-                              separatorBuilder: (context, index) =>
-                                  const SizedBox(height: 8),
-                              itemBuilder: (context, index) =>
-                                  _buildTransactionItem(
-                                        filteredTransactions[index],
-                                      )
-                                      .animate()
-                                      .fadeIn(delay: (100 * index).ms)
-                                      .slideX(begin: 0.2, end: 0),
-                            ),
-                            if (paginatedState.isLoadingMore)
-                              const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 16),
-                                child: Center(
-                                  child: SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Color(0xFFF59E0B),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            if (!paginatedState.hasMore &&
-                                paginatedState.items.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    'Tüm işlemler yüklendi',
-                                    style: TextStyle(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.3,
-                                      ),
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
+
+                        return ListView.separated(
+                          padding: EdgeInsets.zero,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: filteredTransactions.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, index) =>
+                              _buildModernTransactionItem(
+                                    filteredTransactions[index],
+                                  )
+                                  .animate()
+                                  .fadeIn(delay: (50 * index).ms)
+                                  .slideX(begin: 0.1, end: 0),
                         );
                       },
                       loading: () => const Center(
                         child: Padding(
                           padding: EdgeInsets.all(20),
                           child: CircularProgressIndicator(
-                            color: Color(0xFFF59E0B),
+                            color: AppColors.primary,
                           ),
                         ),
                       ),
                       error: (err, _) => Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Text(
-                            'Hata: $err',
-                            style: const TextStyle(color: Colors.red),
-                          ),
+                        child: Text(
+                          'Hata: $err',
+                          style: const TextStyle(color: Colors.red),
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
+
+                const SliverToBoxAdapter(child: SizedBox(height: 100)),
+              ],
             ),
           ),
         ],
@@ -245,21 +275,248 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     );
   }
 
+  Widget _buildModernBalanceCard(WalletDetails wallet) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF1E293B),
+            const Color(0xFF0F172A).withValues(alpha: 0.8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Toplam Varlık',
+                style: GoogleFonts.inter(
+                  color: Colors.white54,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: wallet.totalPnl >= 0
+                      ? const Color(0xFF10B981).withValues(alpha: 0.1)
+                      : const Color(0xFFEF4444).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      wallet.totalPnl >= 0
+                          ? Icons.trending_up
+                          : Icons.trending_down,
+                      size: 14,
+                      color: wallet.totalPnl >= 0
+                          ? const Color(0xFF10B981)
+                          : const Color(0xFFEF4444),
+                    ),
+                    const SizedBox(width: 4),
+                    SensitiveText(
+                      '${wallet.totalPnl >= 0 ? "+" : ""}\$${wallet.totalPnl.toStringAsFixed(2)}',
+                      style: GoogleFonts.inter(
+                        color: wallet.totalPnl >= 0
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFFEF4444),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SensitiveText(
+            '\$${wallet.currentBalance.toStringAsFixed(2)}',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 36,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Kullanılabilir',
+                        style: TextStyle(color: Colors.white38, fontSize: 11),
+                      ),
+                      const SizedBox(height: 4),
+                      SensitiveText(
+                        '\$${wallet.availableBalance.toStringAsFixed(2)}',
+                        style: GoogleFonts.inter(
+                          color: AppColors.primary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(width: 1, height: 30, color: Colors.white10),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Botlarda Kilitli',
+                        style: TextStyle(color: Colors.white38, fontSize: 11),
+                      ),
+                      const SizedBox(height: 4),
+                      SensitiveText(
+                        '\$${wallet.lockedBalance.toStringAsFixed(2)}',
+                        style: GoogleFonts.inter(
+                          color: Colors.blueAccent,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack);
+  }
+
+  Widget _buildPortfolioCard() {
+    return GestureDetector(
+      onTap: () => context.push('/portfolio'),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF1E293B),
+              Color(0xFF2E1065), // Deep Purple
+            ],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFF8B5CF6).withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
+                ),
+              ),
+              child: const Icon(
+                Icons.pie_chart_rounded,
+                color: Color(0xFF8B5CF6),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Portföy Yönetimi',
+                    style: GoogleFonts.plusJakartaSans(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Varlık dağılımı ve risk analizi',
+                    style: GoogleFonts.inter(
+                      color: Colors.white60,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Colors.white54,
+                size: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildTransactionTabs() {
     return Container(
-      padding: const EdgeInsets.all(4),
+      height: 36,
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          _buildTabButton(AppLocalizations.of(context)!.all, 0),
-          const SizedBox(width: 4),
-          _buildTabButton(AppLocalizations.of(context)!.deposit, 1),
-          const SizedBox(width: 4),
-          _buildTabButton(AppLocalizations.of(context)!.withdraw, 2),
+          _buildTabButton('Tümü', 0),
+          _buildTabButton('Giriş', 1),
+          _buildTabButton('Çıkış', 2),
         ],
       ),
     );
@@ -267,284 +524,139 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
   Widget _buildTabButton(String title, int index) {
     final isSelected = _selectedTabIndex == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() => _selectedTabIndex = index);
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFF59E0B) : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            title,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              color: isSelected ? Colors.white : Colors.white54,
-              fontSize: 12,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            ),
+    return GestureDetector(
+      onTap: () {
+        setState(() => _selectedTabIndex = index);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Text(
+          title,
+          style: GoogleFonts.inter(
+            color: isSelected ? Colors.white : Colors.white38,
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
           ),
         ),
       ),
     );
   }
 
-  List<WalletTransaction> _filterTransactions(
-    List<WalletTransaction> transactions,
-  ) {
-    if (_selectedTabIndex == 0) {
-      // Hepsi
-      return transactions;
-    } else if (_selectedTabIndex == 1) {
-      // Yatırma (Girişler)
-      return transactions
-          .where(
-            (tx) =>
-                tx.type == TransactionType.Deposit ||
-                tx.type == TransactionType.BotReturn,
-          )
-          .toList();
-    } else {
-      // Çekim (Çıkışlar)
-      return transactions
-          .where(
-            (tx) =>
-                tx.type == TransactionType.Withdraw ||
-                tx.type == TransactionType.BotInvestment ||
-                tx.type == TransactionType.Fee,
-          )
-          .toList();
-    }
-  }
-
-  Widget _buildBalanceCard(WalletDetails wallet) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Text(
-            AppLocalizations.of(context)!.totalBalance,
-            style: const TextStyle(color: Colors.white54, fontSize: 14),
-          ),
-          const SizedBox(height: 8),
-          SensitiveText(
-            '\$${wallet.currentBalance.toStringAsFixed(2)}',
-            style: GoogleFonts.inter(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFFF59E0B),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: _buildBalanceItem(
-                  AppLocalizations.of(context)!.available,
-                  wallet.availableBalance,
-                  const Color(0xFF10B981),
-                ),
-              ),
-              Container(width: 1, height: 40, color: Colors.white10),
-              Expanded(
-                child: _buildBalanceItem(
-                  AppLocalizations.of(context)!.locked,
-                  wallet.lockedBalance,
-                  Colors.blueAccent,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildBalanceItem(
-            AppLocalizations.of(context)!.activePnl,
-            wallet.totalPnl,
-            wallet.totalPnl >= 0
-                ? const Color(0xFF10B981)
-                : const Color(0xFFEF4444),
-            isPnl: true,
-          ),
-        ],
-      ),
-    ).animate().scale(duration: 500.ms, curve: Curves.easeOutBack);
-  }
-
-  Widget _buildBalanceItem(
-    String label,
-    double amount,
-    Color color, {
-    bool isPnl = false,
-  }) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white54, fontSize: 12),
-        ),
-        const SizedBox(height: 4),
-        SensitiveText(
-          '${isPnl && amount > 0 ? "+" : ""}\$${amount.toStringAsFixed(2)}',
-          style: TextStyle(
-            color: color,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTransactionItem(WalletTransaction tx) {
+  Widget _buildModernTransactionItem(WalletTransaction tx) {
     IconData icon;
     Color color;
     Color iconBgColor;
     String prefix = '';
-    String defaultTitle = '';
+    String title = tx.description;
 
-    // Determine config based on type
     switch (tx.type) {
       case TransactionType.Deposit:
-        icon = Icons.arrow_downward;
+        icon = Icons.south_west_rounded; // In
         color = const Color(0xFF10B981);
         iconBgColor = const Color(0xFF10B981).withValues(alpha: 0.1);
         prefix = '+';
-        defaultTitle = AppLocalizations.of(context)!.deposit;
+        if (title.isEmpty || title == 'Deposit') title = 'Para Yatırma';
         break;
       case TransactionType.Withdraw:
-        icon = Icons.arrow_upward;
+        icon = Icons.north_east_rounded; // Out
         color = const Color(0xFFEF4444);
         iconBgColor = const Color(0xFFEF4444).withValues(alpha: 0.1);
         prefix = '-';
-        defaultTitle = AppLocalizations.of(context)!.withdraw;
+        if (title.isEmpty || title == 'Withdraw') title = 'Para Çekme';
         break;
       case TransactionType.BotInvestment:
-        // Red/Pinkish for Investment (Money Out)
-        icon = Icons.north_east; // Arrow Up-Right
-        color = Colors.white;
-        iconBgColor = const Color(
-          0xFFF43F5E,
-        ).withValues(alpha: 0.1); // Rose-500 bg
-        prefix = '';
-        defaultTitle = AppLocalizations.of(context)!.botInvestment;
+        icon = Icons.smart_toy_rounded;
+        color = Colors.blueAccent;
+        iconBgColor = Colors.blueAccent.withValues(alpha: 0.1);
+        prefix = '-';
+        if (title.isEmpty || title == 'BotInvestment') title = 'Bot Yatırımı';
         break;
       case TransactionType.BotReturn:
-        // Green for Return (Money In)
-        icon = Icons.south_west; // Arrow Down-Left
-        color = const Color(0xFF10B981); // Emerald
-        iconBgColor = const Color(0xFF10B981).withValues(alpha: 0.1);
+        icon = Icons.savings_rounded;
+        color = AppColors.primary;
+        iconBgColor = AppColors.primary.withValues(alpha: 0.1);
         prefix = '+';
-        defaultTitle = AppLocalizations.of(context)!.botReturn;
+        if (title.isEmpty || title == 'BotReturn') title = 'Bot Getirisi';
         break;
       case TransactionType.Fee:
-        icon = Icons.remove;
-        color = Colors.white70;
-        iconBgColor = Colors.white10;
+        icon = Icons.receipt_long_rounded;
+        color = Colors.orange;
+        iconBgColor = Colors.orange.withValues(alpha: 0.1);
         prefix = '-';
-        defaultTitle = AppLocalizations.of(context)!.fee;
+        if (title.isEmpty || title == 'Fee') title = 'İşlem Ücreti';
         break;
     }
 
-    String title = tx.description;
-    if (title.isEmpty ||
-        title == 'BotInvestment' ||
-        title == 'BotReturn' ||
-        title == 'Deposit' ||
-        title == 'Withdraw') {
-      title = defaultTitle;
-    }
-
-    Color iconColor = (tx.type == TransactionType.BotInvestment)
-        ? const Color(0xFFF43F5E)
-        : (tx.type == TransactionType.BotReturn)
-        ? const Color(0xFF10B981)
-        : color;
-
-    Color amountColor = (prefix == '+')
-        ? const Color(0xFF10B981)
-        : Colors.white;
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        color: const Color(0xFF1E293B).withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               color: iconBgColor,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: iconColor.withValues(alpha: 0.2)),
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(icon, color: iconColor, size: 18),
+            child: Icon(icon, color: color, size: 22),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.inter(
-                    color: AppColors.textPrimary,
+                  style: GoogleFonts.plusJakartaSans(
+                    color: Colors.white,
                     fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                    height: 1.3,
+                    fontSize: 14,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  DateFormat('dd.MM.yyyy HH:mm:ss').format(tx.createdAt),
-                  style: GoogleFonts.inter(
-                    color: AppColors.textSecondary,
-                    fontSize: 11,
-                  ),
+                  DateFormat('d MMM, HH:mm').format(tx.createdAt),
+                  style: GoogleFonts.inter(color: Colors.white38, fontSize: 12),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               SensitiveText(
-                '$prefix${tx.amount.toStringAsFixed(2)}',
-                style: GoogleFonts.jetBrainsMono(
-                  color: amountColor,
+                '$prefix\$${tx.amount.toStringAsFixed(2)}',
+                style: GoogleFonts.plusJakartaSans(
+                  color: prefix == '+' ? AppColors.success : Colors.white,
                   fontWeight: FontWeight.bold,
-                  fontSize: 13,
+                  fontSize: 15,
                 ),
               ),
-              Text(
-                'USDT',
-                style: GoogleFonts.inter(
-                  color: amountColor.withValues(alpha: 0.7),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'USDT',
+                  style: GoogleFonts.inter(
+                    color: Colors.white54,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -554,72 +666,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     );
   }
 
-  Widget _buildPortfolioButton() {
-    return GestureDetector(
-      onTap: () => context.push('/portfolio'),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF1E293B), Color(0xFF1A1F3A)],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: const Color(0xFF8B5CF6).withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.pie_chart,
-                color: Color(0xFF8B5CF6),
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Portföy Yönetimi',
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Dağılım, risk analizi ve dengeleme önerileri',
-                    style: GoogleFonts.inter(
-                      color: Colors.white38,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.arrow_forward_ios,
-              color: Color(0xFF8B5CF6),
-              size: 16,
-            ),
-          ],
-        ),
-      ),
-    ).animate().fadeIn(delay: 200.ms).slideX(begin: 0.1, end: 0);
-  }
-
+  // ignore: unused_element
   Widget _buildErrorState(String error) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -638,5 +685,32 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
         ],
       ),
     );
+  }
+
+  List<WalletTransaction> _filterTransactions(
+    List<WalletTransaction> transactions,
+  ) {
+    if (_selectedTabIndex == 0) return transactions;
+
+    if (_selectedTabIndex == 1) {
+      // Giriş
+      return transactions
+          .where(
+            (tx) =>
+                tx.type == TransactionType.Deposit ||
+                tx.type == TransactionType.BotReturn,
+          )
+          .toList();
+    } else {
+      // Çıkış
+      return transactions
+          .where(
+            (tx) =>
+                tx.type == TransactionType.Withdraw ||
+                tx.type == TransactionType.BotInvestment ||
+                tx.type == TransactionType.Fee,
+          )
+          .toList();
+    }
   }
 }

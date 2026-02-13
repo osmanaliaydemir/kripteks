@@ -874,7 +874,7 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
                                   color: Colors.white54,
                                 ),
                               ),
-                              error: (_, __) => const Text(
+                              error: (_, _) => const Text(
                                 'Bakiye Hatası',
                                 style: TextStyle(
                                   color: AppColors.error,
