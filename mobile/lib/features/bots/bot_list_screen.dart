@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/core/widgets/app_header.dart';
+
 import 'package:mobile/core/error/error_handler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -71,25 +72,7 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
     bool hasActiveBots = activeBots.isNotEmpty;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppHeader(
-        title: 'Botlarım',
-        showBackButton: false,
-        actions: hasActiveBots
-            ? [
-                IconButton(
-                  onPressed: () => _showPanicModeDialog(),
-                  icon: const Icon(
-                    Icons.gpp_bad_rounded,
-                    color: AppColors.error,
-                    size: 24,
-                  ),
-                  tooltip: 'Acil Durdurma',
-                ),
-                const SizedBox(width: 8),
-              ]
-            : null,
-      ),
+      backgroundColor: AppColors.background,
       floatingActionButton: _mainTab == 'Botlarım'
           ? Container(
               decoration: BoxDecoration(
@@ -125,51 +108,106 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
             )
           : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      body: Column(
-        children: [
-          // Main Tabs (Botlarım / Keşfet)
-          Container(
-            margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceLight,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildMainTabButton(
-                    'Botlarım',
-                    Icons.smart_toy_rounded,
-                    _mainTab == 'Botlarım',
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Custom Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                            'Botlarım',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          )
+                          .animate()
+                          .fadeIn(duration: 600.ms)
+                          .slideY(begin: 0.2, end: 0),
+                      const SizedBox(height: 4),
+                      Text(
+                            'Otomatik strateji yönetimi',
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              color: Colors.white54,
+                            ),
+                          )
+                          .animate()
+                          .fadeIn(duration: 600.ms, delay: 200.ms)
+                          .slideY(begin: 0.2, end: 0),
+                    ],
                   ),
-                ),
-                Expanded(
-                  child: _buildMainTabButton(
-                    'Keşfet',
-                    Icons.explore_rounded,
-                    _mainTab == 'Keşfet',
-                  ),
-                ),
-              ],
+                  if (hasActiveBots)
+                    IconButton(
+                      onPressed: () => _showPanicModeDialog(),
+                      style: IconButton.styleFrom(
+                        backgroundColor: AppColors.error.withValues(alpha: 0.1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const Icon(
+                        Icons.gpp_bad_rounded,
+                        color: AppColors.error,
+                        size: 24,
+                      ),
+                      tooltip: 'Acil Durdurma',
+                    ),
+                ],
+              ),
             ),
-          ),
 
-          // Content
-          Expanded(
-            child: _mainTab == 'Keşfet'
-                ? _buildDiscoveryTab()
-                : _buildMyBotsTab(
-                    botListAsync,
-                    activeBots,
-                    historyBots,
-                    botListAsync.value,
-                    inPositionCount,
-                    waitingCount,
+            // Main Tabs (Botlarım / Keşfet)
+            Container(
+              margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B).withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildMainTabButton(
+                      'Botlarım',
+                      Icons.smart_toy_rounded,
+                      _mainTab == 'Botlarım',
+                    ),
                   ),
-          ),
-        ],
+                  Expanded(
+                    child: _buildMainTabButton(
+                      'Keşfet',
+                      Icons.explore_rounded,
+                      _mainTab == 'Keşfet',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Content
+            Expanded(
+              child: _mainTab == 'Keşfet'
+                  ? _buildDiscoveryTab()
+                  : _buildMyBotsTab(
+                      botListAsync,
+                      activeBots,
+                      historyBots,
+                      botListAsync.value,
+                      inPositionCount,
+                      waitingCount,
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -341,59 +379,77 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
             ),
             delegate: SliverChildListDelegate([
               _buildStrategyGridCard(
-                title: 'Dengeli Sepet',
-                risk: 'Orta',
-                apy: '%42',
-                users: '1.2k',
-                icon: Icons.balance_rounded,
-                color: const Color(0xFF3B82F6),
-                onTap: () => _showQuickCreateDialog('Dengeli Sepet'),
-              ),
+                    title: 'Dengeli Sepet',
+                    risk: 'Orta',
+                    apy: '%42',
+                    users: '1.2k',
+                    icon: Icons.balance_rounded,
+                    color: const Color(0xFF3B82F6),
+                    onTap: () => _showQuickCreateDialog('Dengeli Sepet'),
+                  )
+                  .animate()
+                  .fadeIn(duration: 400.ms)
+                  .scale(begin: const Offset(0.9, 0.9)),
               _buildStrategyGridCard(
-                title: 'Scalp King',
-                risk: 'Yüksek',
-                apy: '%180',
-                users: '850',
-                icon: Icons.bolt_rounded,
-                color: const Color(0xFFEF4444),
-                onTap: () => _showQuickCreateDialog('Scalp King'),
-              ),
+                    title: 'Scalp King',
+                    risk: 'Yüksek',
+                    apy: '%180',
+                    users: '850',
+                    icon: Icons.bolt_rounded,
+                    color: const Color(0xFFEF4444),
+                    onTap: () => _showQuickCreateDialog('Scalp King'),
+                  )
+                  .animate()
+                  .fadeIn(duration: 400.ms, delay: 100.ms)
+                  .scale(begin: const Offset(0.9, 0.9)),
               _buildStrategyGridCard(
-                title: 'Altcoin Gem',
-                risk: 'Yüksek',
-                apy: '%95',
-                users: '2.4k',
-                icon: Icons.diamond_rounded,
-                color: const Color(0xFFA855F7),
-                onTap: () => _showQuickCreateDialog('Altcoin Gem'),
-              ),
+                    title: 'Altcoin Gem',
+                    risk: 'Yüksek',
+                    apy: '%95',
+                    users: '2.4k',
+                    icon: Icons.diamond_rounded,
+                    color: const Color(0xFFA855F7),
+                    onTap: () => _showQuickCreateDialog('Altcoin Gem'),
+                  )
+                  .animate()
+                  .fadeIn(duration: 400.ms, delay: 200.ms)
+                  .scale(begin: const Offset(0.9, 0.9)),
               _buildStrategyGridCard(
-                title: 'BTC Accumulator',
-                risk: 'Düşük',
-                apy: '%18',
-                users: '5k+',
-                icon: Icons.currency_bitcoin_rounded,
-                color: const Color(0xFFF59E0B),
-                onTap: () => _showQuickCreateDialog('BTC Accumulator'),
-              ),
+                    title: 'BTC Accumulator',
+                    risk: 'Düşük',
+                    apy: '%18',
+                    users: '5k+',
+                    icon: Icons.currency_bitcoin_rounded,
+                    color: const Color(0xFFF59E0B),
+                    onTap: () => _showQuickCreateDialog('BTC Accumulator'),
+                  )
+                  .animate()
+                  .fadeIn(duration: 400.ms, delay: 300.ms)
+                  .scale(begin: const Offset(0.9, 0.9)),
               _buildStrategyGridCard(
-                title: 'ETH Killer',
-                risk: 'Orta',
-                apy: '%55',
-                users: '1.8k',
-                icon: Icons.layers_rounded,
-                color: const Color(0xFF6366F1),
-                onTap: () => _showQuickCreateDialog('ETH Killer'),
-              ),
+                    title: 'ETH Killer',
+                    risk: 'Orta',
+                    apy: '%55',
+                    users: '1.8k',
+                    icon: Icons.layers_rounded,
+                    color: const Color(0xFF6366F1),
+                    onTap: () => _showQuickCreateDialog('ETH Killer'),
+                  )
+                  .animate()
+                  .fadeIn(duration: 400.ms, delay: 400.ms)
+                  .scale(begin: const Offset(0.9, 0.9)),
               _buildStrategyGridCard(
-                title: 'DeFi Farmer',
-                risk: 'Düşük',
-                apy: '%22',
-                users: '920',
-                icon: Icons.local_florist_rounded,
-                color: const Color(0xFF10B981),
-                onTap: () => _showQuickCreateDialog('DeFi Farmer'),
-              ),
+                    title: 'DeFi Farmer',
+                    risk: 'Düşük',
+                    apy: '%22',
+                    users: '920',
+                    icon: Icons.local_florist_rounded,
+                    color: const Color(0xFF10B981),
+                    onTap: () => _showQuickCreateDialog('DeFi Farmer'),
+                  )
+                  .animate()
+                  .fadeIn(duration: 400.ms, delay: 500.ms)
+                  .scale(begin: const Offset(0.9, 0.9)),
             ]),
           ),
         ),
@@ -413,108 +469,153 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
     required Color color2,
     required VoidCallback onTap,
   }) {
+    // Risk rengini belirle
+    final riskColor = risk.contains('YÜKSEK')
+        ? AppColors.error
+        : risk.contains('DÜŞÜK')
+        ? AppColors.success
+        : const Color(0xFFF59E0B);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: 280,
-        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [color1, color2],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: const Color(0xFF1E293B).withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           boxShadow: [
             BoxShadow(
-              color: color1.withValues(alpha: 0.4),
-              blurRadius: 16,
+              color: color1.withValues(alpha: 0.05),
+              blurRadius: 20,
               offset: const Offset(0, 8),
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            children: [
+              // Background Glow
+              Positioned(
+                top: -30,
+                right: -30,
+                child: Container(
+                  width: 150,
+                  height: 150,
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    risk,
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
-                    ),
+                    color: color1.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: color1.withValues(alpha: 0.15),
+                        blurRadius: 50,
+                        spreadRadius: 10,
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  title,
-                  style: GoogleFonts.plusJakartaSans(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: GoogleFonts.inter(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Column(
+              ),
+
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Yıllık Getiri (Tahmini)',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        fontSize: 10,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: riskColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: riskColor.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Text(
+                            risk,
+                            style: GoogleFonts.inter(
+                              color: riskColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          title,
+                          style: GoogleFonts.plusJakartaSans(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          style: GoogleFonts.inter(
+                            color: Colors.white54,
+                            fontSize: 13,
+                            height: 1.4,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      apy,
-                      style: GoogleFonts.plusJakartaSans(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Yıllık Getiri',
+                              style: TextStyle(
+                                color: Colors.white54,
+                                fontSize: 10,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              apy,
+                              style: GoogleFonts.plusJakartaSans(
+                                color: AppColors.success,
+                                fontSize: 26,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.arrow_forward_rounded,
+                            color: color1,
+                            size: 20,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                CircleAvatar(
-                  backgroundColor: Colors.white,
-                  radius: 20,
-                  child: Icon(
-                    Icons.arrow_forward_rounded,
-                    color: color1,
-                    size: 20,
-                  ),
-                ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -529,106 +630,152 @@ class _BotListScreenState extends ConsumerState<BotListScreen> {
     required Color color,
     required VoidCallback onTap,
   }) {
+    final riskColor = risk.contains('Yüksek')
+        ? AppColors.error
+        : risk.contains('Düşük')
+        ? AppColors.success
+        : const Color(0xFFF59E0B);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B).withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(20),
+          color: const Color(0xFF1E293B).withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 10,
+              color: color.withValues(alpha: 0.05),
+              blurRadius: 15,
               offset: const Offset(0, 4),
             ),
           ],
         ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            children: [
+              // Glow
+              Positioned(
+                top: -20,
+                right: -20,
+                child: Container(
+                  width: 80,
+                  height: 80,
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(14),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.15),
+                        blurRadius: 30,
+                        spreadRadius: 5,
+                      ),
+                    ],
                   ),
-                  child: Icon(icon, color: color, size: 24),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    risk,
-                    style: GoogleFonts.inter(
-                      color: color,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Icon(icon, color: color, size: 24),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: riskColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: riskColor.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Text(
+                            risk,
+                            style: GoogleFonts.inter(
+                              color: riskColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ),
-              ],
-            ),
-            const Spacer(),
-            Text(
-              title,
-              style: GoogleFonts.plusJakartaSans(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                const Icon(
-                  Icons.people_outline_rounded,
-                  size: 14,
-                  color: Colors.white38,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '$users kullanım',
-                  style: GoogleFonts.inter(color: Colors.white38, fontSize: 11),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.03),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'APY',
-                    style: TextStyle(color: Colors.white54, fontSize: 11),
-                  ),
-                  Text(
-                    apy,
-                    style: GoogleFonts.inter(
-                      color: const Color(0xFF10B981),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                    const Spacer(),
+                    Text(
+                      title,
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.people_outline_rounded,
+                          size: 14,
+                          color: Colors.white38,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$users kullanım',
+                          style: GoogleFonts.inter(
+                            color: Colors.white38,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.03),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'APY',
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 11,
+                            ),
+                          ),
+                          Text(
+                            apy,
+                            style: GoogleFonts.inter(
+                              color: const Color(0xFF10B981),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1864,9 +2011,16 @@ class _BotCardItemState extends State<_BotCardItem> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: AppColors.surface.withValues(alpha: 0.6),
+          color: const Color(0xFF1E293B).withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           children: [
