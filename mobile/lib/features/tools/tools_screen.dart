@@ -136,13 +136,15 @@ class ToolsScreen extends StatelessWidget {
                     vertical: 10,
                   ),
                   sliver: SliverGrid(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 0.82, // Biraz daha uzun kartlar
-                        ),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      // Kart yüksekliğini sabit tutacak dynamic aspect ratio
+                      // Geniş ekranlarda kartların aşırı uzamasını engeller
+                      childAspectRatio:
+                          (MediaQuery.of(context).size.width - 56) / 2 / 210,
+                    ),
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final tool = tools[index];
                       return _buildToolCard(context, tool)
