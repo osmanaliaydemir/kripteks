@@ -44,6 +44,13 @@ class SignalRService {
 
     _isManuallyDisconnected = false;
     _reconnectAttempt = 0;
+
+    final token = await _storage.read(key: 'auth_token');
+    if (token == null || token.isEmpty) {
+      _log.warning('No access token found, skipping SignalR connection');
+      return;
+    }
+
     _updateStatus(SignalRConnectionStatus.connecting);
 
     try {

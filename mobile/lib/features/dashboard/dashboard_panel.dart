@@ -6,11 +6,13 @@ import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/widgets/sensitive_text.dart';
 import 'models/dashboard_stats.dart';
 import 'providers/dashboard_provider.dart';
+import 'providers/dashboard_layout_provider.dart';
 import '../wallet/providers/wallet_provider.dart';
 import '../wallet/wallet_screen.dart';
 import '../bots/bot_list_screen.dart';
 import '../bots/providers/bot_provider.dart';
 import '../bots/models/bot_model.dart';
+import 'package:mobile/l10n/app_localizations.dart';
 
 class DashboardPanel extends ConsumerWidget {
   const DashboardPanel({super.key});
@@ -18,224 +20,389 @@ class DashboardPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final statsAsync = ref.watch(dashboardStatsProvider);
+    final layoutState = ref.watch(dashboardLayoutProvider);
 
-    // Scaffold and AppBar removed to use parent DashboardScreen's AppBar
     return RefreshIndicator(
       onRefresh: () async {
         // ignore: unused_result
         ref.refresh(dashboardStatsProvider);
       },
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            statsAsync.when(
-              data: (stats) => _buildStatsGrid(context, stats),
-              error: (err, stack) => Center(
-                child: Text(
-                  'Hata: $err',
-                  style: const TextStyle(color: Colors.redAccent),
-                ),
-              ),
-              loading: () => const Center(
-                child: CircularProgressIndicator(color: Color(0xFFF59E0B)),
+      child: statsAsync.when(
+        data: (stats) => _buildLayout(context, ref, stats, layoutState),
+        error: (err, stack) => SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.7,
+            child: Center(
+              child: Text(
+                'Hata: $err',
+                style: const TextStyle(color: Colors.redAccent),
               ),
             ),
-            const SizedBox(height: 24),
-            // Placeholder for future charts or lists
-            // New Stats Row 1
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatCard(
-                    title: 'Bugünkü Kazanç',
-                    value:
-                        '+\$0.00', // Placeholder as per instructions (needs backend filter)
-                    icon: Icons.calendar_today,
-                    color: const Color(0xFF10B981),
-                    isSensitive: true,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Consumer(
-                    builder: (context, ref, child) {
-                      // Calculate approximate total invested from bot list amount sum
-                      // This is 'Total Invested' in ACTIVE/HISTORY bots known to client
-                      final botListAsync = ref.watch(paginatedBotListProvider);
-                      final totalInvested =
-                          botListAsync.asData?.value.items
-                              .map((b) => b.amount)
-                              .fold(0.0, (sum, amount) => sum + amount) ??
-                          0.0;
-
-                      return _buildStatCard(
-                        title: 'Toplam Yatırım',
-                        value: '\$${totalInvested.toStringAsFixed(0)}',
-                        icon: Icons.account_balance_wallet,
-                        color: const Color(0xFF3B82F6), // Blue
-                        isSensitive: true,
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0),
-
-            const SizedBox(height: 12),
-
-            // New Stats Row 2 (En Çok Kazandıran Bot moved here or duplicated?)
-            // The user request implies adding these, possibly keeping or moving existing ones.
-            // Existing 'En Çok Kazandıran Bot' is in the grid above (Best Pair).
-            // Actually 'En Çok Kazandıran Bot' (Specific Bot) is different from 'Best Pair'.
-            // Let's add 'En Çok Kazandıran Bot' as a full width or half width card here.
-            Consumer(
-              builder: (context, ref, child) {
-                final botListAsync = ref.watch(paginatedBotListProvider);
-                final bots = botListAsync.asData?.value.items ?? [];
-
-                // Find bot with max PnL
-                Bot? bestBot;
-                if (bots.isNotEmpty) {
-                  bestBot = bots.reduce(
-                    (curr, next) => curr.pnl > next.pnl ? curr : next,
-                  );
-                }
-
-                // If best bot PnL is negative, maybe don't show "Best"? Or show lease worst?
-                // Usually 'Best' implies high positive.
-                final bestVal = (bestBot != null && bestBot.pnl > 0)
-                    ? '+\$${bestBot.pnl.toStringAsFixed(2)} (${bestBot.symbol})'
-                    : '-';
-
-                return _buildStatCard(
-                  title: 'En Çok Kazandıran Bot',
-                  value: bestVal,
-                  icon: Icons.emoji_events,
-                  color: const Color(0xFFF59E0B), // Amber
-                  // En çok kazandıran botta sadece isim değil, PnL de var ama karışık string.
-                  // Şimdilik sadece PnL kısmı gizlenmeli ama tüm string gizlense de olur.
-                  isSensitive: true,
-                );
-              },
-            ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.2, end: 0),
-          ],
+          ),
+        ),
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: Color(0xFFF59E0B)),
         ),
       ),
     );
   }
 
-  Widget _buildStatsGrid(BuildContext context, DashboardStats stats) {
-    // Calculate Net PnL (Realized + Unrealized)
-    // Realized comes from stats.totalPnl
-    // Unrealized comes from wallet.totalPnl (Active PnL)
+  Widget _buildLayout(
+    BuildContext context,
+    WidgetRef ref,
+    DashboardStats stats,
+    DashboardLayoutState layoutState,
+  ) {
+    if (layoutState.isEditing) {
+      // --- EDIT MODE ---
+      // Edit modunda tüm widgetları ALT ALTA listeliyoruz (tek sütun).
+      // Bu sayede sürükleyip bırakmak çok daha kolay ve tutarlı oluyor.
+      // ReorderableListView doğal olarak bunu destekler.
+
+      final items = <Widget>[];
+
+      for (final id in layoutState.order) {
+        // Edit modunda gizli olsa bile gösteriyoruz (opacity ile)
+        items.add(_buildEditItem(context, ref, stats, id, layoutState));
+      }
+
+      return ReorderableListView(
+        padding: const EdgeInsets.all(16),
+        onReorder: (oldIndex, newIndex) {
+          ref
+              .read(dashboardLayoutProvider.notifier)
+              .reorder(oldIndex, newIndex);
+        },
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: items,
+      );
+    } else {
+      // --- VIEW MODE ---
+      // Normal modda "Masonry" benzeri basit bir grid mantığı kuruyoruz.
+      // Widgetları sırasıyla alıyoruz:
+      // - Eğer widget LARGE ise -> Tek satırda tam genişlikte çiziyoruz.
+      // - Eğer widget SMALL ise -> Bir sonrakine bakıyoruz.
+      //   - Sonraki de SMALL'sa -> Yan yana çiziyoruz (Row).
+      //   - Sonraki LARGE veya yoksa -> Tek başına çiziyoruz (ama yine de dengeli dursun diye).
+
+      final viewItems = <Widget>[];
+      final visibleIds = layoutState.order
+          .where((id) => !layoutState.hiddenIds.contains(id))
+          .toList();
+
+      for (int i = 0; i < visibleIds.length; i++) {
+        final id = visibleIds[i];
+        final isLarge = DashboardWidgets.isLarge(id);
+
+        if (isLarge) {
+          // Large widget: Tam genişlik
+          viewItems.add(
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildWidgetById(context, ref, stats, id),
+            ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
+          );
+        } else {
+          // Small widget
+          // Bir sonraki eleman var mı ve o da small mu?
+          if (i + 1 < visibleIds.length) {
+            final nextId = visibleIds[i + 1];
+            if (!DashboardWidgets.isLarge(nextId)) {
+              // İkisini yan yana koy
+              viewItems.add(
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildWidgetById(context, ref, stats, id),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildWidgetById(context, ref, stats, nextId),
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
+              );
+              i++; // Sonraki elemanı da işledik, atla
+              continue;
+            }
+          }
+
+          // Yanına koyacak small bulamadık, tek başına koy (Expanded içinde değil, Row içinde Expanded olarak duralım ki structure bozulmasın, veya direkt tam genişlik mi?)
+          // Genelde tek kalan small widget tam genişlikte (Large gibi) görünse daha şık olur.
+          viewItems.add(
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildWidgetById(context, ref, stats, id),
+            ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
+          );
+        }
+      }
+
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: viewItems,
+      );
+    }
+  }
+
+  Widget _buildEditItem(
+    BuildContext context,
+    WidgetRef ref,
+    DashboardStats stats,
+    String id,
+    DashboardLayoutState layoutState,
+  ) {
+    final isHidden = layoutState.hiddenIds.contains(id);
+    final widget = _buildWidgetById(context, ref, stats, id);
+
+    return Container(
+      key: ValueKey(id),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Row(
+        children: [
+          // Sol Taraf: Widget Önizlemesi (Küçültülmüş ve Orantılı)
+          Expanded(
+            child: Opacity(
+              opacity: isHidden ? 0.4 : 1.0,
+              child: IgnorePointer(
+                ignoring: true, // İçeriğe tıklanamasın
+                child: SizedBox(
+                  height: 60, // Sabit yükseklik ile hizala
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      // Orijinal genişliğe yakın bir değer veriyoruz ki
+                      // FittedBox onu sığdırmak için orantılı küçültsün.
+                      width: MediaQuery.of(context).size.width - 40,
+                      child: widget,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Dikey Ayırıcı Çizgi
+          Container(
+            width: 1,
+            height: 40,
+            color: Colors.white.withValues(alpha: 0.1),
+            margin: const EdgeInsets.symmetric(horizontal: 12),
+          ),
+
+          // Sağ Taraf: Kontrol Butonları
+
+          // Göz İkonu
+          IconButton(
+            icon: Icon(
+              isHidden ? Icons.visibility_off : Icons.visibility,
+              color: isHidden ? AppColors.textSecondary : AppColors.primary,
+              size: 22,
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onPressed: () {
+              ref.read(dashboardLayoutProvider.notifier).toggleVisibility(id);
+            },
+          ),
+
+          const SizedBox(width: 16),
+
+          // Sürükleme Tutamacı
+          ReorderableDragStartListener(
+            index: layoutState.order.indexOf(id),
+            child: const Icon(
+              Icons.drag_handle,
+              color: Colors.white70,
+              size: 26,
+            ),
+          ),
+
+          const SizedBox(width: 4),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWidgetById(
+    BuildContext context,
+    WidgetRef ref,
+    DashboardStats stats,
+    String id,
+  ) {
+    switch (id) {
+      case DashboardWidgets.totalPnl:
+        return _buildTotalPnlCard(context, ref, stats);
+      case DashboardWidgets.avgTradePnl:
+        return _buildStatCard(
+          title: 'Ort. İşlem Kârı',
+          value: '\$${stats.avgTradePnL.toStringAsFixed(2)}',
+          icon: Icons.show_chart,
+          color: stats.avgTradePnL >= 0
+              ? const Color(0xFF10B981)
+              : const Color(0xFFEF4444),
+          isSensitive: true,
+        );
+      case DashboardWidgets.botBalance:
+        return Consumer(
+          builder: (context, ref, child) {
+            final walletAsync = ref.watch(walletDetailsProvider);
+            final walletDetails = walletAsync.asData?.value;
+            final lockedBalance = walletDetails?.lockedBalance ?? 0.0;
+            return _buildStatCard(
+              title: 'Mevcut Bot Bakiyesi',
+              value: '\$${lockedBalance.toStringAsFixed(2)}',
+              icon: Icons.savings,
+              color: const Color(0xFFF59E0B),
+              isSensitive: true,
+            );
+          },
+        );
+      case DashboardWidgets.activeBots:
+        return GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const BotListScreen()),
+          ),
+          child: Consumer(
+            builder: (context, ref, child) {
+              final botListAsync = ref.watch(paginatedBotListProvider);
+              final activeBotCount =
+                  botListAsync.asData?.value.items
+                      .where(
+                        (b) =>
+                            b.status == 'Running' ||
+                            b.status == 'WaitingForEntry',
+                      )
+                      .length ??
+                  0;
+
+              return _buildStatCard(
+                title: 'Aktif İşlemler',
+                value: '$activeBotCount adet bot aktif işlemde',
+                icon: Icons.smart_toy,
+                color: Colors.white,
+              );
+            },
+          ),
+        );
+      case DashboardWidgets.bestPair:
+        return _buildStatCard(
+          title: 'En İyi Parite',
+          value: stats.bestPair.isEmpty ? '-' : stats.bestPair,
+          icon: Icons.star,
+          color: AppColors.primary,
+        );
+      case DashboardWidgets.dailyProfit:
+        return _buildStatCard(
+          title: 'Bugünkü Kazanç',
+          value: '+\$0.00', // Placeholder
+          icon: Icons.calendar_today,
+          color: const Color(0xFF10B981),
+          isSensitive: true,
+        );
+      case DashboardWidgets.totalInvest:
+        return Consumer(
+          builder: (context, ref, child) {
+            final botListAsync = ref.watch(paginatedBotListProvider);
+            final totalInvested =
+                botListAsync.asData?.value.items
+                    .map((b) => b.amount)
+                    .fold(0.0, (sum, amount) => sum + amount) ??
+                0.0;
+
+            return _buildStatCard(
+              title: 'Toplam Yatırım',
+              value: '\$${totalInvested.toStringAsFixed(0)}',
+              icon: Icons.account_balance_wallet,
+              color: const Color(0xFF3B82F6),
+              isSensitive: true,
+            );
+          },
+        );
+      case DashboardWidgets.bestBot:
+        return _buildBestBotCard(context, ref, stats);
+      default:
+        // Eğer tanınmayan bir ID varsa (versiyon uyumsuzluğu vs) boş dön
+        return const SizedBox.shrink();
+    }
+  }
+
+  // --- Widget Builders (Complex Ones) ---
+
+  Widget _buildTotalPnlCard(
+    BuildContext context,
+    WidgetRef ref,
+    DashboardStats stats,
+  ) {
     return Consumer(
       builder: (context, ref, child) {
         final walletAsync = ref.watch(walletDetailsProvider);
         final walletDetails = walletAsync.asData?.value;
 
         final unrealizedPnl = walletDetails?.totalPnl ?? 0.0;
-        final lockedBalance = walletDetails?.lockedBalance ?? 0.0;
-
         final netPnl = stats.totalPnl + unrealizedPnl;
         final isNetPnlPositive = netPnl >= 0;
 
-        return Column(
-          children: [
-            // Total PnL Card (Big)
-            GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const WalletScreen()),
-              ),
-              child: _buildStatCard(
-                title: 'Toplam Kâr/Zarar',
-                value: '\$${netPnl.toStringAsFixed(2)}',
-                icon: Icons.attach_money,
-                color: isNetPnlPositive
-                    ? const Color(0xFF10B981)
-                    : const Color(0xFFEF4444),
-                isLarge: true,
-                isSensitive: true,
-              ),
-            ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2, end: 0),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatCard(
-                    title: 'Ort. İşlem Kârı',
-                    value: '\$${stats.avgTradePnL.toStringAsFixed(2)}',
-                    icon: Icons.show_chart,
-                    color: stats.avgTradePnL >= 0
-                        ? const Color(0xFF10B981)
-                        : const Color(0xFFEF4444),
-                    isSensitive: true,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildStatCard(
-                    title: 'Mevcut Bot Bakiyesi',
-                    value: '\$${lockedBalance.toStringAsFixed(2)}',
-                    icon: Icons.savings,
-                    color: const Color(0xFFF59E0B),
-                    isSensitive: true,
-                  ),
-                ),
-              ],
-            ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
+        return GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const WalletScreen()),
+          ),
+          child: _buildStatCard(
+            title: 'Toplam Kâr/Zarar',
+            value: '\$${netPnl.toStringAsFixed(2)}',
+            icon: Icons.attach_money,
+            color: isNetPnlPositive
+                ? const Color(0xFF10B981)
+                : const Color(0xFFEF4444),
+            isLarge: true,
+            isSensitive: true,
+          ),
+        );
+      },
+    );
+  }
 
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const BotListScreen(),
-                      ),
-                    ),
-                    child: Consumer(
-                      builder: (context, ref, child) {
-                        final botListAsync = ref.watch(
-                          paginatedBotListProvider,
-                        );
-                        final activeBotCount =
-                            botListAsync.asData?.value.items
-                                .where(
-                                  (b) =>
-                                      b.status == 'Running' ||
-                                      b.status == 'WaitingForEntry',
-                                )
-                                .length ??
-                            0;
+  Widget _buildBestBotCard(
+    BuildContext context,
+    WidgetRef ref,
+    DashboardStats stats,
+  ) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final botListAsync = ref.watch(paginatedBotListProvider);
+        final bots = botListAsync.asData?.value.items ?? [];
 
-                        return _buildStatCard(
-                          title: 'Aktif İşlemler',
-                          value: '$activeBotCount adet bot aktif işlemde',
-                          icon: Icons.smart_toy,
-                          color: Colors.white,
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildStatCard(
-                    title: 'En İyi Parite',
-                    value: stats.bestPair.isEmpty ? '-' : stats.bestPair,
-                    icon: Icons.star,
-                    color: AppColors.primary, // Amber
-                  ),
-                ),
-              ],
-            ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2, end: 0),
-          ],
+        Bot? bestBot;
+        if (bots.isNotEmpty) {
+          bestBot = bots.reduce(
+            (curr, next) => curr.pnl > next.pnl ? curr : next,
+          );
+        }
+
+        final bestVal = (bestBot != null && bestBot.pnl > 0)
+            ? '+\$${bestBot.pnl.toStringAsFixed(2)} (${bestBot.symbol})'
+            : '-';
+
+        return _buildStatCard(
+          title: 'En Çok Kazandıran Bot',
+          value: bestVal,
+          icon: Icons.emoji_events,
+          color: const Color(0xFFF59E0B),
+          isSensitive: true,
         );
       },
     );
@@ -249,13 +416,10 @@ class DashboardPanel extends ConsumerWidget {
     bool isLarge = false,
     bool isSensitive = false,
   }) {
-    // Determine background decoration based on card type to add visual hierarchy
     final isPnlCard = title == 'Toplam Kâr/Zarar';
-
     BoxDecoration decoration;
 
     if (isPnlCard) {
-      // Different gradient for positive/negative PnL
       final isPositive = !value.contains('-');
       final gradientColors = isPositive
           ? [

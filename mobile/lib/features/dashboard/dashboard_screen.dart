@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/l10n/app_localizations.dart';
 import 'package:mobile/core/theme/app_colors.dart';
-
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:mobile/features/dashboard/dashboard_panel.dart';
 import 'package:mobile/features/bots/bot_list_screen.dart';
 import 'package:mobile/features/settings/settings_screen.dart';
@@ -12,6 +12,7 @@ import 'package:mobile/features/wallet/wallet_screen.dart';
 import 'package:mobile/features/notifications/notification_screen.dart';
 import 'package:mobile/features/notifications/providers/notification_provider.dart';
 import 'package:mobile/core/providers/privacy_provider.dart';
+import 'package:mobile/features/dashboard/providers/dashboard_layout_provider.dart';
 
 import 'package:mobile/core/network/signalr_service.dart';
 import 'package:mobile/core/widgets/app_header.dart';
@@ -217,6 +218,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             );
           },
         ),
+        // Edit Mode Button
+        Consumer(
+          builder: (context, ref, _) {
+            final layoutState = ref.watch(dashboardLayoutProvider);
+            final isEditing = layoutState.isEditing;
+
+            return IconButton(
+              icon: Icon(
+                isEditing ? Icons.check : Icons.edit,
+                color: isEditing ? AppColors.success : AppColors.textSecondary,
+                size: 24,
+              ),
+              onPressed: () {
+                ref.read(dashboardLayoutProvider.notifier).toggleEditMode();
+              },
+            );
+          },
+        ),
         const SizedBox(width: 8),
         _buildConnectionStatus(
           signalRStatus.value ?? SignalRConnectionStatus.disconnected,
@@ -283,8 +302,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildConnectionStatus(SignalRConnectionStatus status) {
-    bool isOnline = status == SignalRConnectionStatus.connected;
     final signalRService = ref.read(signalRServiceProvider);
+
+    Color statusColor;
+    if (status == SignalRConnectionStatus.connected) {
+      statusColor = AppColors.success;
+    } else if (status == SignalRConnectionStatus.connecting ||
+        status == SignalRConnectionStatus.reconnecting) {
+      statusColor = const Color(0xFFF59E0B);
+    } else {
+      statusColor = AppColors.error;
+    }
 
     return InkWell(
       onTap: () {
@@ -292,49 +320,31 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       },
       borderRadius: BorderRadius.circular(20),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: isOnline
-              ? AppColors.success.withValues(alpha: 0.1)
-              : AppColors.error.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isOnline
-                ? AppColors.success.withValues(alpha: 0.2)
-                : AppColors.error.withValues(alpha: 0.2),
-          ),
+          color: statusColor.withValues(alpha: 0.1),
+          shape: BoxShape.circle,
+          border: Border.all(color: statusColor.withValues(alpha: 0.2)),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+        child:
             Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: isOnline ? AppColors.success : AppColors.error,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: (isOnline ? AppColors.success : AppColors.error)
-                        .withValues(alpha: 0.5),
-                    blurRadius: 4,
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: statusColor,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: statusColor.withValues(alpha: 0.5),
+                        blurRadius: 6,
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              isOnline
-                  ? AppLocalizations.of(context)!.online
-                  : AppLocalizations.of(context)!.offline,
-              style: TextStyle(
-                color: isOnline ? AppColors.success : AppColors.error,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
+                )
+                .animate(
+                  onPlay: (controller) => controller.repeat(reverse: true),
+                )
+                .fade(duration: 1000.ms, begin: 0.3, end: 1.0),
       ),
     );
   }
