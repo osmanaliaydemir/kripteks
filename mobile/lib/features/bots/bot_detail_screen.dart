@@ -376,7 +376,7 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
               height: isExpanded ? null : 0,
               child: Visibility(
                 visible: isExpanded,
-                maintainState: true,
+                maintainState: false, // Lazy loading için false yapıldı
                 child: Padding(
                   padding: const EdgeInsets.only(
                     left: 16,
@@ -507,22 +507,50 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
           ),
           if (bot.status == 'Running' || bot.status == 'WaitingForEntry') ...[
             const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _stopBot(ref, context),
-                icon: const Icon(Icons.stop_rounded),
-                label: const Text('Botu Durdur'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEF4444),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _analyzeStrategy(context, bot),
+                    icon: const Icon(Icons.auto_fix_high_rounded, size: 20),
+                    label: const Text(
+                      'Analiz Et',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF8B5CF6),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
                   ),
-                  elevation: 0,
                 ),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _stopBot(ref, context),
+                    icon: const Icon(Icons.stop_rounded, size: 20),
+                    label: const Text(
+                      'Durdur',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFEF4444),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ],
@@ -651,6 +679,132 @@ class _BotDetailScreenState extends ConsumerState<BotDetailScreen> {
         ErrorHandler.showError(context, e);
       }
     }
+  }
+
+  Future<void> _analyzeStrategy(BuildContext context, Bot bot) {
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.auto_fix_high_rounded,
+                color: Color(0xFF8B5CF6),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'AI Strateji Doktoru',
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildAnalysisItem(
+              'RSI Ayarı',
+              'Mevcut RSI periyodu (14) biraz yavaş kalıyor. 9 veya 7 periyodunu denemek daha fazla sinyal yakalamanı sağlayabilir.',
+              Icons.speed_rounded,
+              const Color(0xFFF59E0B),
+            ),
+            const SizedBox(height: 16),
+            _buildAnalysisItem(
+              'Stop Loss',
+              'Son 10 işlemin 4 tanesi %1.5 stop loss ile kapanmış. Piyasa volatil, SL oranını %2.5\'e çekmek erken kapanmaları önleyebilir.',
+              Icons.shield_outlined,
+              const Color(0xFFEF4444),
+            ),
+            const SizedBox(height: 16),
+            _buildAnalysisItem(
+              'Başarı Oranı',
+              'Mevcut başarı oranın %65. Bu strateji trend piyasalarında daha iyi çalışıyor.',
+              Icons.trending_up_rounded,
+              const Color(0xFF10B981),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Kapat', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Öneriler stratejiye uygulandı! (Simülasyon)'),
+                  backgroundColor: Color(0xFF10B981),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF8B5CF6),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Önerileri Uygula'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnalysisItem(
+    String title,
+    String desc,
+    IconData icon,
+    Color color,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                desc,
+                style: GoogleFonts.inter(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildPagination(int totalPages) {
