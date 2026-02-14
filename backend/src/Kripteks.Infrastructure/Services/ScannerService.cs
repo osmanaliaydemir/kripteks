@@ -8,6 +8,7 @@ using Kripteks.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Kripteks.Core.Entities;
 using Binance.Net.Interfaces.Clients;
+using Kripteks.Core.Models.Strategy;
 
 namespace Kripteks.Infrastructure.Services;
 

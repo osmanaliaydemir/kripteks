@@ -68,8 +68,9 @@ export default function BacktestPage() {
             ]);
             setStrategies(strategiesData);
             setCoins(coinsData);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Veri hatası", error);
+            toast.error("Veri Yükleme Hatası", { description: "Stratejiler veya pariteler yüklenirken bir sorun oluştu. Lütfen bağlantınızı kontrol edin." });
         } finally {
             setIsLoading(false);
         }

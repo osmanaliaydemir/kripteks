@@ -3,6 +3,7 @@ using Kripteks.Core.DTOs;
 using Binance.Net.Clients;
 using Binance.Net.Enums;
 using Microsoft.Extensions.Logging;
+using Kripteks.Core.Models.Strategy;
 
 namespace Kripteks.Infrastructure.Services;
 
@@ -267,7 +268,7 @@ public class BacktestService
             await Task.Delay(50);
         }
 
-        return allCandles;
+        return allCandles.Where(c => c.OpenTime <= endTime).ToList();
     }
 
     private BacktestResultDto SimulateBacktest(BacktestRequestDto request, List<Candle> candles,
@@ -292,7 +293,15 @@ public class BacktestService
         decimal peak = request.InitialBalance;
         decimal maxDrawdown = 0;
 
-        for (int i = 350; i < candles.Count; i++)
+        // Determine start index based on StartDate to prevent trading on "warmup" data
+        int startIndex = 350;
+        if (!string.IsNullOrEmpty(request.StartDate) && DateTime.TryParse(request.StartDate, out var s))
+        {
+            var dateIndex = candles.FindIndex(c => c.OpenTime >= s);
+            if (dateIndex > startIndex) startIndex = dateIndex;
+        }
+
+        for (int i = startIndex; i < candles.Count; i++)
         {
             var history = candles.Take(i + 1).ToList();
             var currentCandle = candles[i];
@@ -308,6 +317,7 @@ public class BacktestService
             {
                 if (signal.Action == TradeAction.Buy)
                 {
+                    // Use full current balance for compounding (per user request)
                     decimal amountToInvest = currentBalance;
 
                     // Apply slippage to entry price (worse price for buyer)
@@ -365,19 +375,20 @@ public class BacktestService
                     exitTotal -= exitCommission;
                     totalCommission += exitCommission;
 
-                    decimal pnl = exitTotal - (positionAmount * entryPrice);
-                    currentBalance += exitTotal;
-
+                    decimal pnlValue = exitTotal - (positionAmount * entryPrice);
                     decimal tradeCommission = entryCommission + exitCommission;
+                    decimal pnlPercent = (pnlValue / (positionAmount * entryPrice)) * 100;
+
+                    currentBalance += exitTotal;
 
                     result.Trades.Add(new BacktestTradeDto
                     {
-                        Type = pnl > 0 ? $"Take Profit ({exitReason})" : $"Stop Loss ({exitReason})",
+                        Type = pnlValue > 0 ? $"Take Profit ({exitReason})" : $"Stop Loss ({exitReason})",
                         EntryDate = entryDate,
                         ExitDate = currentCandle.OpenTime,
                         EntryPrice = entryPrice,
                         ExitPrice = exitPriceWithSlippage,
-                        Pnl = pnl,
+                        Pnl = pnlPercent,
                         Commission = tradeCommission
                     });
 

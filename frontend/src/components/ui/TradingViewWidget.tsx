@@ -22,7 +22,7 @@ const TradingViewWidget = memo(({ symbol, strategy }: TradingViewWidgetProps) =>
                 const studies: string[] = [];
 
                 // Golden Rose Stratejisi için indikatörler
-                if (strategy === "strategy-golden-rose" || !strategy) {
+                if (strategy === "GoldenRatioMultiplierStrategy" || !strategy) {
                     studies.push("STD;Bollinger_Bands"); // Bollinger Bands
                     studies.push("STD;RSI"); // RSI
                 }

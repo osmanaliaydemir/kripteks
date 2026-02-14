@@ -256,13 +256,7 @@ export const BacktestService = {
         });
         return handleResponse(res);
     },
-    runMonteCarlo: async (backtestResult: any, options?: any) => {
-        const res = await fetchWithAuth(`${API_URL}/backtest/monte-carlo`, {
-            method: "POST",
-            body: JSON.stringify({ backtestResult, options })
-        });
-        return handleResponse(res);
-    }
+
 };
 
 export const ScannerService = {

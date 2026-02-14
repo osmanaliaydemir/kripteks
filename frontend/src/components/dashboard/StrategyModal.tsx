@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 const STRATEGY_DETAILS: Record<string, { title: string; description: string; timeline: { title: string; desc: string; icon: any; color: string }[] }> = {
-    "strategy-golden-rose": {
+    "GoldenRatioMultiplierStrategy": {
         title: "Golden Rose Trend Strategy",
         description: "SMA 111-200-350 trend takibi ve Fibonacci 1.618 kar al hedefli özel strateji. Bitcoin halving döngüleri için optimize edilmiştir.",
         timeline: [

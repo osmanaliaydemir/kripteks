@@ -124,18 +124,6 @@ public class BacktestController : ControllerBase
         await _backtestRepository.DeleteAsync(id);
         return NoContent();
     }
-
-    [HttpPost("monte-carlo")]
-    public ActionResult<MonteCarloResultDto> RunMonteCarlo([FromBody] MonteCarloSimulationRequest request)
-    {
-        var simulator = new MonteCarloSimulator();
-        var result = simulator.RunSimulation(request.BacktestResult, request.Options);
-        return Ok(result);
-    }
 }
 
-public class MonteCarloSimulationRequest
-{
-    public BacktestResultDto BacktestResult { get; set; } = new();
-    public MonteCarloRequestDto? Options { get; set; }
-}
+

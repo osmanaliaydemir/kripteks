@@ -92,6 +92,12 @@ export default function ScannerDashboard() {
         loadData();
     }, []);
 
+    useEffect(() => {
+        if (strategies.length > 0 && !strategy) {
+            setStrategy(strategies[0].id);
+        }
+    }, [strategies, strategy]);
+
 
     const filteredCoins = useMemo(() => {
         const filtered = coins.filter(c => c.symbol.toLowerCase().includes(searchTerm.toLowerCase()));

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BacktestService } from "@/lib/api";
 import { toast } from "sonner";
@@ -44,7 +44,7 @@ const intervals = [
 ];
 
 const STRATEGY_PARAMS: Record<string, any[]> = {
-    "strategy-golden-rose": [
+    "GoldenRatioMultiplierStrategy": [
         { key: "sma1", label: "SMA 1", type: "number", default: "111" },
         { key: "sma2", label: "SMA 2", type: "number", default: "350" },
         { key: "tp", label: "Kâr Al", type: "number", default: "1.618" },
@@ -54,13 +54,21 @@ const STRATEGY_PARAMS: Record<string, any[]> = {
         { key: "fastEma", label: "Fast EMA", type: "number", default: "20" },
         { key: "slowEma", label: "Slow EMA", type: "number", default: "50" },
         { key: "rsiBuy", label: "RSI Buy", type: "number", default: "65" }
-    ]
+    ],
+    "Sma111BreakoutStrategy": []
 };
 
 export default function StrategyScannerPanel({ coins, strategies, onRefreshCoins, isCoinsLoading }: StrategyScannerPanelProps) {
     const [selectedSymbols, setSelectedSymbols] = useState<string[]>([]);
     const [interval, setInterval] = useState("1h");
-    const [strategy, setStrategy] = useState("strategy-golden-rose");
+    // Initial state empty, updated via useEffect
+    const [strategy, setStrategy] = useState("");
+
+    useEffect(() => {
+        if (strategies.length > 0 && !strategy) {
+            setStrategy(strategies[0].id);
+        }
+    }, [strategies, strategy]);
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();
         d.setMonth(d.getMonth() - 1);

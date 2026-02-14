@@ -8,6 +8,7 @@ using Kripteks.Infrastructure.Data;
 using Kripteks.Infrastructure.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Kripteks.Core.Models.Strategy;
 
 namespace Kripteks.Infrastructure.Services;
 
@@ -198,7 +199,7 @@ public class AlertService : IAlertService
                     else if (alert.Type == AlertType.Technical && klinesCache.ContainsKey(alert.Timeframe ?? "1h"))
                     {
                         var klines = klinesCache[alert.Timeframe ?? "1h"];
-                        var candles = klines.Select(k => new Kripteks.Core.Interfaces.Candle
+                        var candles = klines.Select(k => new Candle
                         {
                             OpenTime = k.OpenTime,
                             Open = k.OpenPrice,
@@ -213,7 +214,7 @@ public class AlertService : IAlertService
                     else if (alert.Type == AlertType.MarketMovement && klinesCache.ContainsKey(alert.Timeframe ?? "1h"))
                     {
                         var klines = klinesCache[alert.Timeframe ?? "1h"];
-                        var candles = klines.Select(k => new Kripteks.Core.Interfaces.Candle
+                        var candles = klines.Select(k => new Candle
                         {
                             OpenTime = k.OpenTime,
                             Open = k.OpenPrice,
@@ -260,7 +261,7 @@ public class AlertService : IAlertService
     }
 
     private (bool Triggered, string Message) CheckTechnicalCondition(UserAlert alert,
-        List<Kripteks.Core.Interfaces.Candle> candles)
+        List<Candle> candles)
     {
         var prices = candles.Select(c => c.Close).ToList();
 
@@ -305,7 +306,7 @@ public class AlertService : IAlertService
     }
 
     private (bool Triggered, string Message) CheckMarketMovementCondition(UserAlert alert,
-        List<Kripteks.Core.Interfaces.Candle> candles)
+        List<Candle> candles)
     {
         if (candles.Count < 2) return (false, "");
         var lastCandle = candles.Last();

@@ -1,3 +1,5 @@
+using Kripteks.Core.Models.Strategy;
+
 namespace Kripteks.Core.Interfaces;
 
 public interface IStrategyFactory

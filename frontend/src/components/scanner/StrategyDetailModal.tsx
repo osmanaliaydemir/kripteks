@@ -19,7 +19,7 @@ const strategyTechnicalDetails: Record<string, {
     riskLevel: "Düşük" | "Orta" | "Yüksek";
     timeframe: string;
 }> = {
-    "strategy-golden-rose": {
+    "GoldenRatioMultiplierStrategy": {
         indicators: [
             { name: "SMA 111", description: "111 periyotluk basit hareketli ortalama", icon: <TrendingUp size={14} /> },
             { name: "EMA 50/200", description: "Golden cross tespiti için kısa/uzun vadeli EMA", icon: <Activity size={14} /> },

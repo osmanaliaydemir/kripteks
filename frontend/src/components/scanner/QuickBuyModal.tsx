@@ -150,7 +150,7 @@ export function QuickBuyModal({ isOpen, onClose, symbol, currentPrice, signalSco
                                     className="w-full bg-slate-950/40 border border-white/5 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-primary/40 cursor-pointer"
                                 >
                                     <option value="strategy-market-buy">Anlık Alım (Piyasa Fiyatı)</option>
-                                    <option value="strategy-golden-rose">Altın Gül Trendi</option>
+                                    <option value="GoldenRatioMultiplierStrategy">Altın Gül Trendi</option>
                                     <option value="strategy-alpha-trend">Alfa Trend Takibi</option>
                                 </select>
                             </div>

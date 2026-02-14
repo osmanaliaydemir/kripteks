@@ -1,4 +1,5 @@
-using Kripteks.Core.Interfaces;
+
+using Kripteks.Core.Models.Strategy;
 
 namespace Kripteks.Core.DTOs;
 

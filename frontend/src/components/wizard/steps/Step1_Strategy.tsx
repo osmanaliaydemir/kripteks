@@ -16,14 +16,14 @@ interface Step1Props {
 }
 
 const STRATEGY_ICONS: Record<string, any> = {
-    "strategy-golden-rose": Activity,
+    "GoldenRatioMultiplierStrategy": Activity,
     "strategy-market-buy": Zap,
     "strategy-sma-crossover": TrendingUp,
     "default": BarChart2
 };
 
 const STRATEGY_COLORS: Record<string, string> = {
-    "strategy-golden-rose": "text-primary bg-primary/10 border-primary/20",
+    "GoldenRatioMultiplierStrategy": "text-primary bg-primary/10 border-primary/20",
     "strategy-market-buy": "text-amber-500 bg-amber-500/10 border-amber-500/20",
     "strategy-sma-crossover": "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
     "default": "text-slate-400 bg-slate-800 border-white/5"
@@ -123,8 +123,8 @@ export default function Step1_Strategy({
                                                 {strategy.category && (
                                                     <span className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded border ${strategy.category === 'trading' ? 'text-emerald-400 border-emerald-500/30' :
                                                         strategy.category === 'simulation' ? 'text-blue-400 border-blue-500/30' :
-                                                        strategy.category === 'scanner' ? 'text-purple-400 border-purple-500/30' :
-                                                            'text-slate-400 border-slate-500/30'
+                                                            strategy.category === 'scanner' ? 'text-purple-400 border-purple-500/30' :
+                                                                'text-slate-400 border-slate-500/30'
                                                         }`}>
                                                         {strategy.category === 'both' ? 'GENEL' : strategy.category === 'trading' ? 'TRADE' : strategy.category === 'simulation' ? 'SİM' : 'SCAN'}
                                                     </span>

@@ -63,7 +63,7 @@ export default function BotWizard({
     // Strategy defaults
     useEffect(() => {
         if (selectedStrategy === "strategy-market-buy") setSelectedInterval("1m");
-        else if (selectedStrategy === "strategy-golden-rose") setSelectedInterval("1h");
+        else if (selectedStrategy === "GoldenRatioMultiplierStrategy") setSelectedInterval("1h");
         else if (selectedStrategy === "strategy-golden-cross") setSelectedInterval("4h");
         else if (selectedStrategy === "strategy-sma-crossover") setSelectedInterval("15m");
     }, [selectedStrategy]);

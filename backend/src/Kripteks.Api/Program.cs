@@ -220,22 +220,9 @@ builder.Services.AddHostedService<SentimentAnalysisJob>();
 builder.Services.AddScoped<IFirebaseNotificationService, FirebaseNotificationService>();
 
 
-// Stratejiler
-builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.GoldenRoseStrategy>();
-builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.AlphaTrendStrategy>();
-builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.ScoutBreakoutStrategy>();
-builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.PhoenixMomentumStrategy>();
-builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.WhaleAccumulationStrategy>();
-builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.OversoldRecoveryStrategy>();
-builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.TrendSurferStrategy>();
-builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.BreakoutHunterStrategy>();
-builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.DivergenceDetectorStrategy>();
-builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.MarketBuyStrategy>();
-builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.GridStrategy>();
-builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.DcaStrategy>();
-builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.Sma111Strategy>();
-builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.GoldenCrossStrategy>();
-builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.SimulationStrategy>();
+// Stratejiler - Manuel test için temizlendi
+builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.Sma111BuySellStrategy>();
+builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.Sma111BreakoutStrategy>();
 builder.Services.AddScoped<IStrategyFactory, Kripteks.Infrastructure.Strategies.StrategyFactory>();
 
 // Arka Plan Servisleri (Bot Engine + Market Data Stream)

@@ -10,6 +10,7 @@ using Binance.Net.Enums;
 using Kripteks.Core.DTOs;
 using BotLogLevel = Kripteks.Core.Entities.LogLevel;
 using BotTransactionType = Kripteks.Core.Entities.TransactionType;
+using Kripteks.Core.Models.Strategy;
 
 namespace Kripteks.Infrastructure.Services;
 

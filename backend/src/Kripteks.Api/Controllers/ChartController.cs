@@ -1,6 +1,7 @@
 using Binance.Net.Clients;
 using Binance.Net.Enums;
 using Kripteks.Core.Interfaces;
+using Kripteks.Core.Models.Strategy;
 using Kripteks.Infrastructure.Data;
 using Kripteks.Infrastructure.Helpers;
 using Microsoft.AspNetCore.Authorization;

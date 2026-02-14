@@ -1,4 +1,5 @@
 using Kripteks.Core.Interfaces;
+using Kripteks.Core.Models.Strategy;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Kripteks.Api.Controllers;
