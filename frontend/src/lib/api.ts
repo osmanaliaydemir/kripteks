@@ -128,8 +128,9 @@ export const MarketService = {
         const res = await fetchWithAuth(`${API_URL}/stocks`);
         return handleResponse(res);
     },
-    getStrategies: async () => {
-        const res = await fetchWithAuth(`${API_URL}/strategies`);
+    getStrategies: async (category?: string) => {
+        const query = category ? `?category=${category}` : '';
+        const res = await fetchWithAuth(`${API_URL}/strategies${query}`);
         return handleResponse(res);
     },
     getStats: async () => {

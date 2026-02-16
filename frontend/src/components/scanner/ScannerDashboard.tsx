@@ -31,6 +31,16 @@ export default function ScannerDashboard() {
     const [minScore, setMinScore] = useState(50);
     const [hasScanned, setHasScanned] = useState(false);
 
+    // Multi-MA Selection State
+    const [selectedMas, setSelectedMas] = useState({
+        use_sma13: false,
+        use_ema21: false,
+        use_sma50: false,
+        use_sma111: true, // Default
+        use_sma200: false,
+        use_sma350: false
+    });
+
     // Favorite List States
     const [favoriteLists, setFavoriteLists] = useState<ScannerFavoriteList[]>([]);
     const [selectedListId, setSelectedListId] = useState<string | null>(null);
@@ -129,11 +139,20 @@ export default function ScannerDashboard() {
         if (!isAuto) setResults([]);
 
         try {
+            // Convert boolean map to string map for API
+            const strategyParams: Record<string, string> = {};
+            if (strategy === "Sma111BreakoutStrategy") {
+                Object.entries(selectedMas).forEach(([key, value]) => {
+                    strategyParams[key] = value.toString();
+                });
+            }
+
             const data = await ScannerService.scan({
                 symbols: selectedSymbols,
                 interval,
                 strategyId: strategy,
-                minScore: minScore > 0 ? minScore : undefined
+                minScore: minScore > 0 ? minScore : undefined,
+                strategyParameters: strategyParams
             });
 
             console.log("[DEBUG] Scanner Results:", data);
@@ -493,6 +512,65 @@ export default function ScannerDashboard() {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Multi-MA Settings (Only for Sma111BreakoutStrategy) */}
+                            {strategy === "Sma111BreakoutStrategy" && (
+                                <div className="space-y-3 pt-2 border-t border-white/5">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest flex items-center gap-2">
+                                            Hareketli Ortalamalar
+                                        </label>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => setSelectedMas({
+                                                    use_sma13: true, use_ema21: true, use_sma50: true,
+                                                    use_sma111: true, use_sma200: true, use_sma350: true
+                                                })}
+                                                className="text-[9px] text-primary hover:text-primary-light font-bold hover:underline"
+                                            >
+                                                TÜMÜ
+                                            </button>
+                                            <button
+                                                onClick={() => setSelectedMas({
+                                                    use_sma13: false, use_ema21: false, use_sma50: false,
+                                                    use_sma111: false, use_sma200: false, use_sma350: false
+                                                })}
+                                                className="text-[9px] text-slate-500 hover:text-white font-bold hover:underline"
+                                            >
+                                                TEMİZLE
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {[
+                                            { id: "use_sma13", label: "SMA 13" },
+                                            { id: "use_ema21", label: "EMA 21" },
+                                            { id: "use_sma50", label: "SMA 50" },
+                                            { id: "use_sma111", label: "SMA 111" },
+                                            { id: "use_sma200", label: "SMA 200" },
+                                            { id: "use_sma350", label: "SMA 350" }
+                                        ].map((ma) => (
+                                            <button
+                                                key={ma.id}
+                                                onClick={() => {
+                                                    setSelectedMas(prev => ({
+                                                        ...prev,
+                                                        [ma.id]: !prev[ma.id as keyof typeof selectedMas]
+                                                    }));
+                                                }}
+                                                className={`px-3 py-2 rounded-xl text-[10px] font-bold transition-all border ${selectedMas[ma.id as keyof typeof selectedMas]
+                                                    ? "bg-primary/20 text-primary border-primary/30"
+                                                    : "bg-slate-950/40 text-slate-500 border-white/5 hover:bg-white/5"
+                                                    }`}
+                                            >
+                                                {ma.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+
 
                             <button
                                 onClick={() => handleRunScanner(false)}

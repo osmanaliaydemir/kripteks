@@ -39,14 +39,7 @@ export default function Step1_Strategy({
     isLoadingCoins,
     refreshCoins
 }: Step1Props) {
-    const [selectedCategory, setSelectedCategory] = useState<'all' | 'trading' | 'scanner'>('all');
-
-    const filteredStrategies = strategies.filter(s => {
-        if (selectedCategory === 'all') return true;
-        if (selectedCategory === 'trading') return s.category === 'trading' || s.category === 'both';
-        if (selectedCategory === 'scanner') return s.category === 'scanner' || s.category === 'both';
-        return true;
-    });
+    // Filters removed as per request - only trading strategies are passed
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -75,26 +68,10 @@ export default function Step1_Strategy({
             <div className="space-y-3">
                 <div className="flex items-center justify-between">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Strateji Algoritması</label>
-
-                    {/* Category Filter */}
-                    <div className="flex bg-slate-900/50 p-1 rounded-lg border border-white/5">
-                        {(['all', 'trading', 'scanner'] as const).map((cat) => (
-                            <button
-                                key={cat}
-                                onClick={() => setSelectedCategory(cat)}
-                                className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${selectedCategory === cat
-                                    ? 'bg-primary text-slate-900 shadow-lg shadow-primary/20'
-                                    : 'text-slate-400 hover:text-white hover:bg-white/5'
-                                    }`}
-                            >
-                                {cat === 'all' ? 'Tümü' : cat === 'trading' ? 'Trading' : 'Tarayıcı'}
-                            </button>
-                        ))}
-                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                    {filteredStrategies.map((strategy) => {
+                    {strategies.map((strategy) => {
                         const isSelected = selectedStrategy === strategy.id;
                         const Icon = STRATEGY_ICONS[strategy.id] || STRATEGY_ICONS["default"];
                         const colorClass = STRATEGY_COLORS[strategy.id] || STRATEGY_COLORS["default"];
@@ -149,7 +126,7 @@ export default function Step1_Strategy({
                         );
                     })}
 
-                    {filteredStrategies.length === 0 && (
+                    {strategies.length === 0 && (
                         <div className="text-center py-8 text-slate-500 text-sm">
                             Bu kategoride strateji bulunamadı.
                         </div>

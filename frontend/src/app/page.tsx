@@ -324,7 +324,7 @@ export default function Dashboard() {
                                     Yapay zeka destekli otonom alım-satım botunu saniyeler içinde kurun ve kazanmaya başlayın.
                                 </p>
                                 <Link
-                                    href="/bots/create"
+                                    href="/bots/new"
                                     className="w-full bg-linear-to-r from-primary to-amber-500 hover:to-amber-400 text-slate-900 font-display font-bold py-4 rounded-xl shadow-lg shadow-primary/20 active:scale-[0.98] transition-all flex justify-center items-center gap-2 group/btn"
                                 >
                                     <Zap className="fill-current w-5 h-5 group-hover/btn:scale-110 transition-transform" />

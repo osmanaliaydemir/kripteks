@@ -30,7 +30,7 @@ export default function NewBotPage() {
     const fetchInitialData = async () => {
         try {
             const [strategiesData, walletData, coinsData] = await Promise.all([
-                MarketService.getStrategies(),
+                MarketService.getStrategies("Trading"),
                 WalletService.get(),
                 MarketService.getCoins() // Pre-fetch coins
             ]);
