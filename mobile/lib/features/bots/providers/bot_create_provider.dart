@@ -24,6 +24,7 @@ class BotCreateState {
   final double? takeProfit;
   final bool isTrailingStop;
   final double? trailingStopDistance;
+  final bool isContinuous;
   final bool isLoading;
   final String? error;
 
@@ -37,6 +38,7 @@ class BotCreateState {
     this.takeProfit,
     this.isTrailingStop = false,
     this.trailingStopDistance,
+    this.isContinuous = false,
     this.isLoading = false,
     this.error,
   });
@@ -51,6 +53,7 @@ class BotCreateState {
     double? takeProfit,
     bool? isTrailingStop,
     double? trailingStopDistance,
+    bool? isContinuous,
     bool? isLoading,
     String? error,
     bool clearError = false,
@@ -70,6 +73,7 @@ class BotCreateState {
       trailingStopDistance: clearTrailingStopDistance
           ? null
           : (trailingStopDistance ?? this.trailingStopDistance),
+      isContinuous: isContinuous ?? this.isContinuous,
       isLoading: isLoading ?? this.isLoading,
       error: clearError ? null : (error ?? this.error),
     );
@@ -113,6 +117,7 @@ class BotCreateNotifier extends Notifier<BotCreateState> {
     double? takeProfit,
     bool? isTrailingStop,
     double? trailingStopDistance,
+    bool? isContinuous,
     bool clearStopLoss = false,
     bool clearTakeProfit = false,
     bool clearTrailingStopDistance = false,
@@ -124,6 +129,7 @@ class BotCreateNotifier extends Notifier<BotCreateState> {
       takeProfit: takeProfit,
       isTrailingStop: isTrailingStop,
       trailingStopDistance: trailingStopDistance,
+      isContinuous: isContinuous,
       clearStopLoss: clearStopLoss,
       clearTakeProfit: clearTakeProfit,
       clearTrailingStopDistance: clearTrailingStopDistance,
@@ -148,6 +154,7 @@ class BotCreateNotifier extends Notifier<BotCreateState> {
         takeProfit: state.takeProfit,
         isTrailingStop: state.isTrailingStop,
         trailingStopDistance: state.trailingStopDistance,
+        isContinuous: state.isContinuous,
       );
 
       final botService = ref.read(botServiceProvider);

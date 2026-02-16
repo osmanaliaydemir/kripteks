@@ -25,6 +25,7 @@ public class BotDto
     public decimal? TrailingStopDistance { get; set; }
     public decimal? MaxPriceReached { get; set; }
     public bool IsArchived { get; set; }
+    public bool IsContinuous { get; set; }
     public List<Trade> Trades { get; set; } = new();
 }
 
@@ -38,6 +39,7 @@ public class CreateBotRequest
     public decimal? StopLoss { get; set; }
     public bool IsTrailingStop { get; set; } = false;
     public decimal? TrailingStopDistance { get; set; }
+    public bool IsContinuous { get; set; } = false;
     public Dictionary<string, string>? StrategyParameters { get; set; }
 }
 

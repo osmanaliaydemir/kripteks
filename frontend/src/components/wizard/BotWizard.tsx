@@ -53,6 +53,9 @@ export default function BotWizard({
     const [dcaDeviation, setDcaDeviation] = useState("2");
     const [dcaScale, setDcaScale] = useState("2");
 
+    // Continuous Trading
+    const [isContinuous, setIsContinuous] = useState(false);
+
     // Initial default strategy selection
     useEffect(() => {
         if (strategies.length > 0 && !selectedStrategy) {
@@ -82,6 +85,7 @@ export default function BotWizard({
             stopLoss: stopLoss ? Number(stopLoss) : null,
             isTrailingStop: isTrailingEnabled,
             trailingStopDistance: isTrailingEnabled ? Number(trailingDistance) : null,
+            isContinuous: isContinuous,
             strategyParameters: selectedStrategy === 'strategy-grid' ? {
                 lowerPrice: gridLowerPrice,
                 upperPrice: gridUpperPrice,
@@ -188,6 +192,8 @@ export default function BotWizard({
                             setDcaDeviation={setDcaDeviation}
                             dcaScale={dcaScale}
                             setDcaScale={setDcaScale}
+                            isContinuous={isContinuous}
+                            setIsContinuous={setIsContinuous}
                         />
                     )}
                     {step === 3 && (
@@ -215,6 +221,7 @@ export default function BotWizard({
                             trailingDistance={trailingDistance}
                             onStart={handleStart}
                             isStarting={isStarting}
+                            isContinuous={isContinuous}
                         />
                     )}
                 </div>

@@ -1371,6 +1371,78 @@ class _BotCreateWizardScreenState extends ConsumerState<BotCreateWizardScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 24),
+
+          // Sürekli İşlem (Döngü) Toggle
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceLight,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: state.isContinuous
+                    ? AppColors.primary
+                    : Colors.white.withValues(alpha: 0.04),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: state.isContinuous
+                        ? AppColors.primary.withValues(alpha: 0.1)
+                        : Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.loop_rounded,
+                    color: state.isContinuous
+                        ? AppColors.primary
+                        : Colors.white54,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Sürekli İşlem (Döngü)',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Bot kar alıp kapandığında otomatik olarak yeniden başlar.',
+                        style: GoogleFonts.inter(
+                          color: Colors.white54,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch(
+                  value: state.isContinuous,
+                  onChanged: (value) {
+                    ref
+                        .read(botCreateProvider.notifier)
+                        .updateConfig(isContinuous: value);
+                  },
+                  activeThumbColor: AppColors.primary,
+                  activeTrackColor: AppColors.primary.withValues(alpha: 0.3),
+                  inactiveThumbColor: Colors.white60,
+                  inactiveTrackColor: Colors.white10,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -1409,6 +1481,42 @@ class _BotCreateWizardScreenState extends ConsumerState<BotCreateWizardScreen> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
+                  // Bot Type Badge
+                  if (state.isContinuous)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.loop,
+                            color: AppColors.primary,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'DÖNGÜSEL BOT (SÜREKLİ İŞLEM)',
+                            style: GoogleFonts.inter(
+                              color: AppColors.primary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
                   _buildSummaryItem('Coin', state.selectedSymbol ?? '-'),
                   _buildSummaryItem('Strateji', strategyName),
                   _buildSummaryItem(

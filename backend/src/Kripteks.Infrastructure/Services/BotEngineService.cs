@@ -543,7 +543,11 @@ public class BotEngineService : BackgroundService
             return;
         }
 
-        bot.Status = finalStatus;
+        bool isContinuousLoop =
+            bot.IsContinuous &&
+            finalStatus == BotStatus.Completed; // Sadece kar/zarar ile kapanırsa döngüye gir (manuel durdurma hariç)
+
+        bot.Status = isContinuousLoop ? BotStatus.WaitingForEntry : finalStatus; // Döngü ise bekleme moduna geç
         bot.ExitDate = DateTime.UtcNow;
 
         var wallet = await context.Wallets.FirstOrDefaultAsync();
@@ -588,12 +592,26 @@ public class BotEngineService : BackgroundService
             { Message = reason, Level = BotLogLevel.Info, Timestamp = DateTime.UtcNow };
         var log2 = new Log
         {
-            Message = $"🏁 İşlem Sonlandı. Kasa: {wallet?.Balance:F2}", Level = BotLogLevel.Info,
+            Message = isContinuousLoop
+                ? $"🔄 Döngü Tamamlandı. Kar/Zarar: ${pnlAmount:F2}. Bot tekrar giriş arıyor... (Sürekli İşlem)"
+                : $"🏁 İşlem Sonlandı. Kasa: {wallet?.Balance:F2}",
+            Level = BotLogLevel.Info,
             Timestamp = DateTime.UtcNow
         };
 
         bot.Logs.Add(log1);
         bot.Logs.Add(log2);
+
+        // Reset for next loop if continuous
+        if (isContinuousLoop)
+        {
+            bot.EntryPrice = 0;
+            bot.EntryDate = null;
+            // bot.ExitDate = null; // Exit date kalsın mı? History için Trade tablosuna atılmalı aslında ama şimdilik Bot üzerinde
+            bot.CurrentPnl = 0;
+            bot.CurrentPnlPercent = 0;
+            bot.MaxPriceReached = null;
+        }
 
         // SİSTEM LOGU
         await logService.LogInfoAsync($"Bot Kapandı: {bot.Symbol}. Sonuç: ${pnlAmount:F2}. Sebep: {reason}",

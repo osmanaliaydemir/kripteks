@@ -9,7 +9,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:logging/logging.dart';
 import 'package:mobile/core/router/app_router.dart';
 import '../../features/notifications/services/notification_service.dart';
-import 'package:flutter_app_badger/flutter_app_badger.dart';
+import 'package:flutter_app_badge_control/flutter_app_badge_control.dart';
 
 /// Top-level function for background message handling
 @pragma('vm:entry-point')
@@ -345,8 +345,8 @@ class FirebaseNotificationService {
   /// Clear app badge
   Future<void> clearBadge() async {
     try {
-      if (await FlutterAppBadger.isAppBadgeSupported()) {
-        FlutterAppBadger.removeBadge();
+      if (await FlutterAppBadgeControl.isAppBadgeSupported()) {
+        FlutterAppBadgeControl.removeBadge();
         _logger.info('App badge cleared');
       }
     } catch (e) {

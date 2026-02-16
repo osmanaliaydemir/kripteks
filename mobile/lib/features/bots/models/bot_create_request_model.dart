@@ -7,6 +7,7 @@ class BotCreateRequest {
   final double? takeProfit;
   final bool isTrailingStop;
   final double? trailingStopDistance;
+  final bool isContinuous;
 
   BotCreateRequest({
     required this.symbol,
@@ -17,6 +18,7 @@ class BotCreateRequest {
     this.takeProfit,
     this.isTrailingStop = false,
     this.trailingStopDistance,
+    this.isContinuous = false,
   });
 
   Map<String, dynamic> toJson() {
@@ -29,6 +31,7 @@ class BotCreateRequest {
       'takeProfit': takeProfit,
       'isTrailingStop': isTrailingStop,
       'trailingStopDistance': trailingStopDistance,
+      'isContinuous': isContinuous,
     };
   }
 }

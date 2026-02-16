@@ -25,6 +25,10 @@ interface Step2Props {
     setDcaDeviation?: (val: string) => void;
     dcaScale?: string;
     setDcaScale?: (val: string) => void;
+
+    // Continuous Trading
+    isContinuous: boolean;
+    setIsContinuous: (val: boolean) => void;
 }
 
 export default function Step2_Configuration({
@@ -46,7 +50,9 @@ export default function Step2_Configuration({
     dcaDeviation,
     setDcaDeviation,
     dcaScale,
-    setDcaScale
+    setDcaScale,
+    isContinuous,
+    setIsContinuous
 }: Step2Props) {
 
     const isInsufficientBalance = wallet && amount > wallet.available_balance;
@@ -138,6 +144,25 @@ export default function Step2_Configuration({
                         </p>
                     </div>
                 )}
+            </div>
+
+            {/* Continuous Trading Toggle */}
+            <div className="flex items-center justify-between bg-slate-900/40 p-3 rounded-xl border border-white/5">
+                <div className="flex gap-3 items-center">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isContinuous ? 'bg-primary/20 text-primary' : 'bg-slate-800 text-slate-500'}`}>
+                        <Clock size={18} />
+                    </div>
+                    <div>
+                        <h4 className="text-sm font-bold text-slate-200">Sürekli İşlem (Döngü)</h4>
+                        <p className="text-[10px] text-slate-500">Bot kar alıp kapandığında otomatik olarak yeniden başlar.</p>
+                    </div>
+                </div>
+                <button
+                    onClick={() => setIsContinuous(!isContinuous)}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${isContinuous ? 'bg-primary' : 'bg-slate-700'}`}
+                >
+                    <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${isContinuous ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
             </div>
 
             {/* Grid Strategy Specific Configuration */}

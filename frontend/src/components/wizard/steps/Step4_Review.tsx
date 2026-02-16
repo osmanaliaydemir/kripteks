@@ -13,6 +13,7 @@ interface Step4Props {
     trailingDistance: string;
     onStart: () => void;
     isStarting: boolean;
+    isContinuous: boolean;
 }
 
 export default function Step4_Review({
@@ -26,7 +27,8 @@ export default function Step4_Review({
     isTrailingEnabled,
     trailingDistance,
     onStart,
-    isStarting
+    isStarting,
+    isContinuous
 }: Step4Props) {
     const strategyName = strategies.find(s => s.id === selectedStrategyId)?.name || selectedStrategyId;
 
@@ -45,9 +47,16 @@ export default function Step4_Review({
             <div className="bg-slate-900/50 rounded-2xl border border-white/5 overflow-hidden">
                 <div className="p-4 border-b border-white/5 flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">BOT ÖZETİ</span>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                        {isTrailingEnabled ? 'AKILLI STOP' : 'STANDART'}
-                    </span>
+                    <div className="flex gap-2">
+                        {isContinuous && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                                DÖNGÜSEL
+                            </span>
+                        )}
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                            {isTrailingEnabled ? 'AKILLI STOP' : 'STANDART'}
+                        </span>
+                    </div>
                 </div>
 
                 <div className="p-4 space-y-4">

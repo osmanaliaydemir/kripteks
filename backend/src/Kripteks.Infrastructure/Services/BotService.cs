@@ -50,6 +50,7 @@ public class BotService : IBotService
                 TrailingStopDistance = b.TrailingStopDistance,
                 MaxPriceReached = b.MaxPriceReached,
                 IsArchived = b.IsArchived,
+                IsContinuous = b.IsContinuous,
                 Logs = b.Logs
                     .OrderByDescending(l => l.Timestamp)
                     .Take(10)
@@ -125,6 +126,7 @@ public class BotService : IBotService
             TrailingStopDistance = bot.TrailingStopDistance,
             MaxPriceReached = bot.MaxPriceReached,
             IsArchived = bot.IsArchived,
+            IsContinuous = bot.IsContinuous,
             Trades = trades
         };
     }
@@ -175,6 +177,7 @@ public class BotService : IBotService
             TakeProfit = request.TakeProfit,
             IsTrailingStop = request.IsTrailingStop,
             TrailingStopDistance = request.TrailingStopDistance,
+            IsContinuous = request.IsContinuous,
             Status = BotStatus.WaitingForEntry, // Pusu Modu
             EntryPrice = 0, // Henüz almadık
             CurrentPnl = 0,
