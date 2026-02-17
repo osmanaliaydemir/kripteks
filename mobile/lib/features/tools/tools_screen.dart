@@ -66,6 +66,13 @@ class ToolsScreen extends StatelessWidget {
         color: const Color(0xFF8B5CF6),
         route: '/calculators',
       ),
+      _ToolItem(
+        title: 'X100 Scanner',
+        description: 'BIST 100 Teknik Analiz',
+        icon: Icons.ssid_chart_rounded, // or trending_up
+        color: const Color(0xFF10B981), // Emerald green like frontend
+        route: '/x100-scanner',
+      ),
     ];
 
     return Scaffold(

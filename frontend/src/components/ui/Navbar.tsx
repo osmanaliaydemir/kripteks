@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { User } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity, LayoutDashboard, FlaskConical, BarChart2, LogOut, Settings, Key, User as UserIcon, Database, Lock, Bell, HelpCircle, Wallet, Target, Menu, X, ChevronDown } from "lucide-react";
+import { Activity, LayoutDashboard, FlaskConical, BarChart2, LogOut, Settings, Key, User as UserIcon, Database, Lock, Bell, HelpCircle, Wallet, Target, Menu, X, ChevronDown, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUI } from "@/context/UIContext";
@@ -135,6 +135,13 @@ export default function Navbar({ user }: NavbarProps) {
                                 >
                                     <Target size={16} className="text-secondary" />
                                     Tarayıcı
+                                </Link>
+                                <Link
+                                    href="/tools/x100-scanner"
+                                    className="flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-colors border-b border-white/5"
+                                >
+                                    <TrendingUp size={16} className="text-emerald-500" />
+                                    X100 Tarama
                                 </Link>
                                 <Link
                                     href="/backtest"
@@ -316,6 +323,17 @@ export default function Navbar({ user }: NavbarProps) {
                                         <Target size={16} />
                                     </div>
                                     Tarayıcı
+                                </Link>
+
+                                <Link
+                                    href="/tools/x100-scanner"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className={`flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-bold transition-all ${isActive('/tools/x100-scanner') ? 'bg-slate-800 text-white shadow-lg border border-white/5' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'}`}
+                                >
+                                    <div className={`p-2 rounded-lg ${isActive('/tools/x100-scanner') ? 'bg-emerald-500/20 text-emerald-500' : 'bg-slate-950 text-slate-500'}`}>
+                                        <TrendingUp size={16} />
+                                    </div>
+                                    X100 Tarama
                                 </Link>
 
                                 <Link

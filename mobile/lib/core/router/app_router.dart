@@ -23,6 +23,7 @@ import 'package:mobile/features/tools/screens/pnl_calculator_screen.dart';
 import 'package:mobile/features/tools/screens/position_size_calculator_screen.dart';
 import 'package:mobile/features/tools/screens/dca_calculator_screen.dart';
 import 'package:mobile/features/tools/market_intelligence_screen.dart';
+import 'package:mobile/features/tools/screens/x100_scanner_screen.dart';
 import 'package:mobile/features/education/screens/academy_screen.dart';
 import 'package:mobile/features/education/screens/topic_detail_screen.dart';
 import 'package:mobile/features/education/models/education_models.dart';
@@ -150,6 +151,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/market-intelligence',
         builder: (context, state) => const MarketIntelligenceScreen(),
+      ),
+      GoRoute(
+        path: '/x100-scanner',
+        builder: (context, state) => const X100ScannerScreen(),
       ),
       GoRoute(
         path: '/alerts',
