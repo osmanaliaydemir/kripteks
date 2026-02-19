@@ -3,6 +3,7 @@ class ScannerRequest {
   final String strategyId;
   final String interval;
   final int? minScore;
+  final String market;
   final Map<String, String>? strategyParameters;
 
   ScannerRequest({
@@ -10,6 +11,7 @@ class ScannerRequest {
     required this.strategyId,
     this.interval = '1h',
     this.minScore,
+    this.market = 'crypto',
     this.strategyParameters,
   });
 
@@ -19,6 +21,7 @@ class ScannerRequest {
       'strategyId': strategyId,
       'interval': interval,
       'minScore': minScore,
+      'market': market,
       'strategyParameters': strategyParameters,
     };
   }

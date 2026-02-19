@@ -1,15 +1,15 @@
 "use client";
 
 import React from "react";
+import X100ScannerDashboard from "@/components/scanner/X100ScannerDashboard";
 import { motion } from "framer-motion";
-import { Target, ArrowLeft } from "lucide-react";
+import { Target, Info, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import TradingViewScreenerWidget from "@/components/ui/TradingViewScreenerWidget";
 
 export default function X100ScannerPage() {
     return (
-        <div className="p-4 md:p-8 pt-20 md:pt-8 min-h-screen bg-transparent mb-10">
-            <div className="max-w-[1920px] mx-auto space-y-8">
+        <div className="p-4 md:p-8 pt-20 md:pt-8 min-h-screen bg-transparent">
+            <div className="max-w-7xl mx-auto space-y-8">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="space-y-1">
@@ -43,17 +43,30 @@ export default function X100ScannerPage() {
                                 <div className="text-slate-500 font-medium">Kripto Paneli</div>
                             </div>
                         </Link>
+
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="flex items-center gap-4 bg-white/5 border border-white/10 p-4 rounded-2xl backdrop-blur-md"
+                        >
+                            <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
+                                <Info size={16} />
+                            </div>
+                            <div className="text-xs">
+                                <div className="text-white font-bold tracking-tight">X100 Tarama</div>
+                                <div className="text-slate-500 font-medium">BIST Real-time</div>
+                            </div>
+                        </motion.div>
                     </div>
                 </div>
 
-                {/* Scanner Widget Area */}
+                {/* Dashboard */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="h-[800px] w-full"
                 >
-                    <TradingViewScreenerWidget height="100%" />
+                    <X100ScannerDashboard />
                 </motion.div>
             </div>
         </div>

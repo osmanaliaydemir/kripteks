@@ -7,14 +7,17 @@ class MarketDataService {
 
   MarketDataService(this._dio);
 
-  Future<List<String>> getAvailablePairs() async {
-    final coins = await getAvailableCoins();
+  Future<List<String>> getAvailablePairs({String market = 'crypto'}) async {
+    final coins = await getAvailableCoins(market: market);
     return coins.map((c) => c.symbol).toList();
   }
 
-  Future<List<CoinPair>> getAvailableCoins() async {
+  Future<List<CoinPair>> getAvailableCoins({String market = 'crypto'}) async {
     try {
-      final response = await _dio.get('/stocks');
+      final response = await _dio.get(
+        '/stocks',
+        queryParameters: {'market': market},
+      );
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
         if (data.isNotEmpty && data.first is Map) {

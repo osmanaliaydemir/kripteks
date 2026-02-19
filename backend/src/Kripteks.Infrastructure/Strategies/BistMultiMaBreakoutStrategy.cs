@@ -5,64 +5,44 @@ using Microsoft.Extensions.Logging;
 
 namespace Kripteks.Infrastructure.Strategies;
 
-public class Sma111BreakoutStrategy : BaseStrategy
+public class BistMultiMaBreakoutStrategy : BaseStrategy
 {
-    private const int VolumeSmaPeriod = 21;
-
     // Default enabled
     private const string ParamUseSma111 = "use_sma111";
 
-    // Optional Parameters defined in PineScript
+    // Optional
     private const string ParamUseSma13 = "use_sma13";
     private const string ParamUseEma21 = "use_ema21";
     private const string ParamUseSma50 = "use_sma50";
     private const string ParamUseSma200 = "use_sma200";
     private const string ParamUseSma350 = "use_sma350";
-    private const string ParamUseSma350x0702 = "use_sma350x0702";
-    private const string ParamUseSma350x1618 = "use_sma350x1618";
-    private const string ParamUseSma350x2 = "use_sma350x2";
-    private const string ParamUseSma350x3 = "use_sma350x3";
-    private const string ParamUseSma350x5 = "use_sma350x5";
-    private const string ParamUseSma350x8 = "use_sma350x8";
-    private const string ParamUseSma350x13 = "use_sma350x13";
-    private const string ParamUseSma350x21 = "use_sma350x21";
 
-    public Sma111BreakoutStrategy(ILogger<Sma111BreakoutStrategy> logger) : base(logger)
+    public BistMultiMaBreakoutStrategy(ILogger<BistMultiMaBreakoutStrategy> logger) : base(logger)
     {
     }
 
-    public override string Id => "Sma111BreakoutStrategy";
-    public override string Name => "Multi-MA Breakout Scanner";
+    public override string Id => "BistMultiMaBreakoutStrategy";
+    public override string Name => "BIST Multi-MA Breakout Scanner";
 
     public override string Description =>
-        "Seçilen Hareketli Ortalamaların (MA) veya SMA 350 Çarpanlarının üzerine atan pariteleri tarar.\n" +
-        "Kural: Fiyat, seçilen çizginin üzerine yeni çıkmış olmalıdır.";
+        "BIST Hisseleri için seçilen Hareketli Ortalamaların (MA) üzerine atan pariteleri tarar.\n" +
+        "Kural: Fiyat > MA (Hacim filtresi BIST verilerindeki dalgalanmalar nedeniyle kapatılmıştır).";
 
     public override StrategyCategory Category => StrategyCategory.Scanner;
 
-    private List<(string Name, int Period, bool IsEma, decimal Multiplier)> GetEnabledMas()
+    private List<(string Name, int Period, bool IsEma)> GetEnabledMas()
     {
-        var mas = new List<(string, int, bool, decimal)>();
+        var mas = new List<(string, int, bool)>();
 
-        if (GetParameter(ParamUseSma13, "false") == "true") mas.Add(("SMA 13", 13, false, 1m));
-        if (GetParameter(ParamUseEma21, "false") == "true") mas.Add(("EMA 21", 21, true, 1m));
-        if (GetParameter(ParamUseSma50, "false") == "true") mas.Add(("SMA 50", 50, false, 1m));
+        if (GetParameter(ParamUseSma13, "false") == "true") mas.Add(("SMA 13", 13, false));
+        if (GetParameter(ParamUseEma21, "false") == "true") mas.Add(("EMA 21", 21, true));
+        if (GetParameter(ParamUseSma50, "false") == "true") mas.Add(("SMA 50", 50, false));
 
         // SMA 111 default to true if not specified (backward compatibility)
-        if (GetParameter(ParamUseSma111, "true") == "true") mas.Add(("SMA 111", 111, false, 1m));
+        if (GetParameter(ParamUseSma111, "true") == "true") mas.Add(("SMA 111", 111, false));
 
-        if (GetParameter(ParamUseSma200, "false") == "true") mas.Add(("SMA 200", 200, false, 1m));
-        if (GetParameter(ParamUseSma350, "false") == "true") mas.Add(("SMA 350", 350, false, 1m));
-
-        // Multipliers based on SMA 350
-        if (GetParameter(ParamUseSma350x0702, "false") == "true") mas.Add(("SMA 350 x 0.702", 350, false, 0.702m));
-        if (GetParameter(ParamUseSma350x1618, "false") == "true") mas.Add(("SMA 350 x 1.618", 350, false, 1.618m));
-        if (GetParameter(ParamUseSma350x2, "false") == "true") mas.Add(("SMA 350 x 2", 350, false, 2m));
-        if (GetParameter(ParamUseSma350x3, "false") == "true") mas.Add(("SMA 350 x 3", 350, false, 3m));
-        if (GetParameter(ParamUseSma350x5, "false") == "true") mas.Add(("SMA 350 x 5", 350, false, 5m));
-        if (GetParameter(ParamUseSma350x8, "false") == "true") mas.Add(("SMA 350 x 8", 350, false, 8m));
-        if (GetParameter(ParamUseSma350x13, "false") == "true") mas.Add(("SMA 350 x 13", 350, false, 13m));
-        if (GetParameter(ParamUseSma350x21, "false") == "true") mas.Add(("SMA 350 x 21", 350, false, 21m));
+        if (GetParameter(ParamUseSma200, "false") == "true") mas.Add(("SMA 200", 200, false));
+        if (GetParameter(ParamUseSma350, "false") == "true") mas.Add(("SMA 350", 350, false));
 
         return mas;
     }
@@ -98,14 +78,10 @@ public class Sma111BreakoutStrategy : BaseStrategy
             var currentMa = maValues.Last();
             if (currentMa == null) continue;
 
-            var targetValue = currentMa.Value * ma.Multiplier;
+            indicators[ma.Name] = currentMa.Value;
 
-            indicators[ma.Name] = targetValue;
-
-            if (lastPrice > targetValue)
+            if (lastPrice > currentMa.Value)
             {
-                // To match scoring rule, verify it actually broke out and is not just a long time trend
-                // but for simple signal generation, we just state it is above.
                 triggeredMas.Add(ma.Name);
             }
         }
@@ -118,7 +94,7 @@ public class Sma111BreakoutStrategy : BaseStrategy
             if (currentPositionAmount == 0)
             {
                 action = TradeAction.Buy;
-                message = $"Kırılım yakalandı: {string.Join(", ", triggeredMas)} üzerinde.";
+                message = $"Fiyat {string.Join(", ", triggeredMas)} üzerinde.";
             }
             else
             {
@@ -131,7 +107,7 @@ public class Sma111BreakoutStrategy : BaseStrategy
             if (currentPositionAmount > 0)
             {
                 action = TradeAction.Sell;
-                message = "Fiyat tüm seçili göstergelerin altında.";
+                message = "Fiyat tüm seçili ortalamaların altında.";
             }
         }
 
@@ -157,6 +133,8 @@ public class Sma111BreakoutStrategy : BaseStrategy
 
         decimal maxScore = 0;
 
+        // Calculate score for each MA and take the best one
+        // Score = 100 - (candles since breakout * 5)
         foreach (var ma in enabledMas)
         {
             List<decimal?> maValues = ma.IsEma
@@ -166,18 +144,13 @@ public class Sma111BreakoutStrategy : BaseStrategy
             var currentMa = maValues.Last();
             var lastPrice = candles.Last().Close;
 
-            if (currentMa == null) continue;
+            if (currentMa == null || lastPrice < currentMa.Value) continue;
 
-            var targetValue = currentMa.Value * ma.Multiplier;
-
-            if (lastPrice < targetValue) continue;
-
-            // Trend is UP for this line. Find when it broke out.
+            // Trend is UP for this MA. Find when it broke out.
             int candlesSinceBreakout = 0;
             bool foundBreakout = false;
 
             // Scan backwards
-            // We start checking from the previous candle (count - 2)
             for (int i = candles.Count - 2; i >= maxPeriod - 1; i--)
             {
                 if (i >= maValues.Count) break;
@@ -187,9 +160,7 @@ public class Sma111BreakoutStrategy : BaseStrategy
 
                 if (oldMa == null) break;
 
-                var oldTargetValue = oldMa.Value * ma.Multiplier;
-
-                if (oldPrice < oldTargetValue)
+                if (oldPrice < oldMa.Value)
                 {
                     // Found the breakout candle! (Previously below)
                     foundBreakout = true;
@@ -204,7 +175,6 @@ public class Sma111BreakoutStrategy : BaseStrategy
             if (foundBreakout)
             {
                 // Score strictly decreases from 100 (fresh) down to 70 (old breakout)
-                // We use Math.Min(candlesSinceBreakout, 15) to cap the penalty at 30 points (15 * 2)
                 score = 100 - Math.Min(candlesSinceBreakout, 15) * 2;
             }
             else

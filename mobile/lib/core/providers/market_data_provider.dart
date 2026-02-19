@@ -10,12 +10,22 @@ final marketDataServiceProvider = Provider<MarketDataService>((ref) {
 
 final availablePairsProvider = FutureProvider<List<String>>((ref) async {
   final service = ref.watch(marketDataServiceProvider);
-  return service.getAvailablePairs();
+  return service.getAvailablePairs(market: 'crypto');
 });
 
 final availableCoinsProvider = FutureProvider<List<CoinPair>>((ref) async {
   final service = ref.watch(marketDataServiceProvider);
-  return service.getAvailableCoins();
+  return service.getAvailableCoins(market: 'crypto');
+});
+
+final bistPairsProvider = FutureProvider<List<String>>((ref) async {
+  final service = ref.watch(marketDataServiceProvider);
+  return service.getAvailablePairs(market: 'bist');
+});
+
+final bistCoinsProvider = FutureProvider<List<CoinPair>>((ref) async {
+  final service = ref.watch(marketDataServiceProvider);
+  return service.getAvailableCoins(market: 'bist');
 });
 
 final liveMarketDataProvider = StreamProvider.autoDispose<List<CoinPair>>((

@@ -12,6 +12,7 @@ import '../../core/providers/market_data_provider.dart';
 import '../backtest/providers/backtest_provider.dart';
 import '../backtest/models/strategy_model.dart';
 import 'dart:async';
+import 'package:flutter/services.dart';
 
 class ScannerScreen extends ConsumerStatefulWidget {
   const ScannerScreen({super.key});
@@ -27,6 +28,27 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
   int? _autoScanInterval; // in minutes, null means off
   Timer? _autoScanTimer;
   List<String> _selectedSymbols = [];
+
+  bool _isAdvancedSettingsOpen = false;
+  bool _isMaSettingsOpen = true;
+  bool _isMultiplierSettingsOpen = false;
+
+  Map<String, bool> _selectedMas = {
+    'use_sma13': false,
+    'use_ema21': false,
+    'use_sma50': false,
+    'use_sma111': true, // Default
+    'use_sma200': false,
+    'use_sma350': false,
+    'use_sma350x0702': false,
+    'use_sma350x1618': false,
+    'use_sma350x2': false,
+    'use_sma350x3': false,
+    'use_sma350x5': false,
+    'use_sma350x8': false,
+    'use_sma350x13': false,
+    'use_sma350x21': false,
+  };
 
   final List<String> _intervals = ['15m', '1h', '4h', '1d'];
   final List<int> _autoScanOptions = [1, 5, 15, 30, 60];
@@ -73,6 +95,34 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue<ScannerResult?>>(scannerResultsProvider, (
+      previous,
+      next,
+    ) {
+      if (next is AsyncData &&
+          next.value != null &&
+          (previous == null || previous.value != next.value)) {
+        // Play notification sound
+        SystemSound.play(SystemSoundType.alert);
+
+        // Show completion toast/snackbar
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Text('Tarama Tamamlandı (${next.value!.results.length} sonuç)'),
+              ],
+            ),
+            backgroundColor: AppColors.primary,
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    });
+
     final resultsAsync = ref.watch(scannerResultsProvider);
     final availablePairsAsync = ref.watch(availablePairsProvider);
     final favoriteListsAsync = ref.watch(favoriteListsProvider);
@@ -161,6 +211,11 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                     // Auto Scan
                     _buildAutoScanSelector(),
                     const SizedBox(height: 16),
+
+                    if (_selectedStrategy == 'Sma111BreakoutStrategy') ...[
+                      _buildAdvancedSettingsAccordion(),
+                      const SizedBox(height: 16),
+                    ],
 
                     // Start Button
                     _buildStartButton(),
@@ -473,6 +528,266 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
     );
   }
 
+  Widget _buildAdvancedSettingsAccordion() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        InkWell(
+          onTap: () => setState(
+            () => _isAdvancedSettingsOpen = !_isAdvancedSettingsOpen,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.filter_list_rounded,
+                      size: 14,
+                      color: Colors.white54,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'GELİŞMİŞ STRATEJİ AYARLARI',
+                      style: GoogleFonts.inter(
+                        color: Colors.white54,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
+                ),
+                Icon(
+                  _isAdvancedSettingsOpen
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                  color: Colors.white24,
+                  size: 16,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_isAdvancedSettingsOpen)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+              ),
+              child: Column(
+                children: [
+                  _buildSubAccordion(
+                    title: 'Hareketli Ortalamalar (MA)',
+                    isOpen: _isMaSettingsOpen,
+                    onToggle: () =>
+                        setState(() => _isMaSettingsOpen = !_isMaSettingsOpen),
+                    items: [
+                      {'id': 'use_sma13', 'label': 'SMA 13'},
+                      {'id': 'use_ema21', 'label': 'EMA 21'},
+                      {'id': 'use_sma50', 'label': 'SMA 50'},
+                      {'id': 'use_sma111', 'label': 'SMA 111'},
+                      {'id': 'use_sma200', 'label': 'SMA 200'},
+                      {'id': 'use_sma350', 'label': 'SMA 350'},
+                    ],
+                    onSelectAll: () => _updateMas([
+                      'use_sma13',
+                      'use_ema21',
+                      'use_sma50',
+                      'use_sma111',
+                      'use_sma200',
+                      'use_sma350',
+                    ], true),
+                    onClearAll: () => _updateMas([
+                      'use_sma13',
+                      'use_ema21',
+                      'use_sma50',
+                      'use_sma111',
+                      'use_sma200',
+                      'use_sma350',
+                    ], false),
+                  ),
+                  Container(
+                    height: 1,
+                    color: Colors.white.withValues(alpha: 0.05),
+                  ),
+                  _buildSubAccordion(
+                    title: 'SMA 350 Çarpanları',
+                    isOpen: _isMultiplierSettingsOpen,
+                    onToggle: () => setState(
+                      () => _isMultiplierSettingsOpen =
+                          !_isMultiplierSettingsOpen,
+                    ),
+                    items: [
+                      {'id': 'use_sma350x0702', 'label': 'SMA 350 x 0.702'},
+                      {
+                        'id': 'use_sma350x1618',
+                        'label': 'SMA 350 x 1.618 (Golden)',
+                      },
+                      {'id': 'use_sma350x2', 'label': 'SMA 350 x 2'},
+                      {'id': 'use_sma350x3', 'label': 'SMA 350 x 3'},
+                      {'id': 'use_sma350x5', 'label': 'SMA 350 x 5'},
+                      {'id': 'use_sma350x8', 'label': 'SMA 350 x 8'},
+                      {'id': 'use_sma350x13', 'label': 'SMA 350 x 13'},
+                      {'id': 'use_sma350x21', 'label': 'SMA 350 x 21'},
+                    ],
+                    onSelectAll: () => _updateMas([
+                      'use_sma350x0702',
+                      'use_sma350x1618',
+                      'use_sma350x2',
+                      'use_sma350x3',
+                      'use_sma350x5',
+                      'use_sma350x8',
+                      'use_sma350x13',
+                      'use_sma350x21',
+                    ], true),
+                    onClearAll: () => _updateMas([
+                      'use_sma350x0702',
+                      'use_sma350x1618',
+                      'use_sma350x2',
+                      'use_sma350x3',
+                      'use_sma350x5',
+                      'use_sma350x8',
+                      'use_sma350x13',
+                      'use_sma350x21',
+                    ], false),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _updateMas(List<String> keys, bool value) {
+    setState(() {
+      for (var key in keys) {
+        _selectedMas[key] = value;
+      }
+    });
+  }
+
+  Widget _buildSubAccordion({
+    required String title,
+    required bool isOpen,
+    required VoidCallback onToggle,
+    required List<Map<String, String>> items,
+    required VoidCallback onSelectAll,
+    required VoidCallback onClearAll,
+  }) {
+    return Column(
+      children: [
+        InkWell(
+          onTap: onToggle,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: GoogleFonts.inter(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+                Row(
+                  children: [
+                    InkWell(
+                      onTap: onSelectAll,
+                      child: Text(
+                        'TÜMÜ',
+                        style: GoogleFonts.inter(
+                          color: AppColors.primary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    InkWell(
+                      onTap: onClearAll,
+                      child: Text(
+                        'TEMİZLE',
+                        style: GoogleFonts.inter(
+                          color: Colors.white38,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      isOpen
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
+                      color: Colors.white38,
+                      size: 16,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (isOpen)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: items.map((item) {
+                final id = item['id']!;
+                final isSelected = _selectedMas[id] ?? false;
+                return InkWell(
+                  onTap: () {
+                    setState(() {
+                      _selectedMas[id] = !isSelected;
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.primary.withValues(alpha: 0.15)
+                          : Colors.white.withValues(alpha: 0.03),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.primary.withValues(alpha: 0.3)
+                            : Colors.transparent,
+                      ),
+                    ),
+                    child: Text(
+                      item['label']!,
+                      style: GoogleFonts.inter(
+                        color: isSelected ? AppColors.primary : Colors.white60,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildStartButton() {
     return SizedBox(
       width: double.infinity,
@@ -563,6 +878,9 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
           strategyId: _selectedStrategy,
           interval: _selectedInterval,
           symbols: _selectedSymbols,
+          strategyParameters: _selectedStrategy == 'Sma111BreakoutStrategy'
+              ? _selectedMas.map((k, v) => MapEntry(k, v.toString()))
+              : null,
         );
   }
 

@@ -39,39 +39,69 @@ public class BinanceWebSocketService : BackgroundService
 
         try
         {
-            // Subscribe to all market tickers stream
-            var subscription = await _socketClient.SpotApi.ExchangeData.SubscribeToAllTickerUpdatesAsync(
-                data =>
-                {
-                    // Update in-memory cache with latest ticker data
-                    lock (_lock)
-                    {
-                        foreach (var ticker in data.Data)
-                        {
-                            var symbol = ticker.Symbol;
+            var maxRetries = 5;
+            var retryDelay = TimeSpan.FromSeconds(5);
+            Binance.Net.Objects.Models.Spot.Socket.BinanceStreamTick[] subscriptionData = null;
+            var success = false;
 
-                            _latestTickers[symbol] = new TickerData
-                            {
-                                Symbol = symbol,
-                                LastPrice = ticker.LastPrice,
-                                PriceChangePercent = ticker.PriceChangePercent,
-                                Volume = ticker.Volume,
-                                QuoteVolume = ticker.QuoteVolume,
-                                HighPrice = ticker.HighPrice,
-                                LowPrice = ticker.LowPrice
-                            };
-                        }
-                    }
-                },
-                stoppingToken);
-
-            if (!subscription.Success)
+            for (int i = 0; i < maxRetries; i++)
             {
-                _logger.LogError("Failed to subscribe to Binance WebSocket: {Error}", subscription.Error?.Message);
-                return;
+                if (stoppingToken.IsCancellationRequested) break;
+
+                _logger.LogInformation($"Attempt {i + 1}/{maxRetries} to subscribe to Binance all tickers stream...");
+
+                // Subscribe to all market tickers stream
+                var subscription = await _socketClient.SpotApi.ExchangeData.SubscribeToAllTickerUpdatesAsync(
+                    data =>
+                    {
+                        // Update in-memory cache with latest ticker data
+                        lock (_lock)
+                        {
+                            foreach (var ticker in data.Data)
+                            {
+                                var symbol = ticker.Symbol;
+
+                                _latestTickers[symbol] = new TickerData
+                                {
+                                    Symbol = symbol,
+                                    LastPrice = ticker.LastPrice,
+                                    PriceChangePercent = ticker.PriceChangePercent,
+                                    Volume = ticker.Volume,
+                                    QuoteVolume = ticker.QuoteVolume,
+                                    HighPrice = ticker.HighPrice,
+                                    LowPrice = ticker.LowPrice
+                                };
+                            }
+                        }
+                    },
+                    stoppingToken);
+
+                if (subscription.Success)
+                {
+                    _logger.LogInformation("✅ Successfully subscribed to Binance all tickers stream");
+                    success = true;
+                    // Store the subscription data to close it later
+                    // Note: In Binance.Net, you usually keep the CallResult or handle disconnection via events.
+                    // For cleanup in ExecuteAsync we will just let it run.
+                    break;
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        $"Failed to subscribe to Binance WebSocket (Attempt {i + 1}): {subscription.Error?.Message ?? "Unknown Error"}");
+                    if (i < maxRetries - 1)
+                    {
+                        await Task.Delay(retryDelay, stoppingToken);
+                    }
+                }
             }
 
-            _logger.LogInformation("✅ Successfully subscribed to Binance all tickers stream");
+            if (!success)
+            {
+                _logger.LogError(
+                    "Failed to subscribe to Binance WebSocket after multiple attempts. Service will not receive real-time data.");
+                return; // Exit if all retries failed
+            }
 
             // Periodic broadcast loop
             while (!stoppingToken.IsCancellationRequested)
@@ -79,9 +109,6 @@ public class BinanceWebSocketService : BackgroundService
                 await Task.Delay(_broadcastInterval, stoppingToken);
                 await BroadcastMarketData(stoppingToken);
             }
-
-            // Cleanup on stop
-            await subscription.Data.CloseAsync();
         }
         catch (Exception ex)
         {

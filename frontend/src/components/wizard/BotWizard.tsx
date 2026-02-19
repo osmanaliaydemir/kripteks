@@ -16,6 +16,9 @@ interface BotWizardProps {
     onCancel: () => void;
     isCoinsLoading: boolean;
     refreshCoins: () => void;
+    initialSymbol?: string;
+    initialStrategyId?: string;
+    isLockedCoin?: boolean;
 }
 
 export default function BotWizard({
@@ -25,7 +28,10 @@ export default function BotWizard({
     onBotCreate,
     onCancel,
     isCoinsLoading,
-    refreshCoins
+    refreshCoins,
+    initialSymbol,
+    initialStrategyId,
+    isLockedCoin
 }: BotWizardProps) {
     const { isConnected: isSignalRConnected } = useSignalR();
     const [step, setStep] = useState(1);
@@ -33,8 +39,8 @@ export default function BotWizard({
     const [statusTimeout, setStatusTimeout] = useState<NodeJS.Timeout | null>(null);
 
     // Form State
-    const [selectedCoin, setSelectedCoin] = useState("BTC/USDT");
-    const [selectedStrategy, setSelectedStrategy] = useState("");
+    const [selectedCoin, setSelectedCoin] = useState(initialSymbol || "BTC/USDT");
+    const [selectedStrategy, setSelectedStrategy] = useState(initialStrategyId || "");
     const [amount, setAmount] = useState(100);
     const [selectedInterval, setSelectedInterval] = useState("1h");
     const [takeProfit, setTakeProfit] = useState("");
@@ -169,6 +175,7 @@ export default function BotWizard({
                             setSelectedStrategy={setSelectedStrategy}
                             isLoadingCoins={isCoinsLoading}
                             refreshCoins={refreshCoins}
+                            isLockedCoin={isLockedCoin}
                         />
                     )}
                     {step === 2 && (

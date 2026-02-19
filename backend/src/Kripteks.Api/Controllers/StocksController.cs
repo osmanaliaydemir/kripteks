@@ -1,4 +1,5 @@
 using Kripteks.Core.Interfaces;
+using Kripteks.Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Kripteks.Api.Controllers;
@@ -15,8 +16,15 @@ public class StocksController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetCoins()
+    public async Task<IActionResult> GetCoins([FromQuery] string market = "crypto")
     {
+        if (market.ToLower() == "bist")
+        {
+            var bistService = HttpContext.RequestServices.GetRequiredService<BistMarketService>();
+            var stocks = await bistService.GetAvailablePairsAsync();
+            return Ok(stocks);
+        }
+
         var coins = await _marketService.GetAvailablePairsAsync();
         return Ok(coins);
     }

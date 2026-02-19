@@ -179,6 +179,8 @@ builder.Services.AddSingleton<IEncryptionService, AesEncryptionService>();
 // Servislerin Kaydı (Dependency Injection)
 builder.Services.AddScoped<IBotService, BotService>();
 builder.Services.AddSingleton<IMarketDataService, BinanceMarketService>();
+builder.Services.AddHttpClient<YahooFinanceService>();
+builder.Services.AddSingleton<BistMarketService>();
 builder.Services.AddScoped<BacktestService>();
 builder.Services.AddScoped<ScannerService>();
 builder.Services.AddScoped<IBacktestRepository, Kripteks.Infrastructure.Repositories.BacktestRepository>();
@@ -223,6 +225,7 @@ builder.Services.AddScoped<IFirebaseNotificationService, FirebaseNotificationSer
 // Stratejiler - Manuel test için temizlendi
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.Sma111BuySellStrategy>();
 builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.Sma111BreakoutStrategy>();
+builder.Services.AddScoped<IStrategy, Kripteks.Infrastructure.Strategies.BistMultiMaBreakoutStrategy>();
 builder.Services.AddScoped<IStrategyFactory, Kripteks.Infrastructure.Strategies.StrategyFactory>();
 
 // Arka Plan Servisleri (Bot Engine + Market Data Stream)

@@ -16,7 +16,7 @@ import { ScannerResultDetailModal } from "./ScannerResultDetailModal";
 import { StrategyDetailModal } from "./StrategyDetailModal";
 import { QuickBuyModal } from "./QuickBuyModal";
 
-export default function ScannerDashboard() {
+export default function X100ScannerDashboard() {
     const [coins, setCoins] = useState<Coin[]>([]);
     const [strategies, setStrategies] = useState<Strategy[]>([]);
     const [selectedSymbols, setSelectedSymbols] = useState<string[]>([]);
@@ -38,15 +38,7 @@ export default function ScannerDashboard() {
         use_sma50: false,
         use_sma111: true, // Default
         use_sma200: false,
-        use_sma350: false,
-        use_sma350x0702: false,
-        use_sma350x1618: false,
-        use_sma350x2: false,
-        use_sma350x3: false,
-        use_sma350x5: false,
-        use_sma350x8: false,
-        use_sma350x13: false,
-        use_sma350x21: false,
+        use_sma350: false
     });
 
     // Favorite List States
@@ -64,11 +56,6 @@ export default function ScannerDashboard() {
     const [nextScanTime, setNextScanTime] = useState<Date | null>(null);
     const [timeLeft, setTimeLeft] = useState<number>(0);
 
-
-    // Accordion UI States for Settings
-    const [isAdvancedSettingsOpen, setIsAdvancedSettingsOpen] = useState(false);
-    const [isMaSettingsOpen, setIsMaSettingsOpen] = useState(true);
-    const [isMultiplierSettingsOpen, setIsMultiplierSettingsOpen] = useState(false);
 
     const [isSoundEnabled, setIsSoundEnabled] = useState(false);
 
@@ -93,14 +80,14 @@ export default function ScannerDashboard() {
     const loadData = async () => {
         try {
             const [coinsData, strData, favData] = await Promise.all([
-                MarketService.getCoins(),
+                MarketService.getCoins("bist"),
                 MarketService.getStrategies(),
                 ScannerService.getFavorites()
             ]);
             setCoins(coinsData || []);
-            // Filter only scanner and both categories for scanner dashboard, exclude BIST strategies
+            // Filter only scanner and both categories for scanner dashboard, and ONLY BIST strategies
             const scannerStrategies = (strData || []).filter(
-                (s: Strategy) => (s.category === 'scanner' || s.category === 'both') && !s.id.startsWith('Bist')
+                (s: Strategy) => (s.category === 'scanner' || s.category === 'both') && s.id.startsWith('Bist')
             );
             setStrategies(scannerStrategies);
             setFavoriteLists(favData || []);
@@ -151,14 +138,10 @@ export default function ScannerDashboard() {
         // Silent loading için sonuçları temizlemiyoruz
         if (!isAuto) setResults([]);
 
-        // Sekme başlığını güncelle
-        const originalTitle = document.title;
-        document.title = "Tarama işlemi devam edliyor...";
-
         try {
             // Convert boolean map to string map for API
             const strategyParams: Record<string, string> = {};
-            if (strategy === "Sma111BreakoutStrategy") {
+            if (strategy === "BistMultiMaBreakoutStrategy") {
                 Object.entries(selectedMas).forEach(([key, value]) => {
                     strategyParams[key] = value.toString();
                 });
@@ -168,6 +151,7 @@ export default function ScannerDashboard() {
                 symbols: selectedSymbols,
                 interval,
                 strategyId: strategy,
+                market: "bist",
                 minScore: minScore > 0 ? minScore : undefined,
                 strategyParameters: strategyParams
             });
@@ -178,9 +162,6 @@ export default function ScannerDashboard() {
                 setResults(data.results);
                 setHasScanned(true);
                 if (!isAuto) toast.success("Tarama Tamamlandı", { description: `${data.results.length} parite analiz edildi.` });
-
-                // Her tarama bittiğinde ses çal (Kullanıcı istiyor)
-                playNotificationSound();
 
                 // Otomatik taramada sesli bildirim kontrolü
                 // Ref değerini kullanıyoruz çünkü handleRunScanner stale closure içinde kalabilir
@@ -206,9 +187,6 @@ export default function ScannerDashboard() {
             if (!isAuto) toast.error("Hata", { description: error.message || "Bağlantı hatası oluştu." });
         } finally {
             if (!isAuto) setLoading(false);
-
-            // Sekme başlığını geri al
-            document.title = "Kripteks AI";
 
             // Otomatik tarama aktifse, işlem bittikten sonra sayacı yeniden başlat
             // Böylece tarama süresi, bekleme süresine dahil edilmez
@@ -299,10 +277,10 @@ export default function ScannerDashboard() {
                                     </div>
                                     <div className="flex flex-col items-start">
                                         <span className={`text-xs uppercase font-black tracking-widest ${isSettingsOpen ? "text-white" : "text-slate-400"}`}>
-                                            Parite ve Liste Seçimi
+                                            Hisse ve Liste Seçimi
                                         </span>
                                         <span className="text-[10px] text-slate-500 font-bold">
-                                            {selectedSymbols.length} Parite / {favoriteLists.length} Liste
+                                            {selectedSymbols.length} Hisse / {favoriteLists.length} Liste
                                         </span>
                                     </div>
                                 </div>
@@ -383,13 +361,13 @@ export default function ScannerDashboard() {
                                             {/* Parite Seçimi Alt Bölüm */}
                                             <div className="space-y-3">
                                                 <label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest flex items-center gap-2">
-                                                    <Filter size={12} /> Manuel Parite Seçimi
+                                                    <Filter size={12} /> Manuel Hisse Seçimi
                                                 </label>
                                                 <div className="relative">
                                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-3.5 h-3.5" />
                                                     <input
                                                         type="text"
-                                                        placeholder="Coin ara..."
+                                                        placeholder="Hisse ara..."
                                                         value={searchTerm}
                                                         onChange={(e) => setSearchTerm(e.target.value)}
                                                         className="w-full bg-slate-950/40 border border-white/5 rounded-xl pl-9 pr-4 py-2 text-[11px] text-white focus:outline-none focus:border-primary/40"
@@ -405,7 +383,7 @@ export default function ScannerDashboard() {
                                                                 : "bg-white/5 border-white/5 text-slate-500 hover:bg-white/10"
                                                                 }`}
                                                         >
-                                                            {coin.symbol.replace("USDT", "")}
+                                                            {coin.symbol.replace(".IS", "")}
                                                         </button>
                                                     ))}
                                                 </div>
@@ -536,185 +514,60 @@ export default function ScannerDashboard() {
                                 </div>
                             </div>
 
-                            {/* Multi-MA and Multipliers Accordion UI (Only for Sma111BreakoutStrategy) */}
+                            {/* Multi-MA Settings (Only for Sma111BreakoutStrategy) */}
                             {strategy === "Sma111BreakoutStrategy" && (
-                                <div className="space-y-2 pt-2 border-t border-white/5">
-                                    <button
-                                        onClick={() => setIsAdvancedSettingsOpen(!isAdvancedSettingsOpen)}
-                                        className="w-full flex items-center justify-between py-2 text-[10px] uppercase font-bold text-slate-500 hover:text-white transition-colors tracking-widest"
-                                    >
+                                <div className="space-y-3 pt-2 border-t border-white/5">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[10px] uppercase font-bold text-slate-500 tracking-widest flex items-center gap-2">
+                                            Hareketli Ortalamalar
+                                        </label>
                                         <div className="flex items-center gap-2">
-                                            <Filter size={12} /> GELİŞMİŞ STRATEJİ AYARLARI
-                                        </div>
-                                        <div className={`transform transition-transform ${isAdvancedSettingsOpen ? 'rotate-180' : ''}`}>
-                                            ▼
-                                        </div>
-                                    </button>
-
-                                    <AnimatePresence>
-                                        {isAdvancedSettingsOpen && (
-                                            <motion.div
-                                                initial={{ height: 0, opacity: 0 }}
-                                                animate={{ height: "auto", opacity: 1 }}
-                                                exit={{ height: 0, opacity: 0 }}
-                                                className="overflow-hidden space-y-3"
+                                            <button
+                                                onClick={() => setSelectedMas({
+                                                    use_sma13: true, use_ema21: true, use_sma50: true,
+                                                    use_sma111: true, use_sma200: true, use_sma350: true
+                                                })}
+                                                className="text-[9px] text-primary hover:text-primary-light font-bold hover:underline"
                                             >
-                                                {/* MA Child Accordion */}
-                                                <div className="bg-slate-900/50 rounded-xl border border-white/5 overflow-hidden">
-                                                    <div className="flex items-center justify-between px-3 hover:bg-white/5 transition-colors">
-                                                        <button
-                                                            onClick={() => setIsMaSettingsOpen(!isMaSettingsOpen)}
-                                                            className="flex-1 py-3 text-left text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-2"
-                                                        >
-                                                            Hareketli Ortalamalar (MA)
-                                                            <span className={`transition-transform inline-block ${isMaSettingsOpen ? 'rotate-180' : ''}`}>
-                                                                ▼
-                                                            </span>
-                                                        </button>
-                                                        <div className="flex items-center gap-2">
-                                                            <button
-                                                                onClick={() => setSelectedMas({
-                                                                    ...selectedMas,
-                                                                    use_sma13: true, use_ema21: true, use_sma50: true,
-                                                                    use_sma111: true, use_sma200: true, use_sma350: true
-                                                                })}
-                                                                className="text-[9px] text-primary hover:text-primary-light font-bold hover:underline"
-                                                            >
-                                                                TÜMÜ
-                                                            </button>
-                                                            <button
-                                                                onClick={() => setSelectedMas({
-                                                                    ...selectedMas,
-                                                                    use_sma13: false, use_ema21: false, use_sma50: false,
-                                                                    use_sma111: false, use_sma200: false, use_sma350: false
-                                                                })}
-                                                                className="text-[9px] text-slate-500 hover:text-white font-bold hover:underline"
-                                                            >
-                                                                TEMİZLE
-                                                            </button>
-                                                        </div>
-                                                    </div>
-
-                                                    <AnimatePresence>
-                                                        {isMaSettingsOpen && (
-                                                            <motion.div
-                                                                initial={{ height: 0 }}
-                                                                animate={{ height: "auto" }}
-                                                                exit={{ height: 0 }}
-                                                                className="overflow-hidden px-3 pb-3"
-                                                            >
-                                                                <div className="grid grid-cols-2 gap-2 mt-1">
-                                                                    {[
-                                                                        { id: "use_sma13", label: "SMA 13" },
-                                                                        { id: "use_ema21", label: "EMA 21" },
-                                                                        { id: "use_sma50", label: "SMA 50" },
-                                                                        { id: "use_sma111", label: "SMA 111" },
-                                                                        { id: "use_sma200", label: "SMA 200" },
-                                                                        { id: "use_sma350", label: "SMA 350" }
-                                                                    ].map((ma) => (
-                                                                        <button
-                                                                            key={ma.id}
-                                                                            onClick={() => {
-                                                                                setSelectedMas(prev => ({
-                                                                                    ...prev,
-                                                                                    [ma.id]: !prev[ma.id as keyof typeof selectedMas]
-                                                                                }));
-                                                                            }}
-                                                                            className={`px-3 py-2 rounded-xl text-[10px] font-bold transition-all border ${selectedMas[ma.id as keyof typeof selectedMas]
-                                                                                ? "bg-primary/20 text-primary border-primary/30"
-                                                                                : "bg-slate-950/40 text-slate-500 border-white/5 hover:bg-white/5"
-                                                                                }`}
-                                                                        >
-                                                                            {ma.label}
-                                                                        </button>
-                                                                    ))}
-                                                                </div>
-                                                            </motion.div>
-                                                        )}
-                                                    </AnimatePresence>
-                                                </div>
-
-                                                {/* Multipliers Child Accordion */}
-                                                <div className="bg-slate-900/50 rounded-xl border border-white/5 overflow-hidden">
-                                                    <div className="flex items-center justify-between px-3 hover:bg-white/5 transition-colors">
-                                                        <button
-                                                            onClick={() => setIsMultiplierSettingsOpen(!isMultiplierSettingsOpen)}
-                                                            className="flex-1 py-3 text-left text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-2"
-                                                        >
-                                                            SMA 350 Çarpanları
-                                                            <span className={`transition-transform inline-block ${isMultiplierSettingsOpen ? 'rotate-180' : ''}`}>
-                                                                ▼
-                                                            </span>
-                                                        </button>
-                                                        <div className="flex items-center gap-2">
-                                                            <button
-                                                                onClick={() => setSelectedMas({
-                                                                    ...selectedMas,
-                                                                    use_sma350x0702: true, use_sma350x1618: true, use_sma350x2: true,
-                                                                    use_sma350x3: true, use_sma350x5: true, use_sma350x8: true,
-                                                                    use_sma350x13: true, use_sma350x21: true
-                                                                })}
-                                                                className="text-[9px] text-primary hover:text-primary-light font-bold hover:underline"
-                                                            >
-                                                                TÜMÜ
-                                                            </button>
-                                                            <button
-                                                                onClick={() => setSelectedMas({
-                                                                    ...selectedMas,
-                                                                    use_sma350x0702: false, use_sma350x1618: false, use_sma350x2: false,
-                                                                    use_sma350x3: false, use_sma350x5: false, use_sma350x8: false,
-                                                                    use_sma350x13: false, use_sma350x21: false
-                                                                })}
-                                                                className="text-[9px] text-slate-500 hover:text-white font-bold hover:underline"
-                                                            >
-                                                                TEMİZLE
-                                                            </button>
-                                                        </div>
-                                                    </div>
-
-                                                    <AnimatePresence>
-                                                        {isMultiplierSettingsOpen && (
-                                                            <motion.div
-                                                                initial={{ height: 0 }}
-                                                                animate={{ height: "auto" }}
-                                                                exit={{ height: 0 }}
-                                                                className="overflow-hidden px-3 pb-3"
-                                                            >
-                                                                <div className="grid grid-cols-2 gap-2 mt-1">
-                                                                    {[
-                                                                        { id: "use_sma350x0702", label: "SMA 350 x 0.702" },
-                                                                        { id: "use_sma350x1618", label: "SMA 350 x 1.618 (Golden)" },
-                                                                        { id: "use_sma350x2", label: "SMA 350 x 2" },
-                                                                        { id: "use_sma350x3", label: "SMA 350 x 3" },
-                                                                        { id: "use_sma350x5", label: "SMA 350 x 5" },
-                                                                        { id: "use_sma350x8", label: "SMA 350 x 8" },
-                                                                        { id: "use_sma350x13", label: "SMA 350 x 13" },
-                                                                        { id: "use_sma350x21", label: "SMA 350 x 21" }
-                                                                    ].map((ma) => (
-                                                                        <button
-                                                                            key={ma.id}
-                                                                            onClick={() => {
-                                                                                setSelectedMas(prev => ({
-                                                                                    ...prev,
-                                                                                    [ma.id]: !prev[ma.id as keyof typeof selectedMas]
-                                                                                }));
-                                                                            }}
-                                                                            className={`px-3 py-2 rounded-xl text-[10px] font-bold transition-all border ${selectedMas[ma.id as keyof typeof selectedMas]
-                                                                                ? "bg-primary/20 text-primary border-primary/30"
-                                                                                : "bg-slate-950/40 text-slate-500 border-white/5 hover:bg-white/5"
-                                                                                }`}
-                                                                        >
-                                                                            {ma.label}
-                                                                        </button>
-                                                                    ))}
-                                                                </div>
-                                                            </motion.div>
-                                                        )}
-                                                    </AnimatePresence>
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
+                                                TÜMÜ
+                                            </button>
+                                            <button
+                                                onClick={() => setSelectedMas({
+                                                    use_sma13: false, use_ema21: false, use_sma50: false,
+                                                    use_sma111: false, use_sma200: false, use_sma350: false
+                                                })}
+                                                className="text-[9px] text-slate-500 hover:text-white font-bold hover:underline"
+                                            >
+                                                TEMİZLE
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {[
+                                            { id: "use_sma13", label: "SMA 13" },
+                                            { id: "use_ema21", label: "EMA 21" },
+                                            { id: "use_sma50", label: "SMA 50" },
+                                            { id: "use_sma111", label: "SMA 111" },
+                                            { id: "use_sma200", label: "SMA 200" },
+                                            { id: "use_sma350", label: "SMA 350" }
+                                        ].map((ma) => (
+                                            <button
+                                                key={ma.id}
+                                                onClick={() => {
+                                                    setSelectedMas(prev => ({
+                                                        ...prev,
+                                                        [ma.id]: !prev[ma.id as keyof typeof selectedMas]
+                                                    }));
+                                                }}
+                                                className={`px-3 py-2 rounded-xl text-[10px] font-bold transition-all border ${selectedMas[ma.id as keyof typeof selectedMas]
+                                                    ? "bg-primary/20 text-primary border-primary/30"
+                                                    : "bg-slate-950/40 text-slate-500 border-white/5 hover:bg-white/5"
+                                                    }`}
+                                            >
+                                                {ma.label}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
 
@@ -740,7 +593,7 @@ export default function ScannerDashboard() {
                                 ) : (
                                     <>
                                         {selectedSymbols.length === 0 ? <Target className="w-5 h-5" /> : <RefreshCw className="w-5 h-5" />}
-                                        <span>{selectedSymbols.length === 0 ? "Piyasa Taramasını Başlat" : "Seçili Pariteleri Tara"}</span>
+                                        <span>{selectedSymbols.length === 0 ? "Borsa İstanbul Taramasını Başlat" : "Seçili Hisseleri Tara"}</span>
                                     </>
                                 )}
                             </button>
@@ -760,7 +613,7 @@ export default function ScannerDashboard() {
                             </div>
                             <div className="flex items-center gap-3">
                                 <div className="px-3 py-1 bg-white/5 rounded-full text-[10px] font-mono text-slate-400 border border-white/5">
-                                    {displayResults.length} Coin Bulundu
+                                    {displayResults.length} Hisse Bulundu
                                 </div>
                                 {results.length > 0 && (
                                     <button
@@ -805,7 +658,7 @@ export default function ScannerDashboard() {
                                                 {currentStrategy?.name} Uygulanıyor
                                             </h4>
                                             <p className="text-[11px] text-slate-400 leading-relaxed">
-                                                {currentStrategy?.description || "Bu liste, seçtiğiniz stratejinin teknik analiz kurallarına göre en yüksek alım puanına sahip pariteleri göstermektedir."}
+                                                {currentStrategy?.description || "Bu liste, seçtiğiniz stratejinin teknik analiz kurallarına göre en yüksek alım puanına sahip hisseleri göstermektedir."}
                                             </p>
                                         </div>
                                     </motion.div>
@@ -843,10 +696,10 @@ export default function ScannerDashboard() {
                                                             <div>
                                                                 <h4 className="text-lg font-bold text-white group-hover:text-primary transition-colors">{res.symbol}</h4>
                                                                 <div className="text-[10px] text-slate-500 font-mono mt-0.5">
-                                                                    ${res.lastPrice.toLocaleString(undefined, {
-                                                                        minimumFractionDigits: res.lastPrice < 0.1 ? 6 : 2,
-                                                                        maximumFractionDigits: res.lastPrice < 0.1 ? 8 : 2
-                                                                    })}
+                                                                    {res.lastPrice.toLocaleString("tr-TR", {
+                                                                        minimumFractionDigits: 2,
+                                                                        maximumFractionDigits: 2
+                                                                    })} ₺
                                                                 </div>
                                                             </div>
                                                             <div className={`px-3 py-2 rounded-xl border flex items-center gap-2 ${res.signalScore > 70 ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]" :
@@ -883,8 +736,8 @@ export default function ScannerDashboard() {
                                                                 <div className="flex items-center gap-1.5 text-slate-400">
                                                                     <button
                                                                         onClick={(e) => {
-                                                                            const cleanSymbol = res.symbol.replace("/", "");
-                                                                            window.open(`https://tr.tradingview.com/chart/RbphTzbt/?symbol=BINANCE:${cleanSymbol.toUpperCase()}`, '_blank');
+                                                                            const cleanSymbol = res.symbol.split("/")[0].split(".IS")[0];
+                                                                            window.open(`https://tr.tradingview.com/chart/RbphTzbt/?symbol=BIST:${cleanSymbol.toUpperCase()}`, '_blank');
                                                                             e.stopPropagation();
                                                                         }}
                                                                         className="p-1 hover:bg-white/10 rounded-lg text-slate-500 hover:text-primary transition-all cursor-pointer"
@@ -934,7 +787,7 @@ export default function ScannerDashboard() {
                                                 <Filter size={40} className="text-rose-400" />
                                             </div>
                                             <div className="max-w-md space-y-2 px-6">
-                                                <h4 className="text-white font-bold text-lg">Eşleşen Parite Bulunamadı</h4>
+                                                <h4 className="text-white font-bold text-lg">Eşleşen Hisse Bulunamadı</h4>
                                                 <div className="bg-white/5 rounded-xl p-4 mt-2 text-left space-y-2 border border-white/5">
                                                     <div className="flex items-center gap-2 text-xs text-slate-300">
                                                         <Target size={14} className="text-primary" />

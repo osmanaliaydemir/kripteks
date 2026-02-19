@@ -9,6 +9,7 @@ public class ScannerRequestDto
     public string StrategyId { get; set; } = string.Empty;
     public string Interval { get; set; } = "1h";
     public int? MinScore { get; set; }
+    public string Market { get; set; } = "crypto";
     public Dictionary<string, string>? StrategyParameters { get; set; }
 }
 

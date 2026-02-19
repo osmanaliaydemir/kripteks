@@ -13,6 +13,7 @@ interface Step1Props {
     setSelectedStrategy: (strategyId: string) => void;
     isLoadingCoins: boolean;
     refreshCoins: () => void;
+    isLockedCoin?: boolean;
 }
 
 const STRATEGY_ICONS: Record<string, any> = {
@@ -37,7 +38,8 @@ export default function Step1_Strategy({
     selectedStrategy,
     setSelectedStrategy,
     isLoadingCoins,
-    refreshCoins
+    refreshCoins,
+    isLockedCoin
 }: Step1Props) {
     // Filters removed as per request - only trading strategies are passed
 
@@ -53,14 +55,21 @@ export default function Step1_Strategy({
             <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Kripto Varlık</label>
                 <div className="relative z-20">
-                    <SearchableSelect
-                        options={coins.map(c => ({ id: c.symbol, label: c.symbol, ...c }))}
-                        value={selectedCoin}
-                        onChange={setSelectedCoin}
-                        placeholder="Coin Seçiniz (Örn: BTC/USDT)..."
-                        onOpen={refreshCoins}
-                        isLoading={isLoadingCoins}
-                    />
+                    {isLockedCoin ? (
+                        <div className="w-full bg-slate-900/40 border border-white/5 rounded-xl px-4 py-3 flex items-center justify-between opacity-80 cursor-not-allowed">
+                            <span className="font-bold text-white">{selectedCoin}</span>
+                            <span className="text-[10px] text-amber-500 font-bold bg-amber-500/10 px-2 py-1 rounded">SABİT</span>
+                        </div>
+                    ) : (
+                        <SearchableSelect
+                            options={coins.map(c => ({ id: c.symbol, label: c.symbol, ...c }))}
+                            value={selectedCoin}
+                            onChange={setSelectedCoin}
+                            placeholder="Coin Seçiniz (Örn: BTC/USDT)..."
+                            onOpen={refreshCoins}
+                            isLoading={isLoadingCoins}
+                        />
+                    )}
                 </div>
             </div>
 

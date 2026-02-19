@@ -34,28 +34,30 @@ class ScannerResultsNotifier extends AsyncNotifier<ScannerResult?> {
     required String strategyId,
     required String interval,
     List<String> symbols = const [],
+    String market = 'crypto',
+    Map<String, String>? strategyParameters,
   }) async {
     state = const AsyncValue.loading();
     try {
-      // If symbols list is empty, we check if we should use favorites or default.
-      // But logic for "Use Favorites" is currently in UI passing explicit list.
-      // We keep this simple: trust the passed list, or fallback to default top coins.
-
       final request = ScannerRequest(
         symbols: symbols.isNotEmpty
             ? symbols
-            : [
-                'BTCUSDT',
-                'ETHUSDT',
-                'BNBUSDT',
-                'SOLUSDT',
-                'XRPUSDT',
-                'ADAUSDT',
-                'AVAXUSDT',
-                'DOGEUSDT',
-              ],
+            : (market == 'bist'
+                  ? ['THYAO.IS', 'ASELS.IS', 'EREGL.IS']
+                  : [
+                      'BTCUSDT',
+                      'ETHUSDT',
+                      'BNBUSDT',
+                      'SOLUSDT',
+                      'XRPUSDT',
+                      'ADAUSDT',
+                      'AVAXUSDT',
+                      'DOGEUSDT',
+                    ]),
         strategyId: strategyId,
         interval: interval,
+        market: market,
+        strategyParameters: strategyParameters,
       );
       final result = await _service.scan(request);
       state = AsyncValue.data(result);

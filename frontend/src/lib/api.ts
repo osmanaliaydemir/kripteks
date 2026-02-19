@@ -120,12 +120,12 @@ export const BotService = {
 };
 
 export const MarketService = {
-    getMarkets: async () => {
-        const res = await fetchWithAuth(`${API_URL}/stocks`);
+    getMarkets: async (market: string = "crypto") => {
+        const res = await fetchWithAuth(`${API_URL}/stocks?market=${market}`);
         return handleResponse(res);
     },
-    getCoins: async () => {
-        const res = await fetchWithAuth(`${API_URL}/stocks`);
+    getCoins: async (market: string = "crypto") => {
+        const res = await fetchWithAuth(`${API_URL}/stocks?market=${market}`);
         return handleResponse(res);
     },
     getStrategies: async (category?: string) => {
