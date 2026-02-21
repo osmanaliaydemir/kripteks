@@ -26,6 +26,7 @@ class BotCreateState {
   final double? trailingStopDistance;
   final bool isContinuous;
   final bool isLoading;
+  final bool isLockedCoin;
   final String? error;
 
   BotCreateState({
@@ -40,6 +41,7 @@ class BotCreateState {
     this.trailingStopDistance,
     this.isContinuous = false,
     this.isLoading = false,
+    this.isLockedCoin = false,
     this.error,
   });
 
@@ -55,6 +57,7 @@ class BotCreateState {
     double? trailingStopDistance,
     bool? isContinuous,
     bool? isLoading,
+    bool? isLockedCoin,
     String? error,
     bool clearError = false,
     bool clearStopLoss = false,
@@ -75,6 +78,7 @@ class BotCreateState {
           : (trailingStopDistance ?? this.trailingStopDistance),
       isContinuous: isContinuous ?? this.isContinuous,
       isLoading: isLoading ?? this.isLoading,
+      isLockedCoin: isLockedCoin ?? this.isLockedCoin,
       error: clearError ? null : (error ?? this.error),
     );
   }
@@ -84,6 +88,18 @@ class BotCreateNotifier extends Notifier<BotCreateState> {
   @override
   BotCreateState build() {
     return BotCreateState();
+  }
+
+  void initialize({
+    String? symbol,
+    String? strategyId,
+    bool isLockedCoin = false,
+  }) {
+    state = BotCreateState(
+      selectedSymbol: symbol,
+      selectedStrategyId: strategyId,
+      isLockedCoin: isLockedCoin,
+    );
   }
 
   void setStep(int step) {

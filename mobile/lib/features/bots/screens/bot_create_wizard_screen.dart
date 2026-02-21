@@ -317,7 +317,9 @@ class _BotCreateWizardScreenState extends ConsumerState<BotCreateWizardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Hangi coinde işlem yapacaksınız?',
+            state.isLockedCoin
+                ? 'Seçili Varlık'
+                : 'Hangi coinde işlem yapacaksınız?',
             style: GoogleFonts.inter(
               color: Colors.white,
               fontSize: 20,
@@ -325,158 +327,234 @@ class _BotCreateWizardScreenState extends ConsumerState<BotCreateWizardScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          TextField(
-            controller: _searchController,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: 'Coin ara (örn. BTC)',
-              hintStyle: const TextStyle(color: Colors.white38),
-              prefixIcon: const Icon(Icons.search, color: Colors.white38),
-              filled: true,
-              fillColor: AppColors.surfaceLight,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
+          if (state.isLockedCoin && state.selectedSymbol != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                ),
+                borderRadius: BorderRadius.circular(16),
               ),
-            ),
-            onChanged: (value) => setState(() {}),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: coinsAsync.when(
-              data: (coins) {
-                final filtered = coins
-                    .where(
-                      (c) => c.symbol.toLowerCase().contains(
-                        _searchController.text.toLowerCase(),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      state.selectedSymbol!
+                          .replaceAll('/USDT', '')
+                          .substring(0, 2),
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
                       ),
-                    )
-                    .toList();
-
-                return ListView.builder(
-                  itemCount: filtered.length,
-                  itemBuilder: (context, index) {
-                    final coin = filtered[index];
-                    final isSelected = state.selectedSymbol == coin.symbol;
-
-                    return GestureDetector(
-                      onTap: () => notifier.selectSymbol(coin.symbol),
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppColors.primary.withValues(alpha: 0.08)
-                              : const Color(0xFF1A1D2E),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isSelected
-                                ? AppColors.primary
-                                : Colors.white.withValues(alpha: 0.04),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          state.selectedSymbol!,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
                           ),
                         ),
-                        child: Row(
-                          children: [
-                            // Coin icon + selected overlay
-                            SizedBox(
-                              width: 36,
-                              height: 36,
-                              child: Stack(
-                                children: [
-                                  Container(
-                                    width: 36,
-                                    height: 36,
-                                    decoration: BoxDecoration(
-                                      color: isSelected
-                                          ? AppColors.primary.withValues(
-                                              alpha: 0.2,
-                                            )
-                                          : Colors.white10,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      coin.symbol
-                                          .replaceAll('/USDT', '')
-                                          .substring(0, 1),
-                                      style: TextStyle(
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Hızlı alım için varlık sabitlendi',
+                          style: TextStyle(color: Colors.white54, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      'SABİT',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Spacer(),
+          ] else ...[
+            TextField(
+              controller: _searchController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Coin ara (örn. BTC)',
+                hintStyle: const TextStyle(color: Colors.white38),
+                prefixIcon: const Icon(Icons.search, color: Colors.white38),
+                filled: true,
+                fillColor: AppColors.surfaceLight,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              onChanged: (value) => setState(() {}),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: coinsAsync.when(
+                data: (coins) {
+                  final filtered = coins
+                      .where(
+                        (c) => c.symbol.toLowerCase().contains(
+                          _searchController.text.toLowerCase(),
+                        ),
+                      )
+                      .toList();
+
+                  return ListView.builder(
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      final coin = filtered[index];
+                      final isSelected = state.selectedSymbol == coin.symbol;
+
+                      return GestureDetector(
+                        onTap: () => notifier.selectSymbol(coin.symbol),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.primary.withValues(alpha: 0.08)
+                                : const Color(0xFF1A1D2E),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : Colors.white.withValues(alpha: 0.04),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              // Coin icon + selected overlay
+                              SizedBox(
+                                width: 36,
+                                height: 36,
+                                child: Stack(
+                                  children: [
+                                    Container(
+                                      width: 36,
+                                      height: 36,
+                                      decoration: BoxDecoration(
                                         color: isSelected
-                                            ? AppColors.primary
-                                            : Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 15,
+                                            ? AppColors.primary.withValues(
+                                                alpha: 0.2,
+                                              )
+                                            : Colors.white10,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        coin.symbol
+                                            .replaceAll('/USDT', '')
+                                            .substring(0, 1),
+                                        style: TextStyle(
+                                          color: isSelected
+                                              ? AppColors.primary
+                                              : Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  if (isSelected)
-                                    Positioned(
-                                      right: -2,
-                                      bottom: -2,
-                                      child: Container(
-                                        width: 16,
-                                        height: 16,
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primary,
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: const Color(0xFF1A1D2E),
-                                            width: 2,
+                                    if (isSelected)
+                                      Positioned(
+                                        right: -2,
+                                        bottom: -2,
+                                        child: Container(
+                                          width: 16,
+                                          height: 16,
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primary,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: const Color(0xFF1A1D2E),
+                                              width: 2,
+                                            ),
+                                          ),
+                                          child: const Icon(
+                                            Icons.check,
+                                            color: Colors.black,
+                                            size: 10,
                                           ),
                                         ),
-                                        child: const Icon(
-                                          Icons.check,
-                                          color: Colors.black,
-                                          size: 10,
-                                        ),
                                       ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            // Coin name
-                            Expanded(
-                              child: Text(
-                                coin.symbol,
-                                style: TextStyle(
-                                  color: isSelected
-                                      ? Colors.white
-                                      : Colors.white.withValues(alpha: 0.8),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
+                                  ],
                                 ),
                               ),
-                            ),
-                            // Current price
-                            Text(
-                              _formatPrice(coin.price),
-                              style: TextStyle(
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : Colors.white.withValues(alpha: 0.5),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
+                              const SizedBox(width: 12),
+                              // Coin name
+                              Expanded(
+                                child: Text(
+                                  coin.symbol,
+                                  style: TextStyle(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : Colors.white.withValues(alpha: 0.8),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
+                              // Current price
+                              Text(
+                                _formatPrice(coin.price),
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : Colors.white.withValues(alpha: 0.5),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) => Center(
-                child: Text(
-                  'Hata: $err',
-                  style: const TextStyle(color: AppColors.error),
+                      );
+                    },
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (err, stack) => Center(
+                  child: Text(
+                    'Hata: $err',
+                    style: const TextStyle(color: AppColors.error),
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
