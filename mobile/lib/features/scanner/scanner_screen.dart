@@ -35,6 +35,9 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
   bool _isMaSettingsOpen = true;
   bool _isMultiplierSettingsOpen = false;
 
+  int _currentPage = 1;
+  final int _itemsPerPage = 10;
+
   Map<String, bool> _selectedMas = {
     'use_sma13': false,
     'use_ema21': false,
@@ -54,10 +57,12 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
 
   final List<String> _intervals = ['15m', '1h', '4h', '1d'];
   final List<int> _autoScanOptions = [1, 5, 15, 30, 60];
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void dispose() {
     _autoScanTimer?.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -253,14 +258,31 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
                       (a, b) => b.signalScore.compareTo(a.signalScore),
                     );
 
-                    return ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-                      itemCount: items.length,
-                      itemBuilder: (context, index) =>
-                          _buildResultItem(items[index])
-                              .animate()
-                              .fadeIn(delay: (50 * index).ms)
-                              .slideY(begin: 0.1, end: 0),
+                    final totalPages = (items.length / _itemsPerPage).ceil();
+                    final startIndex = (_currentPage - 1) * _itemsPerPage;
+                    final endIndex = (startIndex + _itemsPerPage < items.length)
+                        ? (startIndex + _itemsPerPage)
+                        : items.length;
+
+                    final paginatedItems = items.sublist(startIndex, endIndex);
+
+                    return Column(
+                      children: [
+                        Expanded(
+                          child: ListView.builder(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                            itemCount: paginatedItems.length,
+                            itemBuilder: (context, index) =>
+                                _buildResultItem(paginatedItems[index])
+                                    .animate()
+                                    .fadeIn(delay: (50 * index).ms)
+                                    .slideY(begin: 0.1, end: 0),
+                          ),
+                        ),
+                        if (totalPages > 1)
+                          _buildPaginationControls(totalPages),
+                      ],
                     );
                   },
                   loading: () => _buildShimmerList(),
@@ -874,6 +896,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
   }
 
   void _triggerScan() {
+    setState(() => _currentPage = 1);
     ref
         .read(scannerResultsProvider.notifier)
         .scan(
@@ -1523,6 +1546,53 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _changePage(int newPage) {
+    setState(() {
+      _currentPage = newPage;
+    });
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  Widget _buildPaginationControls(int totalPages) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: const Border(top: BorderSide(color: Colors.white10)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left_rounded, color: Colors.white),
+            onPressed: _currentPage > 1
+                ? () => _changePage(_currentPage - 1)
+                : null,
+          ),
+          Text(
+            '$_currentPage / $totalPages',
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right_rounded, color: Colors.white),
+            onPressed: _currentPage < totalPages
+                ? () => _changePage(_currentPage + 1)
+                : null,
+          ),
+        ],
       ),
     );
   }

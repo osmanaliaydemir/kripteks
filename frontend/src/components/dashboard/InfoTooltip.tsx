@@ -15,8 +15,8 @@ export function InfoTooltip({ text, position = 'top' }: InfoTooltipProps) {
     const isTop = position === 'top';
 
     return (
-        <div className="relative inline-block" onMouseEnter={() => setIsVisible(true)} onMouseLeave={() => setIsVisible(false)}>
-            <div className="p-0.5 rounded-full hover:bg-white/10 transition-colors cursor-help text-slate-500 hover:text-slate-300">
+        <div className="relative inline-block z-50" onMouseEnter={() => setIsVisible(true)} onMouseLeave={() => setIsVisible(false)}>
+            <div className="p-0.5 rounded-full hover:bg-white/10 transition-colors cursor-help text-slate-500 hover:text-slate-300 relative">
                 <Info size={12} />
             </div>
             <AnimatePresence>
@@ -25,7 +25,8 @@ export function InfoTooltip({ text, position = 'top' }: InfoTooltipProps) {
                         initial={{ opacity: 0, scale: 0.9, y: isTop ? 5 : -5 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: isTop ? 5 : -5 }}
-                        className={`absolute ${isTop ? 'bottom-full mb-2' : 'top-full mt-2'} left-1/2 -translate-x-1/2 w-64 p-3 bg-slate-900/98 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-9999 pointer-events-none`}
+                        style={{ zIndex: 999999 }}
+                        className={`absolute ${isTop ? 'bottom-full mb-2' : 'top-full mt-2'} left-1/2 -translate-x-1/2 w-64 p-3 bg-slate-900 border border-white/20 rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.8)] pointer-events-none text-left`}
                     >
                         <p className="text-[11px] leading-relaxed text-slate-200 font-medium whitespace-pre-line">{text}</p>
                         <div className={`absolute left-1/2 -translate-x-1/2 border-[6px] border-transparent ${isTop ? 'top-full border-t-slate-900/98' : 'bottom-full border-b-slate-900/98'}`}></div>

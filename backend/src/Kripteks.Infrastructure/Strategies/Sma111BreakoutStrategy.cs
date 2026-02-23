@@ -89,6 +89,9 @@ public class Sma111BreakoutStrategy : BaseStrategy
         var triggeredMas = new List<string>();
         decimal lastPrice = candles.Last().Close;
 
+        int closedCandleIndex = candles.Count - 2;
+        decimal closedPrice = candles[closedCandleIndex].Close;
+
         foreach (var ma in enabledMas)
         {
             List<decimal?> maValues = ma.IsEma
@@ -96,16 +99,18 @@ public class Sma111BreakoutStrategy : BaseStrategy
                 : TechnicalIndicators.CalculateSma(prices, ma.Period);
 
             var currentMa = maValues.Last();
-            if (currentMa == null) continue;
+            var closedMa = maValues[closedCandleIndex];
 
-            var targetValue = currentMa.Value * ma.Multiplier;
+            if (currentMa == null || closedMa == null) continue;
 
-            indicators[ma.Name] = targetValue;
+            var closedTargetValue = closedMa.Value * ma.Multiplier;
 
-            if (lastPrice > targetValue)
+            indicators[ma.Name] = currentMa.Value * ma.Multiplier;
+
+            if (closedPrice > closedTargetValue)
             {
                 // To match scoring rule, verify it actually broke out and is not just a long time trend
-                // but for simple signal generation, we just state it is above.
+                // but for simple signal generation, we just state it is above based on the closed candle.
                 triggeredMas.Add(ma.Name);
             }
         }
@@ -113,7 +118,8 @@ public class Sma111BreakoutStrategy : BaseStrategy
         TradeAction action = TradeAction.None;
         string message = string.Empty;
 
-        if (triggeredMas.Any())
+        // Tüm seçili hareketli ortalamaların üzerinde mi? (AND mantığı)
+        if (triggeredMas.Count == enabledMas.Count)
         {
             if (currentPositionAmount == 0)
             {
@@ -131,7 +137,7 @@ public class Sma111BreakoutStrategy : BaseStrategy
             if (currentPositionAmount > 0)
             {
                 action = TradeAction.Sell;
-                message = "Fiyat tüm seçili göstergelerin altında.";
+                message = "Fiyat seçili göstergelerin tamamının üzerinde değil.";
             }
         }
 
@@ -151,11 +157,12 @@ public class Sma111BreakoutStrategy : BaseStrategy
         if (!enabledMas.Any()) return 0;
 
         int maxPeriod = enabledMas.Max(m => m.Period);
-        if (candles.Count < maxPeriod + 1) return 0;
+        if (candles.Count < maxPeriod + 2) return 0;
 
         var prices = candles.Select(c => c.Close).ToList();
 
-        decimal maxScore = 0;
+        decimal totalScore = 0;
+        int closedCandleIndex = candles.Count - 2;
 
         foreach (var ma in enabledMas)
         {
@@ -163,22 +170,29 @@ public class Sma111BreakoutStrategy : BaseStrategy
                 ? TechnicalIndicators.CalculateEma(prices, ma.Period)
                 : TechnicalIndicators.CalculateSma(prices, ma.Period);
 
-            var currentMa = maValues.Last();
-            var lastPrice = candles.Last().Close;
+            var closedMa = maValues[closedCandleIndex];
+            var closedPrice = candles[closedCandleIndex].Close;
 
-            if (currentMa == null) continue;
+            if (closedMa == null) continue;
 
-            var targetValue = currentMa.Value * ma.Multiplier;
+            var targetValue = closedMa.Value * ma.Multiplier;
 
-            if (lastPrice < targetValue) continue;
+            if (closedPrice < targetValue)
+            {
+                // Eğer seçilen MA'lardan herhangi birisi KAPANMIŞ mumda kırılmamışsa direkt 0 döner (AND mantığı)
+                return 0;
+            }
 
-            // Trend is UP for this line. Find when it broke out.
+            // Trend is UP for this line. Find when the REAL breakout occurred.
+            // We ignore temporary dips (less than 3 candles below the MA).
             int candlesSinceBreakout = 0;
             bool foundBreakout = false;
+            int consecutiveBelow = 0;
+            int lastAboveIndex = closedCandleIndex;
 
             // Scan backwards
-            // We start checking from the previous candle (count - 2)
-            for (int i = candles.Count - 2; i >= maxPeriod - 1; i--)
+            // We start checking from the candle before the closed one (closedCandleIndex - 1)
+            for (int i = closedCandleIndex - 1; i >= maxPeriod - 1; i--)
             {
                 if (i >= maValues.Count) break;
 
@@ -191,15 +205,29 @@ public class Sma111BreakoutStrategy : BaseStrategy
 
                 if (oldPrice < oldTargetValue)
                 {
-                    // Found the breakout candle! (Previously below)
-                    foundBreakout = true;
-                    break;
+                    consecutiveBelow++;
+                    // Require at least 3 consecutive closes below the MA to consider the previous trend broken.
+                    // This prevents whipsaws (1 or 2 day dips) from resetting the breakout score to 100.
+                    if (consecutiveBelow >= 3)
+                    {
+                        foundBreakout = true;
+                        candlesSinceBreakout = closedCandleIndex - lastAboveIndex;
+                        break;
+                    }
                 }
-
-                candlesSinceBreakout++;
+                else
+                {
+                    consecutiveBelow = 0;
+                    lastAboveIndex = i;
+                }
             }
 
-            // If it never went below in the available history, consider it an established trend
+            if (!foundBreakout)
+            {
+                // It was always above in the scanned range (or at least never dropped below for 3+ candles)
+                candlesSinceBreakout = closedCandleIndex - lastAboveIndex;
+            }
+
             decimal score = 100;
             if (foundBreakout)
             {
@@ -209,13 +237,17 @@ public class Sma111BreakoutStrategy : BaseStrategy
             }
             else
             {
-                // It was always above in the scanned range; give it a solid trend score
-                score = 70;
+                // Established trend, but giving it a decreasing score based on how long it's been above
+                score = 100 - Math.Min(candlesSinceBreakout, 15) * 2;
+                if (score < 40)
+                    score = 40; // Floor so established trends aren't completely killed, but lower than fresh ones
             }
 
-            if (score > maxScore) maxScore = score;
+            totalScore += score;
         }
 
-        return Math.Max(maxScore, 0);
+        // Tüm ortalamaların skorlarının ortalamasını al
+        decimal avgScore = totalScore / enabledMas.Count;
+        return Math.Max(avgScore, 0);
     }
 }

@@ -59,6 +59,16 @@ export default function ScannerDashboard() {
     const [isQuickBuyOpen, setIsQuickBuyOpen] = useState(false);
     const [quickBuyItem, setQuickBuyItem] = useState<ScannerResultItem | null>(null);
 
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+    const resultsRef = React.useRef<HTMLDivElement>(null);
+
+    const handlePageChange = (newPage: number) => {
+        setCurrentPage(newPage);
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
     // Auto Scan States
     const [autoScanInterval, setAutoScanInterval] = useState<number>(0);
     const [nextScanTime, setNextScanTime] = useState<Date | null>(null);
@@ -149,7 +159,10 @@ export default function ScannerDashboard() {
 
         if (!isAuto) setLoading(true);
         // Silent loading için sonuçları temizlemiyoruz
-        if (!isAuto) setResults([]);
+        if (!isAuto) {
+            setResults([]);
+            setCurrentPage(1); // Reset page on new scan
+        }
 
         // Sekme başlığını güncelle
         const originalTitle = document.title;
@@ -260,6 +273,14 @@ export default function ScannerDashboard() {
         });
     }, [results, minScore]);
 
+    // Apply pagination
+    const totalPages = Math.ceil(displayResults.length / itemsPerPage);
+    const paginatedResults = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        return displayResults.slice(start, end);
+    }, [displayResults, currentPage]);
+
     if (isInitialLoading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
@@ -276,7 +297,7 @@ export default function ScannerDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Sol Panel - Kontroller */}
                 <div className="lg:col-span-4">
-                    <div className="glass-card p-6 rounded-3xl border border-white/10 space-y-6 sticky top-24">
+                    <div className="glass-card p-6 rounded-3xl border border-white/10 space-y-6">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-primary/10 rounded-xl text-primary border border-primary/20">
@@ -556,11 +577,10 @@ export default function ScannerDashboard() {
                                             <motion.div
                                                 initial={{ height: 0, opacity: 0 }}
                                                 animate={{ height: "auto", opacity: 1 }}
-                                                exit={{ height: 0, opacity: 0 }}
-                                                className="overflow-hidden space-y-3"
+                                                className="space-y-3"
                                             >
                                                 {/* MA Child Accordion */}
-                                                <div className="bg-slate-900/50 rounded-xl border border-white/5 overflow-hidden">
+                                                <div className="bg-slate-900/50 rounded-xl border border-white/5 relative z-50">
                                                     <div className="flex items-center justify-between px-3 hover:bg-white/5 transition-colors">
                                                         <button
                                                             onClick={() => setIsMaSettingsOpen(!isMaSettingsOpen)}
@@ -601,16 +621,16 @@ export default function ScannerDashboard() {
                                                                 initial={{ height: 0 }}
                                                                 animate={{ height: "auto" }}
                                                                 exit={{ height: 0 }}
-                                                                className="overflow-hidden px-3 pb-3"
+                                                                className="px-3 pb-3"
                                                             >
-                                                                <div className="grid grid-cols-2 gap-2 mt-1">
+                                                                <div className="grid grid-cols-2 gap-2 mt-1 relative z-50">
                                                                     {[
-                                                                        { id: "use_sma13", label: "SMA 13" },
-                                                                        { id: "use_ema21", label: "EMA 21" },
-                                                                        { id: "use_sma50", label: "SMA 50" },
-                                                                        { id: "use_sma111", label: "SMA 111" },
-                                                                        { id: "use_sma200", label: "SMA 200" },
-                                                                        { id: "use_sma350", label: "SMA 350" }
+                                                                        { id: "use_sma13", label: "SMA 13", title: "Kısa vadeli trendi belirler. Hızlı hareket eder, ani fiyat değişimlerine duyarlıdır." },
+                                                                        { id: "use_ema21", label: "EMA 21", title: "Dinamik kısa vadeli destek/direnç noktasıdır. Son fiyat hareketlerine daha çok ağırlık verir." },
+                                                                        { id: "use_sma50", label: "SMA 50", title: "Orta vadeli ana trend göstergesidir. Kurumsal yatırımcılar tarafından sıkça takip edilir." },
+                                                                        { id: "use_sma111", label: "SMA 111", title: "Orta-Uzun vadeli önemli bir trend dönüş göstergesi ve Golden Ratio stratejisinin kilit ortalamalarındandır." },
+                                                                        { id: "use_sma200", label: "SMA 200", title: "Uzun vadeli küresel piyasa trend göstergesidir. Fiyatın 200 günlük ortalamanın neresinde olduğu piyasa yönünü belirler." },
+                                                                        { id: "use_sma350", label: "SMA 350", title: "Çok uzun vadeli devirsel (cycle) ortalamadır. Büyük piyasa döngülerinin dip ve tepe noktalarını belirlemede kullanılır." }
                                                                     ].map((ma) => (
                                                                         <button
                                                                             key={ma.id}
@@ -620,12 +640,15 @@ export default function ScannerDashboard() {
                                                                                     [ma.id]: !prev[ma.id as keyof typeof selectedMas]
                                                                                 }));
                                                                             }}
-                                                                            className={`px-3 py-2 rounded-xl text-[10px] font-bold transition-all border ${selectedMas[ma.id as keyof typeof selectedMas]
+                                                                            className={`px-3 py-2 rounded-xl text-[10px] font-bold transition-all border flex items-center justify-center gap-1.5 ${selectedMas[ma.id as keyof typeof selectedMas]
                                                                                 ? "bg-primary/20 text-primary border-primary/30"
                                                                                 : "bg-slate-950/40 text-slate-500 border-white/5 hover:bg-white/5"
                                                                                 }`}
                                                                         >
-                                                                            {ma.label}
+                                                                            <span>{ma.label}</span>
+                                                                            <div onClick={(e) => e.stopPropagation()}>
+                                                                                <InfoTooltip text={ma.title} />
+                                                                            </div>
                                                                         </button>
                                                                     ))}
                                                                 </div>
@@ -635,7 +658,7 @@ export default function ScannerDashboard() {
                                                 </div>
 
                                                 {/* Multipliers Child Accordion */}
-                                                <div className="bg-slate-900/50 rounded-xl border border-white/5 overflow-hidden">
+                                                <div className="bg-slate-900/50 rounded-xl border border-white/5 relative z-40">
                                                     <div className="flex items-center justify-between px-3 hover:bg-white/5 transition-colors">
                                                         <button
                                                             onClick={() => setIsMultiplierSettingsOpen(!isMultiplierSettingsOpen)}
@@ -678,18 +701,18 @@ export default function ScannerDashboard() {
                                                                 initial={{ height: 0 }}
                                                                 animate={{ height: "auto" }}
                                                                 exit={{ height: 0 }}
-                                                                className="overflow-hidden px-3 pb-3"
+                                                                className="px-3 pb-3"
                                                             >
-                                                                <div className="grid grid-cols-2 gap-2 mt-1">
+                                                                <div className="grid grid-cols-2 gap-2 mt-1 relative z-50">
                                                                     {[
-                                                                        { id: "use_sma350x0702", label: "SMA 350 x 0.702" },
-                                                                        { id: "use_sma350x1618", label: "SMA 350 x 1.618 (Golden)" },
-                                                                        { id: "use_sma350x2", label: "SMA 350 x 2" },
-                                                                        { id: "use_sma350x3", label: "SMA 350 x 3" },
-                                                                        { id: "use_sma350x5", label: "SMA 350 x 5" },
-                                                                        { id: "use_sma350x8", label: "SMA 350 x 8" },
-                                                                        { id: "use_sma350x13", label: "SMA 350 x 13" },
-                                                                        { id: "use_sma350x21", label: "SMA 350 x 21" }
+                                                                        { id: "use_sma350x0702", label: "SMA 350 x 0.702", title: "Pi döngüsüne (Pi Cycle) dayalı alt bant veya orta vade dip seviyesi olarak kullanılır." },
+                                                                        { id: "use_sma350x1618", label: "SMA 350 x 1.618 (Golden)", title: "Fibonacci Altın Oran (Golden Ratio) sabitiyle hesaplanan en önemli tepe/direnç noktasıdır." },
+                                                                        { id: "use_sma350x2", label: "SMA 350 x 2", title: "Boğa piyasalarında güçlü direnç veya tepe hedeflerini belirler. Fibonacci diziliminde kullanılır." },
+                                                                        { id: "use_sma350x3", label: "SMA 350 x 3", title: "Daha uzun vadeli hedefleri belirler. (Fibonacci dizilimi: 1, 2, 3, 5, 8, 13, 21)" },
+                                                                        { id: "use_sma350x5", label: "SMA 350 x 5", title: "Çok ekstrem boğa döngülerinde (Mega Bull) potansiyel parabolik tepe noktalarını işaret eder." },
+                                                                        { id: "use_sma350x8", label: "SMA 350 x 8", title: "Geçmişteki devasa kripto rallilerinde görülen tarihi direnç/tepe katmanlarından biridir." },
+                                                                        { id: "use_sma350x13", label: "SMA 350 x 13", title: "Süper döngülerin (Super Cycle) en üst sınırlarını işaret eden uç ve nadir ulaşılan hedeftir." },
+                                                                        { id: "use_sma350x21", label: "SMA 350 x 21", title: "Matematiksel olarak mümkün en üst sınırlardan biridir. Sadece efsanevi rallilerde görülmüştür." }
                                                                     ].map((ma) => (
                                                                         <button
                                                                             key={ma.id}
@@ -699,12 +722,15 @@ export default function ScannerDashboard() {
                                                                                     [ma.id]: !prev[ma.id as keyof typeof selectedMas]
                                                                                 }));
                                                                             }}
-                                                                            className={`px-3 py-2 rounded-xl text-[10px] font-bold transition-all border ${selectedMas[ma.id as keyof typeof selectedMas]
+                                                                            className={`px-3 py-2 rounded-xl text-[10px] font-bold transition-all border flex items-center justify-center gap-1.5 ${selectedMas[ma.id as keyof typeof selectedMas]
                                                                                 ? "bg-primary/20 text-primary border-primary/30"
                                                                                 : "bg-slate-950/40 text-slate-500 border-white/5 hover:bg-white/5"
                                                                                 }`}
                                                                         >
-                                                                            {ma.label}
+                                                                            <span>{ma.label}</span>
+                                                                            <div onClick={(e) => e.stopPropagation()}>
+                                                                                <InfoTooltip text={ma.title} />
+                                                                            </div>
                                                                         </button>
                                                                     ))}
                                                                 </div>
@@ -790,7 +816,7 @@ export default function ScannerDashboard() {
                                     </div>
                                 </div>
                             ) : displayResults.length > 0 ? (
-                                <div className="space-y-6">
+                                <div className="space-y-6" ref={resultsRef}>
                                     {/* Strateji Açıklama Kutusu */}
                                     <motion.div
                                         initial={{ opacity: 0, y: -10 }}
@@ -812,7 +838,7 @@ export default function ScannerDashboard() {
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <AnimatePresence mode="popLayout">
-                                            {displayResults.map((item, idx) => {
+                                            {paginatedResults.map((item, idx) => {
                                                 const res = {
                                                     symbol: item.symbol || (item as any).Symbol,
                                                     signalScore: item.signalScore ?? (item as any).SignalScore ?? 0,
@@ -925,6 +951,40 @@ export default function ScannerDashboard() {
                                             })}
                                         </AnimatePresence>
                                     </div>
+
+                                    {/* Pagination Controls */}
+                                    {totalPages > 1 && (
+                                        <div className="flex justify-center items-center gap-2 pt-6">
+                                            <button
+                                                onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                                                disabled={currentPage === 1}
+                                                className="px-4 py-2 rounded-xl bg-slate-900 border border-white/10 text-slate-300 font-bold text-xs hover:bg-white/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                Önceki
+                                            </button>
+                                            <div className="flex gap-1">
+                                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                                    <button
+                                                        key={page}
+                                                        onClick={() => handlePageChange(page)}
+                                                        className={`w-8 h-8 rounded-xl font-bold text-xs flex items-center justify-center transition-all ${currentPage === page
+                                                            ? "bg-primary text-slate-900 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+                                                            : "bg-slate-900 border border-white/10 text-slate-400 hover:bg-white/5 hover:text-white"
+                                                            }`}
+                                                    >
+                                                        {page}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <button
+                                                onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                                                disabled={currentPage === totalPages}
+                                                className="px-4 py-2 rounded-xl bg-slate-900 border border-white/10 text-slate-300 font-bold text-xs hover:bg-white/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                Sonraki
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-20 opacity-40">
