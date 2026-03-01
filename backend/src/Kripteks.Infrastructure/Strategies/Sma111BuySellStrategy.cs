@@ -26,8 +26,8 @@ public class Sma111BuySellStrategy : BaseStrategy
     protected override StrategyResult OnAnalyze(List<Candle> candles, decimal currentBalance,
         decimal currentPositionAmount, decimal entryPrice, int currentStep)
     {
-        // Yeterli veri kontrolü (en az SMA111 period + 1 mum gerekli ki bir önceki mumu kontrol edebilelim)
-        if (candles.Count < Sma111Period + 1)
+        // Yeterli veri kontrolü (en az SMA111 period + 4 mum gerekli ki geçmiş mumları kontrol edebilelim)
+        if (candles.Count < Sma111Period + 4)
         {
             return new StrategyResult { Action = TradeAction.None, Description = "Yetersiz veri." };
         }
@@ -63,14 +63,40 @@ public class Sma111BuySellStrategy : BaseStrategy
         }
 
         // Sinyal Mantığı: State Check yerine Crossover Check (Whipsaw önlemek için)
-        // Kullanıcı talebi: "Tek işlem yapması lazım", yani sürekli gir-çık yapmamalı.
-        // Bu yüzden sadece kesişim anında işlem açıyoruz.
+        // Ancak tarayıcıdan "Hızlı Al" yapıldığında kapanmış mumun kırılımını da yakalamak için
+        // son 3 mum içerisindeki kırılımları geçerli sayıyoruz.
 
         TradeAction action = TradeAction.None;
         string message = string.Empty;
 
-        bool isBullishCross = prevCandle.Close <= prevSma111.Value && lastCandle.Close > currentSma111.Value;
-        bool isBearishCross = prevCandle.Close >= prevSma111.Value && lastCandle.Close < currentSma111.Value;
+        var prevPrevCandle = candles[candles.Count - 3];
+        var prevPrevSma111 = sma111Values[sma111Values.Count - 3];
+        var prev3Candle = candles[candles.Count - 4];
+        var prev3Sma111 = sma111Values[sma111Values.Count - 4];
+
+        // Veri Validasyonu
+        if (currentSma111 == null || prevSma111 == null || currentSma350 == null || prevPrevSma111 == null ||
+            prev3Sma111 == null)
+        {
+            return new StrategyResult { Action = TradeAction.None, Description = "Yetersiz SMA verisi." };
+        }
+
+        // AL Sinyali Kontrolleri
+        bool isCurrentBullishCross = prevCandle.Close <= prevSma111.Value && lastCandle.Close > currentSma111.Value;
+        bool isRecentBullishCross1 = prevPrevCandle.Close <= prevPrevSma111.Value &&
+                                     prevCandle.Close > prevSma111.Value && lastCandle.Close > currentSma111.Value;
+        bool isRecentBullishCross2 = prev3Candle.Close <= prev3Sma111.Value &&
+                                     prevPrevCandle.Close > prevPrevSma111.Value &&
+                                     prevCandle.Close > prevSma111.Value && lastCandle.Close > currentSma111.Value;
+
+        bool isBullishCross = isCurrentBullishCross || isRecentBullishCross1 || isRecentBullishCross2;
+
+        // SAT Sinyali Kontrolleri (Satış için anlık veya 1 önceki kapanış yeterli)
+        bool isCurrentBearishCross = prevCandle.Close >= prevSma111.Value && lastCandle.Close < currentSma111.Value;
+        bool isRecentBearishCross1 = prevPrevCandle.Close >= prevPrevSma111.Value &&
+                                     prevCandle.Close < prevSma111.Value && lastCandle.Close < currentSma111.Value;
+
+        bool isBearishCross = isCurrentBearishCross || isRecentBearishCross1;
 
         // Pozisyon Yönetimi ve Sinyal Üretimi
         if (currentPositionAmount == 0)

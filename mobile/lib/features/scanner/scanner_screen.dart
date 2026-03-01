@@ -38,7 +38,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
   int _currentPage = 1;
   final int _itemsPerPage = 10;
 
-  Map<String, bool> _selectedMas = {
+  final Map<String, bool> _selectedMas = {
     'use_sma13': false,
     'use_ema21': false,
     'use_sma50': false,
